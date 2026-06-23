@@ -87,6 +87,10 @@ Network-related changes require server/client verification notes. Mass-related c
 
 Manual inspection is useful, but it is not the same as runtime verification.
 
+## Workflow Smoke Test
+
+README smoke task validates the branch, pull request, and merge workflow before Mass implementation begins.
+
 ## Target Completion Date
 
 `2026-07-31`
