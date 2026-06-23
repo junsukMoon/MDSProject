@@ -8,6 +8,22 @@ These commands are written as reusable prompts that the user can give to Codex. 
 
 Unless the user explicitly requests otherwise, Codex should answer in Korean.
 
+## Approval Chain Rule
+
+When the user approves an Orchestrator plan, that approval allows Codex to continue through Execute, Learning Review, and PR Preparation for the approved task scope.
+
+This chained approval applies only while all of the following remain true:
+
+- The task objective is unchanged.
+- The branch matches the approved task.
+- Changed files stay within the approved scope.
+- Verification follows the approved plan.
+- The PR is prepared for review, not merged.
+
+If Codex needs to expand scope, modify unapproved files, change the task objective, or skip required verification, Codex must stop and ask for additional approval.
+
+Merge is never included in Orchestrator approval. Merge requires a separate explicit user approval for the specific PR.
+
 ## Orchestrator Command
 
 Use this command to select and scope the next task before implementation.
@@ -236,6 +252,7 @@ Safety rules:
 - Each task branch must map to one task from `Docs/03_MVP_Task_Breakdown.md`.
 - Codex must inspect relevant files before proposing a plan.
 - Codex must wait for explicit user approval before modifying files.
+- After Orchestrator approval, Codex may continue through Execute, Learning Review, and PR Preparation for the approved scope.
 - Codex must modify only approved files.
 - Codex must stop and ask for approval if scope expansion is required.
 - Codex must not claim unrun tests passed.
