@@ -18,6 +18,8 @@ public class MDSProject : ModuleRules
 			"NavigationSystem",
 			"StateTreeModule",
 			"GameplayStateTreeModule",
+			"MassEntity",
+			"MassSpawner",
 			"Niagara",
 			"UMG",
 			"Slate"
