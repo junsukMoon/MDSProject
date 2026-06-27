@@ -23,6 +23,7 @@ private:
 	static constexpr float SpawnDebugThickness = 6.0f;
 	static constexpr float MovementTargetOffset = 1200.0f;
 	static constexpr float MovementSpeed = 320.0f;
+	static constexpr float ArrivalDistance = 75.0f;
 
 	static FVector CalculateSpawnLocation(const FVector& SpawnOrigin, int32 SpawnIndex);
 	static FVector CalculateMovementTargetLocation(const FVector& SpawnOrigin);

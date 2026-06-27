@@ -36,3 +36,15 @@ struct MDSPROJECT_API FMDSMassMovementFragment : public FMassFragment
 	UPROPERTY()
 	float MoveSpeed = 250.0f;
 };
+
+USTRUCT()
+struct MDSPROJECT_API FMDSMassArrivalFragment : public FMassFragment
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	float ArrivalDistance = 75.0f;
+
+	UPROPERTY()
+	bool bHasArrived = false;
+};
