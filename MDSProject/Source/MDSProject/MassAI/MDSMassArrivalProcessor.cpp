@@ -64,6 +64,7 @@ void UMDSMassArrivalProcessor::Execute(FMassEntityManager& EntityManager, FMassE
 			{
 				ArrivalFragment.bHasArrived = true;
 				++NewArrivalCount;
+				DrawDebugSphere(World, MovementFragment.CurrentLocation, 55.0f, 12, FColor::Cyan, false, 5.0f, 0, 5.0f);
 			}
 
 			if (ArrivalFragment.bHasArrived)
@@ -77,8 +78,6 @@ void UMDSMassArrivalProcessor::Execute(FMassEntityManager& EntityManager, FMassE
 						++ObjectiveDamageCount;
 					}
 				}
-
-				DrawDebugSphere(World, MovementFragment.CurrentLocation, 55.0f, 12, FColor::Cyan, false, 5.0f, 0, 5.0f);
 			}
 		}
 	});
