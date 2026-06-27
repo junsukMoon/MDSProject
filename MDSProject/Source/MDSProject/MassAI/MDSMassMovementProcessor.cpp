@@ -19,6 +19,7 @@ void UMDSMassMovementProcessor::ConfigureQueries(const TSharedRef<FMassEntityMan
 	EntityQuery.AddTagRequirement<FMDSMassEnemyTag>(EMassFragmentPresence::All);
 	EntityQuery.AddRequirement<FMDSMassSpawnFragment>(EMassFragmentAccess::ReadOnly);
 	EntityQuery.AddRequirement<FMDSMassMovementFragment>(EMassFragmentAccess::ReadWrite);
+	EntityQuery.AddRequirement<FMDSMassArrivalFragment>(EMassFragmentAccess::ReadOnly);
 	EntityQuery.RequireMutatingWorldAccess();
 }
 
@@ -36,9 +37,16 @@ void UMDSMassMovementProcessor::Execute(FMassEntityManager& EntityManager, FMass
 	EntityQuery.ForEachEntityChunk(Context, [World, DeltaTimeSeconds, &MovedEntityCount](FMassExecutionContext& Context)
 	{
 		TArrayView<FMDSMassMovementFragment> MovementFragments = Context.GetMutableFragmentView<FMDSMassMovementFragment>();
+		TConstArrayView<FMDSMassArrivalFragment> ArrivalFragments = Context.GetFragmentView<FMDSMassArrivalFragment>();
 
-		for (FMDSMassMovementFragment& MovementFragment : MovementFragments)
+		for (FMassExecutionContext::FEntityIterator EntityIt = Context.CreateEntityIterator(); EntityIt; ++EntityIt)
 		{
+			if (ArrivalFragments[EntityIt].bHasArrived)
+			{
+				continue;
+			}
+
+			FMDSMassMovementFragment& MovementFragment = MovementFragments[EntityIt];
 			const FVector ToTarget = MovementFragment.TargetLocation - MovementFragment.CurrentLocation;
 			const float MaxStep = MovementFragment.MoveSpeed * DeltaTimeSeconds;
 

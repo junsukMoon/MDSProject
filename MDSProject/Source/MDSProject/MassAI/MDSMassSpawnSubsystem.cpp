@@ -53,7 +53,8 @@ void UMDSMassSpawnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	const TArray<const UScriptStruct*> EntityComposition = {
 		FMDSMassEnemyTag::StaticStruct(),
 		FMDSMassSpawnFragment::StaticStruct(),
-		FMDSMassMovementFragment::StaticStruct()
+		FMDSMassMovementFragment::StaticStruct(),
+		FMDSMassArrivalFragment::StaticStruct()
 	};
 
 	const FMassArchetypeHandle EnemyArchetype = EntityManager.CreateArchetype(EntityComposition);
@@ -91,8 +92,14 @@ void UMDSMassSpawnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 			MovementFragment->MoveSpeed = MovementSpeed;
 		}
 
+		if (FMDSMassArrivalFragment* ArrivalFragment = EntityManager.GetFragmentDataPtr<FMDSMassArrivalFragment>(SpawnedEntities[EntityIndex]))
+		{
+			ArrivalFragment->ArrivalDistance = ArrivalDistance;
+			ArrivalFragment->bHasArrived = false;
+		}
+
 		DrawDebugSphere(&InWorld, SpawnLocation, SpawnDebugRadius, 16, FColor::Green, false, SpawnDebugLifetime, 0, SpawnDebugThickness);
 	}
 
-	UE_LOG(LogMDSMassSpawn, Log, TEXT("Mass movement-only probe initialized %d entities near %s moving toward %s."), SpawnedEntityCount, *SpawnOrigin.ToCompactString(), *MovementTargetLocation.ToCompactString());
+	UE_LOG(LogMDSMassSpawn, Log, TEXT("Mass arrival-only probe initialized %d entities near %s moving toward %s."), SpawnedEntityCount, *SpawnOrigin.ToCompactString(), *MovementTargetLocation.ToCompactString());
 }
