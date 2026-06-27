@@ -22,6 +22,11 @@ FVector UMDSMassSpawnSubsystem::CalculateSpawnLocation(const FVector& SpawnOrigi
 		120.0f);
 }
 
+FVector UMDSMassSpawnSubsystem::CalculateMovementTargetLocation(const FVector& SpawnOrigin)
+{
+	return SpawnOrigin + FVector(MovementTargetOffset, 0.0f, 120.0f);
+}
+
 void UMDSMassSpawnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 {
 	Super::OnWorldBeginPlay(InWorld);
@@ -47,7 +52,8 @@ void UMDSMassSpawnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	FMassEntityManager& EntityManager = EntitySubsystem->GetMutableEntityManager();
 	const TArray<const UScriptStruct*> EntityComposition = {
 		FMDSMassEnemyTag::StaticStruct(),
-		FMDSMassSpawnFragment::StaticStruct()
+		FMDSMassSpawnFragment::StaticStruct(),
+		FMDSMassMovementFragment::StaticStruct()
 	};
 
 	const FMassArchetypeHandle EnemyArchetype = EntityManager.CreateArchetype(EntityComposition);
@@ -65,6 +71,9 @@ void UMDSMassSpawnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 		break;
 	}
 
+	const FVector MovementTargetLocation = CalculateMovementTargetLocation(SpawnOrigin);
+	DrawDebugSphere(&InWorld, MovementTargetLocation, SpawnDebugRadius, 16, FColor::Red, false, SpawnDebugLifetime, 0, SpawnDebugThickness);
+
 	for (int32 EntityIndex = 0; EntityIndex < SpawnedEntities.Num(); ++EntityIndex)
 	{
 		const FVector SpawnLocation = CalculateSpawnLocation(SpawnOrigin, EntityIndex);
@@ -75,8 +84,15 @@ void UMDSMassSpawnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 			SpawnFragment->SpawnLocation = SpawnLocation;
 		}
 
+		if (FMDSMassMovementFragment* MovementFragment = EntityManager.GetFragmentDataPtr<FMDSMassMovementFragment>(SpawnedEntities[EntityIndex]))
+		{
+			MovementFragment->CurrentLocation = SpawnLocation;
+			MovementFragment->TargetLocation = MovementTargetLocation;
+			MovementFragment->MoveSpeed = MovementSpeed;
+		}
+
 		DrawDebugSphere(&InWorld, SpawnLocation, SpawnDebugRadius, 16, FColor::Green, false, SpawnDebugLifetime, 0, SpawnDebugThickness);
 	}
 
-	UE_LOG(LogMDSMassSpawn, Log, TEXT("Mass spawn-only probe created %d entities with debug markers near %s."), SpawnedEntityCount, *SpawnOrigin.ToCompactString());
+	UE_LOG(LogMDSMassSpawn, Log, TEXT("Mass movement-only probe initialized %d entities near %s moving toward %s."), SpawnedEntityCount, *SpawnOrigin.ToCompactString(), *MovementTargetLocation.ToCompactString());
 }

@@ -21,3 +21,18 @@ struct MDSPROJECT_API FMDSMassSpawnFragment : public FMassFragment
 	UPROPERTY()
 	FVector SpawnLocation = FVector::ZeroVector;
 };
+
+USTRUCT()
+struct MDSPROJECT_API FMDSMassMovementFragment : public FMassFragment
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FVector CurrentLocation = FVector::ZeroVector;
+
+	UPROPERTY()
+	FVector TargetLocation = FVector::ZeroVector;
+
+	UPROPERTY()
+	float MoveSpeed = 250.0f;
+};
