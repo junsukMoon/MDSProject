@@ -7,6 +7,7 @@
 #include "MassArchetypeTypes.h"
 #include "MassEntityManager.h"
 #include "MassEntitySubsystem.h"
+#include "Objective/MDSObjectiveActor.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMDSMassSpawn, Log, All);
 
@@ -73,7 +74,23 @@ void UMDSMassSpawnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	}
 
 	const FVector MovementTargetLocation = CalculateMovementTargetLocation(SpawnOrigin);
-	DrawDebugSphere(&InWorld, MovementTargetLocation, SpawnDebugRadius, 16, FColor::Red, false, SpawnDebugLifetime, 0, SpawnDebugThickness);
+	AMDSObjectiveActor* ObjectiveActor = nullptr;
+	for (TActorIterator<AMDSObjectiveActor> ObjectiveIt(&InWorld); ObjectiveIt; ++ObjectiveIt)
+	{
+		ObjectiveActor = *ObjectiveIt;
+		break;
+	}
+
+	if (!ObjectiveActor)
+	{
+		FActorSpawnParameters SpawnParameters;
+		SpawnParameters.Name = TEXT("MDS_MassObjectiveProbe");
+		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		ObjectiveActor = InWorld.SpawnActor<AMDSObjectiveActor>(MovementTargetLocation, FRotator::ZeroRotator, SpawnParameters);
+	}
+
+	const FVector ObjectiveLocation = ObjectiveActor ? ObjectiveActor->GetActorLocation() : MovementTargetLocation;
+	DrawDebugSphere(&InWorld, ObjectiveLocation, SpawnDebugRadius, 16, FColor::Red, false, SpawnDebugLifetime, 0, SpawnDebugThickness);
 
 	for (int32 EntityIndex = 0; EntityIndex < SpawnedEntities.Num(); ++EntityIndex)
 	{
@@ -88,18 +105,20 @@ void UMDSMassSpawnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 		if (FMDSMassMovementFragment* MovementFragment = EntityManager.GetFragmentDataPtr<FMDSMassMovementFragment>(SpawnedEntities[EntityIndex]))
 		{
 			MovementFragment->CurrentLocation = SpawnLocation;
-			MovementFragment->TargetLocation = MovementTargetLocation;
+			MovementFragment->TargetLocation = ObjectiveLocation;
 			MovementFragment->MoveSpeed = MovementSpeed;
 		}
 
 		if (FMDSMassArrivalFragment* ArrivalFragment = EntityManager.GetFragmentDataPtr<FMDSMassArrivalFragment>(SpawnedEntities[EntityIndex]))
 		{
 			ArrivalFragment->ArrivalDistance = ArrivalDistance;
+			ArrivalFragment->ObjectiveDamageAmount = ObjectiveDamagePerArrival;
 			ArrivalFragment->bHasArrived = false;
+			ArrivalFragment->bHasAppliedObjectiveDamage = false;
 		}
 
 		DrawDebugSphere(&InWorld, SpawnLocation, SpawnDebugRadius, 16, FColor::Green, false, SpawnDebugLifetime, 0, SpawnDebugThickness);
 	}
 
-	UE_LOG(LogMDSMassSpawn, Log, TEXT("Mass arrival-only probe initialized %d entities near %s moving toward %s."), SpawnedEntityCount, *SpawnOrigin.ToCompactString(), *MovementTargetLocation.ToCompactString());
+	UE_LOG(LogMDSMassSpawn, Log, TEXT("Mass objective-damage probe initialized %d entities near %s moving toward objective at %s. Damage per arrival: %.1f."), SpawnedEntityCount, *SpawnOrigin.ToCompactString(), *ObjectiveLocation.ToCompactString(), ObjectiveDamagePerArrival);
 }

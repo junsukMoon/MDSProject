@@ -1,8 +1,10 @@
 #include "MassAI/MDSMassArrivalProcessor.h"
 
 #include "DrawDebugHelpers.h"
+#include "EngineUtils.h"
 #include "MassAI/MDSMassEnemyFragments.h"
 #include "MassExecutionContext.h"
+#include "Objective/MDSObjectiveActor.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMDSMassArrival, Log, All);
 
@@ -32,9 +34,20 @@ void UMDSMassArrivalProcessor::Execute(FMassEntityManager& EntityManager, FMassE
 
 	int32 NewArrivalCount = 0;
 	int32 TotalArrivalCount = 0;
+	int32 ObjectiveDamageCount = 0;
 	int32 CheckedEntityCount = 0;
+	AMDSObjectiveActor* ObjectiveActor = CachedObjectiveActor.Get();
+	if (!ObjectiveActor)
+	{
+		for (TActorIterator<AMDSObjectiveActor> ObjectiveIt(World); ObjectiveIt; ++ObjectiveIt)
+		{
+			ObjectiveActor = *ObjectiveIt;
+			CachedObjectiveActor = ObjectiveActor;
+			break;
+		}
+	}
 
-	EntityQuery.ForEachEntityChunk(Context, [World, &NewArrivalCount, &TotalArrivalCount, &CheckedEntityCount](FMassExecutionContext& Context)
+	EntityQuery.ForEachEntityChunk(Context, [World, ObjectiveActor, &NewArrivalCount, &TotalArrivalCount, &ObjectiveDamageCount, &CheckedEntityCount](FMassExecutionContext& Context)
 	{
 		TConstArrayView<FMDSMassMovementFragment> MovementFragments = Context.GetFragmentView<FMDSMassMovementFragment>();
 		TArrayView<FMDSMassArrivalFragment> ArrivalFragments = Context.GetMutableFragmentView<FMDSMassArrivalFragment>();
@@ -56,12 +69,26 @@ void UMDSMassArrivalProcessor::Execute(FMassEntityManager& EntityManager, FMassE
 			if (ArrivalFragment.bHasArrived)
 			{
 				++TotalArrivalCount;
+				if (!ArrivalFragment.bHasAppliedObjectiveDamage && ObjectiveActor)
+				{
+					if (ObjectiveActor->ApplyObjectiveDamage(ArrivalFragment.ObjectiveDamageAmount, TEXT("MassArrival")))
+					{
+						ArrivalFragment.bHasAppliedObjectiveDamage = true;
+						++ObjectiveDamageCount;
+					}
+				}
+
 				DrawDebugSphere(World, MovementFragment.CurrentLocation, 55.0f, 12, FColor::Cyan, false, 5.0f, 0, 5.0f);
 			}
 		}
 	});
 
-	if (NewArrivalCount > 0)
+	if (ObjectiveDamageCount > 0)
+	{
+		const float ObjectiveHealth = ObjectiveActor ? ObjectiveActor->GetCurrentHealth() : -1.0f;
+		UE_LOG(LogMDSMassArrival, Log, TEXT("Mass objective damage integration applied %d damage events from %d new arrivals, %d total arrived. Objective HP: %.1f."), ObjectiveDamageCount, NewArrivalCount, TotalArrivalCount, ObjectiveHealth);
+	}
+	else if (NewArrivalCount > 0)
 	{
 		UE_LOG(LogMDSMassArrival, Log, TEXT("Mass arrival-only processor detected %d new arrivals, %d total arrived."), NewArrivalCount, TotalArrivalCount);
 	}
