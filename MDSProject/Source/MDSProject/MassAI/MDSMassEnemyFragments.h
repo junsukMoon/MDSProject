@@ -46,5 +46,11 @@ struct MDSPROJECT_API FMDSMassArrivalFragment : public FMassFragment
 	float ArrivalDistance = 75.0f;
 
 	UPROPERTY()
+	float ObjectiveDamageAmount = 5.0f;
+
+	UPROPERTY()
 	bool bHasArrived = false;
+
+	UPROPERTY()
+	bool bHasAppliedObjectiveDamage = false;
 };

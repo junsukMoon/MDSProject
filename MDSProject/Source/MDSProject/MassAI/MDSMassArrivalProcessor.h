@@ -5,6 +5,8 @@
 #include "MassProcessor.h"
 #include "MDSMassArrivalProcessor.generated.h"
 
+class AMDSObjectiveActor;
+
 UCLASS()
 class MDSPROJECT_API UMDSMassArrivalProcessor : public UMassProcessor
 {
@@ -18,5 +20,7 @@ protected:
 	virtual void Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context) override;
 
 private:
+	TWeakObjectPtr<AMDSObjectiveActor> CachedObjectiveActor;
+
 	FMassEntityQuery EntityQuery;
 };
