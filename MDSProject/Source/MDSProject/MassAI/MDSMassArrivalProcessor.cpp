@@ -1,5 +1,6 @@
 #include "MassAI/MDSMassArrivalProcessor.h"
 
+#include "Debug/MDSDebugStateSubsystem.h"
 #include "DrawDebugHelpers.h"
 #include "EngineUtils.h"
 #include "MassAI/MDSMassEnemyFragments.h"
@@ -81,6 +82,11 @@ void UMDSMassArrivalProcessor::Execute(FMassEntityManager& EntityManager, FMassE
 			}
 		}
 	});
+
+	if (UMDSDebugStateSubsystem* DebugState = World->GetSubsystem<UMDSDebugStateSubsystem>())
+	{
+		DebugState->SetMassArrivalCounts(TotalArrivalCount, ObjectiveDamageCount);
+	}
 
 	if (ObjectiveDamageCount > 0)
 	{

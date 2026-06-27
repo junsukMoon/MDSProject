@@ -1,6 +1,7 @@
 #include "MassAI/MDSMassSpawnSubsystem.h"
 
 #include "DrawDebugHelpers.h"
+#include "Debug/MDSDebugStateSubsystem.h"
 #include "EngineUtils.h"
 #include "GameFramework/PlayerStart.h"
 #include "MassAI/MDSMassEnemyFragments.h"
@@ -65,6 +66,10 @@ void UMDSMassSpawnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 
 	SpawnedEntityCount = SpawnedEntities.Num();
 	bSpawned = true;
+	if (UMDSDebugStateSubsystem* DebugState = InWorld.GetSubsystem<UMDSDebugStateSubsystem>())
+	{
+		DebugState->SetMassSpawnedCount(SpawnedEntityCount);
+	}
 
 	FVector SpawnOrigin = FVector::ZeroVector;
 	for (TActorIterator<APlayerStart> PlayerStartIt(&InWorld); PlayerStartIt; ++PlayerStartIt)

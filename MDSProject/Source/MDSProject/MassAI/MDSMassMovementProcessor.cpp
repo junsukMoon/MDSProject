@@ -1,5 +1,6 @@
 #include "MassAI/MDSMassMovementProcessor.h"
 
+#include "Debug/MDSDebugStateSubsystem.h"
 #include "DrawDebugHelpers.h"
 #include "MassAI/MDSMassEnemyFragments.h"
 #include "MassExecutionContext.h"
@@ -60,6 +61,11 @@ void UMDSMassMovementProcessor::Execute(FMassEntityManager& EntityManager, FMass
 			DrawDebugLine(World, MovementFragment.CurrentLocation, MovementFragment.TargetLocation, FColor::Orange, false, 0.0f, 0, 2.0f);
 		}
 	});
+
+	if (UMDSDebugStateSubsystem* DebugState = World->GetSubsystem<UMDSDebugStateSubsystem>())
+	{
+		DebugState->SetMassMovedCount(MovedEntityCount);
+	}
 
 	static double LastLogTime = 0.0;
 	const double CurrentTime = World->GetTimeSeconds();
