@@ -1,0 +1,82 @@
+#include "MassAI/MDSMassSpawnSubsystem.h"
+
+#include "DrawDebugHelpers.h"
+#include "EngineUtils.h"
+#include "GameFramework/PlayerStart.h"
+#include "MassAI/MDSMassEnemyFragments.h"
+#include "MassArchetypeTypes.h"
+#include "MassEntityManager.h"
+#include "MassEntitySubsystem.h"
+
+DEFINE_LOG_CATEGORY_STATIC(LogMDSMassSpawn, Log, All);
+
+FVector UMDSMassSpawnSubsystem::CalculateSpawnLocation(const FVector& SpawnOrigin, const int32 SpawnIndex)
+{
+	const int32 Row = SpawnIndex / SpawnGridColumns;
+	const int32 Column = SpawnIndex % SpawnGridColumns;
+	constexpr float HalfGridOffset = (SpawnGridColumns - 1) * SpawnGridSpacing * 0.5f;
+
+	return SpawnOrigin + FVector(
+		(Column * SpawnGridSpacing) - HalfGridOffset,
+		(Row * SpawnGridSpacing) - HalfGridOffset,
+		120.0f);
+}
+
+void UMDSMassSpawnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
+{
+	Super::OnWorldBeginPlay(InWorld);
+
+	if (bSpawned)
+	{
+		return;
+	}
+
+	if (InWorld.GetNetMode() == NM_Client)
+	{
+		UE_LOG(LogMDSMassSpawn, Log, TEXT("Skipping Mass spawn-only probe on client world."));
+		return;
+	}
+
+	UMassEntitySubsystem* EntitySubsystem = InWorld.GetSubsystem<UMassEntitySubsystem>();
+	if (!EntitySubsystem)
+	{
+		UE_LOG(LogMDSMassSpawn, Warning, TEXT("Mass spawn-only probe failed: UMassEntitySubsystem is unavailable."));
+		return;
+	}
+
+	FMassEntityManager& EntityManager = EntitySubsystem->GetMutableEntityManager();
+	const TArray<const UScriptStruct*> EntityComposition = {
+		FMDSMassEnemyTag::StaticStruct(),
+		FMDSMassSpawnFragment::StaticStruct()
+	};
+
+	const FMassArchetypeHandle EnemyArchetype = EntityManager.CreateArchetype(EntityComposition);
+
+	TArray<FMassEntityHandle> SpawnedEntities;
+	EntityManager.BatchCreateEntities(EnemyArchetype, SpawnOnlyEntityCount, SpawnedEntities);
+
+	SpawnedEntityCount = SpawnedEntities.Num();
+	bSpawned = true;
+
+	FVector SpawnOrigin = FVector::ZeroVector;
+	for (TActorIterator<APlayerStart> PlayerStartIt(&InWorld); PlayerStartIt; ++PlayerStartIt)
+	{
+		SpawnOrigin = PlayerStartIt->GetActorLocation();
+		break;
+	}
+
+	for (int32 EntityIndex = 0; EntityIndex < SpawnedEntities.Num(); ++EntityIndex)
+	{
+		const FVector SpawnLocation = CalculateSpawnLocation(SpawnOrigin, EntityIndex);
+
+		if (FMDSMassSpawnFragment* SpawnFragment = EntityManager.GetFragmentDataPtr<FMDSMassSpawnFragment>(SpawnedEntities[EntityIndex]))
+		{
+			SpawnFragment->SpawnIndex = EntityIndex;
+			SpawnFragment->SpawnLocation = SpawnLocation;
+		}
+
+		DrawDebugSphere(&InWorld, SpawnLocation, SpawnDebugRadius, 16, FColor::Green, false, SpawnDebugLifetime, 0, SpawnDebugThickness);
+	}
+
+	UE_LOG(LogMDSMassSpawn, Log, TEXT("Mass spawn-only probe created %d entities with debug markers near %s."), SpawnedEntityCount, *SpawnOrigin.ToCompactString());
+}
