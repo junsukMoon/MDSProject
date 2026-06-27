@@ -1,11 +1,26 @@
 #include "MassAI/MDSMassSpawnSubsystem.h"
 
+#include "DrawDebugHelpers.h"
+#include "EngineUtils.h"
+#include "GameFramework/PlayerStart.h"
 #include "MassAI/MDSMassEnemyFragments.h"
 #include "MassArchetypeTypes.h"
 #include "MassEntityManager.h"
 #include "MassEntitySubsystem.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMDSMassSpawn, Log, All);
+
+FVector UMDSMassSpawnSubsystem::CalculateSpawnLocation(const FVector& SpawnOrigin, const int32 SpawnIndex)
+{
+	const int32 Row = SpawnIndex / SpawnGridColumns;
+	const int32 Column = SpawnIndex % SpawnGridColumns;
+	constexpr float HalfGridOffset = (SpawnGridColumns - 1) * SpawnGridSpacing * 0.5f;
+
+	return SpawnOrigin + FVector(
+		(Column * SpawnGridSpacing) - HalfGridOffset,
+		(Row * SpawnGridSpacing) - HalfGridOffset,
+		120.0f);
+}
 
 void UMDSMassSpawnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 {
@@ -43,5 +58,25 @@ void UMDSMassSpawnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	SpawnedEntityCount = SpawnedEntities.Num();
 	bSpawned = true;
 
-	UE_LOG(LogMDSMassSpawn, Log, TEXT("Mass spawn-only probe created %d entities."), SpawnedEntityCount);
+	FVector SpawnOrigin = FVector::ZeroVector;
+	for (TActorIterator<APlayerStart> PlayerStartIt(&InWorld); PlayerStartIt; ++PlayerStartIt)
+	{
+		SpawnOrigin = PlayerStartIt->GetActorLocation();
+		break;
+	}
+
+	for (int32 EntityIndex = 0; EntityIndex < SpawnedEntities.Num(); ++EntityIndex)
+	{
+		const FVector SpawnLocation = CalculateSpawnLocation(SpawnOrigin, EntityIndex);
+
+		if (FMDSMassSpawnFragment* SpawnFragment = EntityManager.GetFragmentDataPtr<FMDSMassSpawnFragment>(SpawnedEntities[EntityIndex]))
+		{
+			SpawnFragment->SpawnIndex = EntityIndex;
+			SpawnFragment->SpawnLocation = SpawnLocation;
+		}
+
+		DrawDebugSphere(&InWorld, SpawnLocation, SpawnDebugRadius, 16, FColor::Green, false, SpawnDebugLifetime, 0, SpawnDebugThickness);
+	}
+
+	UE_LOG(LogMDSMassSpawn, Log, TEXT("Mass spawn-only probe created %d entities with debug markers near %s."), SpawnedEntityCount, *SpawnOrigin.ToCompactString());
 }

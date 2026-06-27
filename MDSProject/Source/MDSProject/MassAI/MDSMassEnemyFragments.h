@@ -17,4 +17,7 @@ struct MDSPROJECT_API FMDSMassSpawnFragment : public FMassFragment
 
 	UPROPERTY()
 	int32 SpawnIndex = INDEX_NONE;
+
+	UPROPERTY()
+	FVector SpawnLocation = FVector::ZeroVector;
 };
