@@ -16,9 +16,21 @@ static TAutoConsoleVariable<int32> CVarMDSActorBaselineEnabled(
 	0,
 	TEXT("Enables the minimal server-only Actor enemy baseline when set before world begin play."));
 
+static TAutoConsoleVariable<int32> CVarMDSActorBaselineCount(
+	TEXT("mds.ActorBaseline.Count"),
+	16,
+	TEXT("Actor baseline enemy count. Use MDSActorBaselineCount=<N> on the command line for early startup override."));
+
 bool UMDSActorEnemySpawnSubsystem::IsActorBaselineEnabled()
 {
 	return CVarMDSActorBaselineEnabled.GetValueOnGameThread() != 0 || FParse::Param(FCommandLine::Get(), TEXT("MDSActorBaseline"));
+}
+
+int32 UMDSActorEnemySpawnSubsystem::GetSpawnEnemyCount()
+{
+	int32 SpawnCount = CVarMDSActorBaselineCount.GetValueOnGameThread();
+	FParse::Value(FCommandLine::Get(), TEXT("MDSActorBaselineCount="), SpawnCount);
+	return FMath::Max(1, SpawnCount);
 }
 
 FVector UMDSActorEnemySpawnSubsystem::CalculateSpawnLocation(const FVector& SpawnOrigin, const int32 SpawnIndex)
@@ -90,6 +102,7 @@ void UMDSActorEnemySpawnSubsystem::SpawnActorBaseline()
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	SpawnParameters.ObjectFlags |= RF_Transient;
 
+	const int32 SpawnEnemyCount = GetSpawnEnemyCount();
 	for (int32 EnemyIndex = 0; EnemyIndex < SpawnEnemyCount; ++EnemyIndex)
 	{
 		const FVector SpawnLocation = CalculateSpawnLocation(SpawnOrigin, EnemyIndex);
@@ -106,7 +119,7 @@ void UMDSActorEnemySpawnSubsystem::SpawnActorBaseline()
 	}
 
 	bSpawned = true;
-	UE_LOG(LogMDSActorEnemySpawn, Log, TEXT("Actor enemy baseline spawned %d enemies near %s moving toward objective at %s. Damage per arrival: %.1f."), SpawnedEnemyCount, *SpawnOrigin.ToCompactString(), *ObjectiveActor->GetActorLocation().ToCompactString(), ObjectiveDamagePerArrival);
+	UE_LOG(LogMDSActorEnemySpawn, Log, TEXT("Actor enemy baseline spawned %d enemies near %s moving toward objective at %s. Requested count: %d. Damage per arrival: %.1f."), SpawnedEnemyCount, *SpawnOrigin.ToCompactString(), *ObjectiveActor->GetActorLocation().ToCompactString(), SpawnEnemyCount, ObjectiveDamagePerArrival);
 }
 
 AMDSObjectiveActor* UMDSActorEnemySpawnSubsystem::FindOrSpawnObjective(UWorld& InWorld, const FVector& ObjectiveLocation) const
