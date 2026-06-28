@@ -64,5 +64,10 @@ bool AMDSObjectiveActor::ApplyObjectiveDamage(const float DamageAmount, const FN
 
 void AMDSObjectiveActor::OnRep_CurrentHealth()
 {
+	if (UMDSDebugStateSubsystem* DebugState = GetWorld()->GetSubsystem<UMDSDebugStateSubsystem>())
+	{
+		DebugState->SetObjectiveHealth(CurrentHealth, MaxHealth);
+	}
+
 	UE_LOG(LogMDSObjective, Log, TEXT("Objective HP replicated on client: %.1f / %.1f."), CurrentHealth, MaxHealth);
 }
