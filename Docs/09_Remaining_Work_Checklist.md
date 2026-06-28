@@ -171,21 +171,19 @@
 - UE 5.8 `MovementActive` phase trigger 기준 Actor vs Mass 1000개 profile 비교 기록.
   - Mass: `Mass1000_MovementActive_Phase.csv`
   - Actor: `Actor1000_MovementActive_Phase.csv`
+- README 상단에 `Interview Demo` 섹션 추가.
 
 부족:
 
-- README 상단에 명시적인 `Interview Demo` 섹션은 아직 없습니다.
 - 2~3분 영상 또는 GIF가 아직 없습니다.
 - Unreal Insights trace는 아직 없습니다.
 
 다음 순서:
 
-1. README 상단에 `Interview Demo` 섹션 추가.
-2. dedicated server + clients + debug output 기준 2~3분 영상 또는 GIF 제작.
-3. 필요 시 Unreal Insights trace 캡처.
+1. dedicated server + clients + debug output 기준 2~3분 영상 또는 GIF 제작.
+2. 필요 시 Unreal Insights trace 캡처.
 
 ## Recommended Order After Current Build
 
-1. Update README with `Interview Demo`.
-2. Record 2-3 minute demo video or GIF.
-3. Capture Unreal Insights trace if needed.
+1. Record 2-3 minute demo video or GIF.
+2. Capture Unreal Insights trace if needed.
