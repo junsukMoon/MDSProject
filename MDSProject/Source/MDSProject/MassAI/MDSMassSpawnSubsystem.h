@@ -25,6 +25,7 @@ private:
 	static constexpr float ArrivalDistance = 75.0f;
 	static constexpr float ObjectiveDamagePerArrival = 5.0f;
 
+	static bool IsMassBaselineEnabled();
 	static int32 GetSpawnEntityCount();
 	static FVector CalculateSpawnLocation(const FVector& SpawnOrigin, int32 SpawnIndex);
 	static FVector CalculateMovementTargetLocation(const FVector& SpawnOrigin);
