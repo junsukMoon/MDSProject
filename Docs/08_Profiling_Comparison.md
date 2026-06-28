@@ -121,6 +121,59 @@ Important limitation:
 - This was a headless `-NullRHI` log verification. Visible viewport or recorded-video verification is still pending.
 - Both clients emitted repeated `LogNetPlayerMovement: Warning: CreateSavedMove: Hit limit of 96 saved moves` warnings under the headless run. The Objective HP replication result remained stable.
 
+### Actor vs Mass 1000 Latest Harness
+
+- Runtime date: 2026-06-29
+- Engine: source-built UE 5.8
+- Runtime mode: `MDSProjectEditor-Cmd.exe -game -NullRHI -nosound -unattended`
+- CSV capture method:
+  - `-MDSGameplayProfile`
+  - `-MDSGameplayProfileFrames=600`
+  - First 10 CSV rows excluded from summary calculations.
+- Mass command flags:
+  - `-MDSMassBaselineCount=1000`
+  - `-MDSGameplayProfileName=Mass1000_LatestHarness`
+- Actor command flags:
+  - `-NoMDSMassBaseline`
+  - `-MDSActorBaseline`
+  - `-MDSActorBaselineCount=1000`
+  - `-MDSGameplayProfileName=Actor1000_LatestHarness`
+- Logs:
+  - Mass: `C:\Temp\MDS_Profile_Mass1000_LatestHarness.log`
+  - Actor: `C:\Temp\MDS_Profile_Actor1000_LatestHarness.log`
+- CSV files:
+  - Mass: `MDSProject/Saved/Profiling/CSV/Mass1000_LatestHarness.csv`
+  - Actor: `MDSProject/Saved/Profiling/CSV/Actor1000_LatestHarness.csv`
+
+Runtime verification:
+
+- Mass spawned 1000 entities and started a 600-frame gameplay CSV capture.
+- Actor run disabled Mass baseline, spawned 1000 Actor enemies, and started a 600-frame gameplay CSV capture.
+- Mass CSV wrote 600 frames with captured duration `23.944997` seconds.
+- Actor CSV wrote 600 frames with captured duration `0.714544` seconds.
+
+CSV summary:
+
+| Scenario | Sampled frames | Avg FrameTime | P95 FrameTime | Max FrameTime | Avg TickActors | P95 TickActors | Workload signal |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| Mass 1000 | 590 | `39.99 ms` | `43.90 ms` | `182.38 ms` | `38.98 ms` | `42.79 ms` | `Ticks/MassProcessingPhase` avg `5.995` |
+| Actor 1000 | 591 | `1.17 ms` | `1.31 ms` | `2.87 ms` | `0.68 ms` | `0.77 ms` | `Ticks/MDSActorEnemy` avg `1000` |
+
+Additional counters:
+
+| Scenario | ActorCount/MDSActorEnemy | ActorCount/TotalActorCount | Basic/TicksQueued | MassActors/NumSpawned |
+| --- | ---: | ---: | ---: | ---: |
+| Mass 1000 | not present | avg `87` | avg `38.01` | avg `0` |
+| Actor 1000 | avg `1000` | avg `1087` | avg `1038` | avg `0` |
+
+Important limitations:
+
+- This is a headless `-NullRHI` smoke profile, not a final gameplay FPS benchmark.
+- The Mass run was much slower per frame, so the same 600-frame window covered more wall-clock time than the Actor run.
+- Objective HP is still `100`, so in 1000-enemy runs objective damage clamps at 20 successful damage events. This profile is useful for movement/tick cost comparison, not full 1000-arrival damage throughput.
+- `MassActors/NumSpawned` remained `0`; Mass count was verified from the runtime log.
+- Repeated Editor-Cmd startup warnings were observed and are consistent with earlier runs.
+
 ## Debug Draw Fix Measurement
 
 Before Phase 8, a post-arrival slowdown was investigated and fixed in PR #11.
@@ -154,30 +207,30 @@ Important limitation:
 
 ## Actor-Based Baseline Status
 
-An equivalent Actor-based enemy/objective benchmark has not been implemented yet.
+An equivalent minimal Actor-based enemy/objective benchmark is implemented.
 
-For that reason, this document does not claim an Actor-vs-Mass performance win.
+The first latest-harness Actor-vs-Mass smoke profile has been captured, but it should not be treated as a final performance claim.
 
 Current verified comparison:
 
 - Mass scenario: measured.
-- Actor scenario: not measured.
+- Actor scenario: measured.
 
-To create a valid Actor baseline later, the Actor scenario should match:
+For a stricter interview-grade Actor baseline, the scenario should still be validated in a visible viewport and, if needed, with objective health tuned so all arrivals can apply damage:
 
 - Same map.
-- Same entity count: `16`.
+- Same entity count.
 - Same spawn grid.
 - Same movement target.
-- Same objective HP: `100`.
+- Comparable objective HP and damage policy.
 - Same damage per arrival: `5`.
-- Same final damage events: `16`.
 - Same runtime mode and measurement method.
 
 ## Findings
 
 - The Mass-based scenario currently reaches the expected objective state in standalone, editor server-mode, and staged dedicated server binary runs.
 - The staged dedicated server also replicated the final Objective HP result to two standalone clients in a headless log verification.
+- The latest-harness Actor 1000 vs Mass 1000 headless smoke profile is captured and documented.
 - Post-arrival movement work drops to `0` moved entities.
 - Debug output now exposes runtime state clearly enough for recording:
   - NetMode
@@ -193,7 +246,7 @@ To create a valid Actor baseline later, the Actor scenario should match:
 
 - `-NullRHI` results should not be presented as final rendering performance.
 - Client Objective HP replication has been verified through two standalone client logs, but visible viewport or recorded-video verification is still pending.
-- No Actor baseline has been implemented or measured yet.
+- Actor-vs-Mass profiling is currently a headless smoke comparison. It is not a visible viewport or GPU benchmark.
 - No Unreal Insights trace was captured.
 - UE 5.8 `ZenStore` cook output needs separate handling; this verification used `-skipzenstore` for loose staged server content.
 
@@ -201,5 +254,4 @@ To create a valid Actor baseline later, the Actor scenario should match:
 
 1. Re-run the same scenario in a visible viewport and record `stat fps` / `stat unit`.
 2. Capture Unreal Insights trace once a stable recording workflow is available.
-3. Build a minimal Actor-based baseline only if an actual Actor-vs-Mass comparison is needed.
-4. Record visible client viewport evidence showing both clients display the same replicated Objective HP.
+3. Record visible client viewport evidence showing both clients display the same replicated Objective HP.

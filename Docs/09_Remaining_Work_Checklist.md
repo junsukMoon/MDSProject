@@ -76,10 +76,12 @@
   - `Actor Spawned`
   - `Actor Arrived`
   - `Actor Damage`
+- Actor baseline profiling.
+  - 최신 gameplay CSV harness 기준 Actor 1000 vs Mass 1000 headless profile 기록 완료.
 
 미완료:
 
-- Actor baseline profiling.
+- visible viewport 기준 Actor vs Mass 확인.
 
 주의:
 
@@ -88,8 +90,8 @@
 
 다음 순서:
 
-1. Mass와 같은 조건으로 Actor baseline profiling 비교.
-2. profiling 결과를 `Docs/08_Profiling_Comparison.md` 또는 별도 profiling 문서에 기록.
+1. visible viewport 기준으로 필요 시 Actor vs Mass profile을 재확인.
+2. README `Interview Demo` 섹션에 현재 검증 결과를 정리.
 
 ## Mass Spawn + Movement
 
@@ -172,20 +174,21 @@
 
 부족:
 
-- Actor vs Mass 실제 측정 비교가 없습니다.
 - README 상단에 명시적인 `Interview Demo` 섹션은 아직 없습니다.
 - 2~3분 영상 또는 GIF가 아직 없습니다.
 - Unreal Insights trace는 아직 없습니다.
 
+추가 완료:
+
+- Actor vs Mass headless CSV smoke profile을 최신 gameplay CSV harness 기준으로 기록했습니다.
+
 다음 순서:
 
-1. Actor baseline 구현 후 같은 조건으로 Actor vs Mass profiling.
-2. README 상단에 `Interview Demo` 섹션 추가.
-3. dedicated server + clients + debug output 기준 2~3분 영상 또는 GIF 제작.
-4. 필요 시 Unreal Insights trace 캡처.
+1. README 상단에 `Interview Demo` 섹션 추가.
+2. dedicated server + clients + debug output 기준 2~3분 영상 또는 GIF 제작.
+3. 필요 시 Unreal Insights trace 캡처.
 
 ## Recommended Order After Current Build
 
-1. Profile Actor baseline against Mass scenario.
-2. Update README with `Interview Demo`.
-3. Record 2-3 minute demo video or GIF.
+1. Update README with `Interview Demo`.
+2. Record 2-3 minute demo video or GIF.
