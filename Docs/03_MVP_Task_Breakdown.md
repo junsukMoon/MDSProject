@@ -1,426 +1,193 @@
-﻿# MVP Task Breakdown
+# MVP Task Breakdown
 
-This document breaks the `MDSProject` MVP into small, reviewable tasks suitable for Codex-driven implementation.
+이 문서는 `MDSProject` MVP를 작은 review 가능한 task로 나눈 원래 계획 문서입니다.
 
-Every non-trivial task must follow the AI harness workflow: inspect relevant files, summarize current structure, propose a plan, wait for approval, implement only approved changes, verify, and provide an approval report.
+현재 구현/검증 상태는 `README.md`, `Docs/05_Progress_Log.md`, `Docs/08_Profiling_Comparison.md`, `Docs/10_Visible_Demo_Verification.md`를 기준으로 봅니다. 이 문서는 작업 순서와 원칙을 보존하기 위한 기록입니다.
 
-Mass spawn, movement, arrival detection, and objective damage must be separate tasks unless explicitly approved.
+모든 non-trivial task는 AI harness workflow를 따라야 합니다.
+
+1. 관련 파일 확인
+2. 현재 구조 요약
+3. 계획 제안
+4. 명시적 승인 대기
+5. 승인된 변경만 구현
+6. 검증
+7. approval report 제공
+
+Mass spawn, movement, arrival detection, objective damage는 명시적으로 승인되지 않는 한 분리된 task여야 합니다.
 
 ## MVP Phase Overview
 
 | Phase | Name | Task Type | Priority | Purpose |
 | --- | --- | --- | --- | --- |
-| 0 | Harness / Documentation | Documentation | Critical | Establish workflow, scope, and project rules. |
-| 1 | Mass Concept Study | Documentation | Critical | Define Mass usage before implementation. |
-| 2 | Mass Module Setup | Setup | Critical | Prepare required Mass dependencies. |
-| 3 | Mass Spawn Only | Implementation | Critical | Prove entities can be spawned. |
-| 4 | Mass Movement Only | Implementation | Critical | Prove entities can move toward the Objective. |
-| 5 | Arrival Detection Only | Implementation | Critical | Detect arrival separately from damage. |
-| 6 | Objective Damage Integration | Implementation | Critical | Apply server-authoritative objective damage. |
-| 7 | Debug UI / Logging | Debug | High | Expose key runtime state. |
-| 8 | Profiling Comparison | Profiling | High | Capture Actor-based vs Mass-based comparison data. |
-| 9 | Final README / Interview Summary | Documentation | High | Package the project for interview discussion. |
-
-Priority is assigned for completion by `2026-07-31`.
-
-## Task List by Phase
+| 0 | Harness / Documentation | Documentation | Critical | workflow, scope, project rules 수립 |
+| 1 | Mass Concept Study | Documentation | Critical | 구현 전 Mass 사용 방식 정의 |
+| 2 | Mass Module Setup | Setup | Critical | 필요한 Mass dependency 준비 |
+| 3 | Mass Spawn Only | Implementation | Critical | entity spawn 증명 |
+| 4 | Mass Movement Only | Implementation | Critical | Objective 방향 movement 증명 |
+| 5 | Arrival Detection Only | Implementation | Critical | damage와 분리된 arrival 감지 |
+| 6 | Objective Damage Integration | Implementation | Critical | server-authoritative objective damage 적용 |
+| 7 | Debug UI / Logging | Debug | High | 핵심 runtime state 노출 |
+| 8 | Profiling Comparison | Profiling | High | Actor vs Mass 비교 데이터 기록 |
+| 9 | Final README / Interview Summary | Documentation | High | 면접 설명용 패키징 |
 
 ## Phase 0: Harness / Documentation
 
-Task Type: Documentation
+목표:
 
-Objective:
+- project goal, requirements, architecture, AI workflow, verification rules, Unreal rules, Mass rules를 문서화합니다.
 
-- Establish project goals, requirements, architecture, AI workflow, verification rules, Unreal rules, and Mass rules.
+검증:
 
-Allowed Modification Scope:
-
-- Documentation files approved by each task.
-- No Source or Config changes unless a separate approved implementation task allows them.
-
-Dependencies:
-
-- None.
-
-Acceptance Criteria:
-
-- Project goal, requirements, architecture, AI harness, verification, Unreal, and Mass rules are documented.
-- Documentation clearly states scope and non-scope.
-- Required plan and approval report formats are available.
-
-Verification Method:
-
-- Manual inspection of created documentation.
-- Confirm no implementation code was created.
-
-Priority:
-
-- Critical.
+- 문서 수동 확인
+- implementation code가 추가되지 않았는지 확인
 
 ## Phase 1: Mass Concept Study
 
-Task Type: Documentation
+목표:
 
-Objective:
+- Mass code를 추가하기 전에 Mass Entity 사용 목적과 server authority boundary를 정의합니다.
 
-- Define how Mass Entity will be used for scalable enemy simulation before adding Mass code.
+검증:
 
-Allowed Modification Scope:
-
-- A Mass concept document or approved Mass planning document.
-- No Source or Config changes.
-
-Dependencies:
-
-- Phase 0.
-
-Acceptance Criteria:
-
-- The document explains why Mass is used.
-- It identifies expected Mass concepts: Entity, Fragment, Tag, Processor, Spawner, and Representation.
-- It states what will remain server-authoritative.
-- It confirms spawn, movement, arrival, and objective damage will be separate tasks.
-
-Verification Method:
-
-- Manual inspection against `Docs/Mass_Rules.md`.
-
-Priority:
-
-- Critical.
+- `Docs/Mass_Rules.md` 기준 수동 확인
 
 ## Phase 2: Mass Module Setup
 
-Task Type: Setup
+목표:
 
-Objective:
+- 첫 Mass implementation step에 필요한 최소 module dependency만 추가합니다.
 
-- Add only the required Mass-related build or module dependencies needed for the first approved Mass implementation step.
+검증:
 
-Allowed Modification Scope:
-
-- Approved `.Build.cs` file.
-- Approved config files only if the task explicitly requires them.
-- No gameplay implementation beyond dependency/setup work.
-
-Dependencies:
-
-- Phase 1.
-
-Acceptance Criteria:
-
-- Required module dependencies are added.
-- Each added module has a documented reason.
-- Project still builds or compile status is reported.
-- No spawn, movement, arrival, or objective damage logic is added.
-
-Verification Method:
-
-- Build or compile check when available.
-- Manual inspection of module dependency changes.
-- Report any verification that could not be executed.
-
-Priority:
-
-- Critical.
+- build 또는 compile check
+- `.Build.cs` 변경 이유 설명
+- spawn/movement/arrival/damage logic이 추가되지 않았는지 확인
 
 ## Phase 3: Mass Spawn Only
 
-Task Type: Implementation
+목표:
 
-Objective:
+- Mass enemy entity를 spawn하는 최소 경로를 구현합니다.
 
-- Implement the smallest approved Mass spawn path for enemy entities.
+검증:
 
-Allowed Modification Scope:
-
-- Approved MassAI source files for spawn-only behavior.
-- Approved build files only if missing dependencies are discovered and approved.
-- Debug logs only if approved for spawn verification.
-
-Dependencies:
-
-- Phase 2.
-
-Acceptance Criteria:
-
-- Mass entities can be spawned in an approved test scenario.
-- Entity count can be observed through logs, debug output, or Mass verification.
-- No movement, arrival detection, or objective damage is implemented.
-
-Verification Method:
-
-- Build or compile check if code changes.
-- PIE or runtime check if available.
-- Mass Entity check with entity count and spawn behavior.
-- Log review for relevant warnings or errors.
-
-Priority:
-
-- Critical.
+- entity count 확인
+- spawn behavior 확인
+- movement/arrival/damage가 포함되지 않았는지 확인
 
 ## Phase 4: Mass Movement Only
 
-Task Type: Implementation
+목표:
 
-Objective:
+- spawn된 Mass entity가 Objective를 향해 이동하도록 합니다.
 
-- Move previously spawned Mass entities toward the Objective without applying arrival or damage behavior.
+검증:
 
-Allowed Modification Scope:
-
-- Approved MassAI movement-related source files.
-- Approved debug logs only for movement verification.
-- No objective damage changes.
-
-Dependencies:
-
-- Phase 3.
-
-Acceptance Criteria:
-
-- Spawned Mass entities move toward an approved Objective target or target location.
-- Movement behavior is observable.
-- Arrival detection and objective damage remain unimplemented in this task.
-
-Verification Method:
-
-- Build or compile check if code changes.
-- PIE or runtime check if available.
-- Mass Entity check with movement or processor behavior.
-- Profiling note if movement introduces meaningful per-frame work.
-
-Priority:
-
-- Critical.
+- movement behavior 확인
+- arrival/damage가 포함되지 않았는지 확인
+- 필요 시 profiling note 기록
 
 ## Phase 5: Arrival Detection Only
 
-Task Type: Implementation
+목표:
 
-Objective:
+- Mass entity가 Objective area에 도착했는지 감지합니다.
 
-- Detect when Mass entities reach the Objective area without applying objective damage.
+검증:
 
-Allowed Modification Scope:
-
-- Approved MassAI arrival-detection source files.
-- Approved debug logs only for arrival verification.
-- No objective HP or damage application changes.
-
-Dependencies:
-
-- Phase 4.
-
-Acceptance Criteria:
-
-- Arrival can be detected separately from movement.
-- Arrival state or count can be observed through logs or debug output.
-- Objective HP does not change in this task.
-
-Verification Method:
-
-- Build or compile check if code changes.
-- PIE or runtime check if available.
-- Mass Entity check with arrival behavior.
-- Log review for arrival events and warnings.
-
-Priority:
-
-- Critical.
+- arrival count/log/debug 확인
+- Objective HP가 이 단계에서 변경되지 않는지 확인
 
 ## Phase 6: Objective Damage Integration
 
-Task Type: Implementation
+목표:
 
-Objective:
+- validated Mass arrival을 server-authoritative Objective HP damage와 연결합니다.
 
-- Connect validated Mass arrival to server-authoritative Objective HP damage.
+검증:
 
-Allowed Modification Scope:
-
-- Approved Objective source files.
-- Approved MassAI integration source files.
-- Approved network/replication code only as required by the approved plan.
-- No unrelated combat, UI, or AI expansion.
-
-Dependencies:
-
-- Phase 5.
-
-Acceptance Criteria:
-
-- Objective HP is server-owned.
-- Valid Mass arrival can trigger objective damage on the server.
-- Clients can observe the resulting state through approved replication, logs, or debug UI.
-- Invalid or client-only paths do not directly apply authoritative objective damage.
-
-Verification Method:
-
-- Build or compile check if code changes.
-- PIE listen-server or dedicated-server verification when networked.
-- Objective gameplay check.
-- Network replication check with server/client notes.
-- Log review for objective damage events.
-
-Priority:
-
-- Critical.
+- server-side damage application
+- client-visible replicated result
+- objective gameplay check
+- network replication check
 
 ## Phase 7: Debug UI / Logging
 
-Task Type: Debug
+목표:
 
-Objective:
+- authority, Objective HP, Mass spawn/movement/arrival/damage state를 debug output 또는 logs로 노출합니다.
 
-- Expose key runtime state for authority, objective HP, Mass entity count, spawn state, movement state, arrival state, and damage events.
+검증:
 
-Allowed Modification Scope:
-
-- Approved DebugUI source files or approved logging changes.
-- Approved Objective or MassAI read-only reporting hooks if required.
-- No large UI framework.
-
-Dependencies:
-
-- Phase 3 for spawn state.
-- Phase 4 for movement state.
-- Phase 5 for arrival state.
-- Phase 6 for objective damage state.
-
-Acceptance Criteria:
-
-- Debug UI or logs expose the approved key state.
-- Debug output does not become required for gameplay correctness.
-- Server/client differences are clear when networked.
-
-Verification Method:
-
-- PIE or runtime check if UI/log behavior is runtime.
-- Debug UI check or log review.
-- Server/client notes if networked state is displayed.
-
-Priority:
-
-- High.
+- runtime debug output 확인
+- server/client 차이 확인
+- debug output이 gameplay correctness에 필수가 아닌지 확인
 
 ## Phase 8: Profiling Comparison
 
-Task Type: Profiling
+목표:
 
-Objective:
+- Actor-based vs Mass-based comparison을 위한 profiling notes를 기록합니다.
 
-- Capture profiling notes that support later Actor-based vs Mass-based comparison.
+검증:
 
-Allowed Modification Scope:
-
-- Approved profiling documentation.
-- Approved profiling helper source files only if a separate implementation plan allows them.
-- No broad performance refactor.
-
-Dependencies:
-
-- Phase 3 at minimum.
-- Phase 4 or later for movement-related profiling.
-- Phase 6 if objective integration performance is being measured.
-
-Acceptance Criteria:
-
-- Profiling notes include runtime mode, scenario context, entity or actor count, FPS, frame time, and GameThread impact when relevant.
-- The comparison is framed for technical interview discussion.
-- Profiling does not expand the project into production optimization work.
-
-Verification Method:
-
-- Profiling check with recorded metrics when available.
-- Manual inspection of profiling notes.
-- State any metrics that could not be captured.
-
-Priority:
-
-- High.
+- runtime mode
+- scenario context
+- entity/actor count
+- FPS / frame time / GameThread impact
+- limitation 명시
 
 ## Phase 9: Final README / Interview Summary
 
-Task Type: Documentation
+목표:
 
-Objective:
+- completed MVP, verification evidence, server authority, Mass workflow, profiling result를 면접 설명용으로 정리합니다.
 
-- Summarize the completed MVP, how it was verified, and how it should be discussed in interviews.
+검증:
 
-Allowed Modification Scope:
-
-- Approved README or interview summary documentation.
-- No Source or Config changes.
-
-Dependencies:
-
-- Phase 6 for core gameplay summary.
-- Phase 7 for debug visibility summary.
-- Phase 8 for profiling summary.
-
-Acceptance Criteria:
-
-- Summary explains the project goal, architecture, server authority, Mass workflow, verification results, and remaining limitations.
-- It distinguishes completed work from planned or unverified work.
-- It stays focused on Unreal Engine client/gameplay programming interviews.
-
-Verification Method:
-
-- Manual inspection of final documentation.
-- Confirm claims match actual verification reports.
-
-Priority:
-
-- High.
+- README와 문서가 실제 검증 결과와 일치하는지 확인
 
 ## Dependency Summary
 
-- Phase 0 is the base for all later work.
-- Phase 1 must happen before Mass setup or implementation.
-- Phase 2 must happen before Mass spawn.
-- Phase 3 must happen before Mass movement.
-- Phase 4 must happen before arrival detection.
-- Phase 5 must happen before objective damage integration.
-- Phase 6 must happen before final gameplay summary.
-- Phase 7 depends on whichever runtime state it displays.
-- Phase 8 depends on the behavior being profiled.
-- Phase 9 depends on completed and verified prior phases.
+- Phase 0은 모든 작업의 기반입니다.
+- Phase 1은 Mass setup/implementation 전에 필요합니다.
+- Phase 2는 Mass spawn 전에 필요합니다.
+- Phase 3은 movement 전에 필요합니다.
+- Phase 4는 arrival detection 전에 필요합니다.
+- Phase 5는 objective damage integration 전에 필요합니다.
+- Phase 6은 final gameplay summary 전에 필요합니다.
+- Phase 7은 표시할 runtime state에 의존합니다.
+- Phase 8은 profiling할 behavior에 의존합니다.
+- Phase 9는 완료/검증된 prior phase에 의존합니다.
 
 ## Task Type Rules
 
 Documentation tasks:
 
-- May create or update approved Docs or README files only.
-- Must not create implementation code.
+- 승인된 Docs 또는 README만 수정합니다.
+- implementation code를 만들지 않습니다.
 
 Setup tasks:
 
-- May adjust approved build/module/config setup only when explicitly allowed.
-- Must explain every `.Build.cs` or module dependency change.
-- Must not add gameplay behavior unless separately approved.
+- 승인된 build/module/config만 수정합니다.
+- 모든 module dependency 변경 이유를 설명합니다.
+- 별도 승인 없이 gameplay behavior를 추가하지 않습니다.
 
 Implementation tasks:
 
-- Must be small and behavior-specific.
-- Must preserve server-authoritative gameplay.
-- Must include runtime verification when behavior changes.
+- 작고 behavior-specific해야 합니다.
+- server-authoritative gameplay를 보존해야 합니다.
+- runtime verification을 포함해야 합니다.
 
 Debug tasks:
 
-- May expose runtime state through approved DebugUI or logs.
-- Must not become a large UI framework.
-- Must not be required for gameplay correctness.
+- approved DebugUI/logs로 runtime state를 노출합니다.
+- 큰 UI framework가 되면 안 됩니다.
+- gameplay correctness에 필수가 되면 안 됩니다.
 
 Profiling tasks:
 
-- Must record measurement context and relevant metrics.
-- Should support Actor-based vs Mass-based comparison.
-- Must not become broad optimization or refactor work unless explicitly approved.
-
-## Mass Separation Rule
-
-Mass spawn, movement, arrival detection, and objective damage are separate tasks.
-
-Do not implement more than one of these in a single task unless the user explicitly approves that combined scope in the task request and plan.
-
+- measurement context와 relevant metrics를 기록합니다.
+- Actor vs Mass comparison을 지원합니다.
+- 명시적 승인 없이 broad optimization/refactor가 되면 안 됩니다.

@@ -1,13 +1,13 @@
 # Visible Demo Verification
 
-This document records the visible viewport replication check and demo capture evidence for `MDSProject`.
+이 문서는 `MDSProject`의 visible viewport replication check와 demo capture evidence를 기록합니다.
 
 ## Runtime
 
 - Date: 2026-06-29
 - Engine: source-built UE 5.8
 - Server: staged `MDSProjectServer.exe`
-- Clients: two staged `MDSProject.exe` standalone clients
+- Clients: staged `MDSProject.exe` standalone client 2개
 - Map: `/Game/TopDown/Lvl_TopDown`
 
 ## Launch Setup
@@ -37,9 +37,9 @@ Logs:
 Server log confirmed:
 
 - `IpNetDriver listening on port 7777`
-- two `Login request` entries
-- two `Join succeeded` entries
-- final repeated state:
+- `Login request` 2개
+- `Join succeeded` 2개
+- repeated final state:
 
 ```text
 MDS Debug | NetMode=DedicatedServer | ObjectiveHP=20/100 | Mass Spawned=16 Moved=0 Arrived=16 Damage=16
@@ -47,9 +47,9 @@ MDS Debug | NetMode=DedicatedServer | ObjectiveHP=20/100 | Mass Spawned=16 Moved
 
 Client logs confirmed:
 
-- Client 1 observed `ObjectiveHP=20/100` 400 times.
-- Client 2 observed `ObjectiveHP=20/100` 400 times.
-- Both visible clients displayed:
+- Client 1은 `ObjectiveHP=20/100`을 400회 관찰했습니다.
+- Client 2는 `ObjectiveHP=20/100`을 400회 관찰했습니다.
+- visible client 2개 모두 다음 debug line을 표시했습니다.
 
 ```text
 MDS Debug | NetMode=Client | ObjectiveHP=20/100 | Mass Spawned=0 Moved=0 Arrived=0 Damage=0
@@ -61,11 +61,11 @@ MDS Debug | NetMode=Client | ObjectiveHP=20/100 | Mass Spawned=0 Moved=0 Arrived
 - Client 2 screenshot: `Docs/Verification/VisibleObjectiveHP_Client2.png`
 - 2-minute demo GIF: `Docs/Verification/VisibleObjectiveHP_Demo.gif`
 
-The GIF captures both visible standalone client windows side by side. Both clients show the replicated server-owned Objective HP as `20/100`.
+GIF는 visible standalone client 2개를 side by side로 캡처합니다. 두 client 모두 replicated server-owned Objective HP `20/100`을 표시합니다.
 
 ## Unreal Insights Trace
 
-A short Unreal Insights smoke trace was captured after the visible demo evidence.
+visible demo evidence 이후 짧은 Unreal Insights smoke trace를 캡처했습니다.
 
 - Trace: `Docs/Verification/MDS_Insights_TraceSmoke.utrace`
 - Log: `C:\Temp\MDS_Insights_TraceSmoke.log`
@@ -83,7 +83,7 @@ Capture Ended
 
 ## Result
 
-- Visible viewport replicated Objective HP verification: complete.
-- Two-client same server-owned Objective HP screenshot/GIF evidence: complete.
-- 2-minute demo GIF: complete.
-- Unreal Insights trace smoke capture: complete.
+- visible viewport replicated Objective HP verification: 완료
+- two-client same server-owned Objective HP screenshot/GIF evidence: 완료
+- 2-minute demo GIF: 완료
+- Unreal Insights trace smoke capture: 완료

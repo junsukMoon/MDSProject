@@ -1,151 +1,100 @@
-﻿# AI Harness
+# AI Harness
 
-## Purpose
+이 문서는 `MDSProject`에서 AI-assisted development를 통제된 방식으로 사용하기 위한 규칙입니다.
 
-The AI harness defines how AI assistance is used on `MDSProject`.
+AI는 project owner가 아니라 development assistant입니다. 목표, 범위, architecture decision, 최종 검증 판단은 사람이 소유합니다.
 
-The goal is to make AI useful for planning, implementation support, verification, and documentation while keeping the project human-directed, server-authoritative, and focused on technical portfolio value.
+## 기본 원칙
 
-AI is a development assistant, not the project owner. The workflow must produce small, reviewable changes that can be explained in an interview.
+- 작은 변경을 선호합니다.
+- non-trivial task는 승인 전 파일을 수정하지 않습니다.
+- 구현 전 관련 파일을 읽습니다.
+- 승인된 범위 밖으로 확장하지 않습니다.
+- 검증하지 않은 결과를 성공했다고 말하지 않습니다.
+- approval report로 결과를 남깁니다.
 
-## Human Role
+## Required Workflow
 
-The human owns:
+모든 non-trivial task는 다음 순서를 따릅니다.
 
-- Project goals and priorities
-- Task approval and scope control
-- Gameplay and technical design decisions
-- Final code review
-- Final verification judgment
-- Interview narrative and portfolio framing
+1. 관련 파일 확인
+2. 현재 구조 요약
+3. 계획 제안
+4. 명시적 승인 대기
+5. 승인된 변경만 구현
+6. 결과 검증
+7. approval report 제공
 
-The human must approve non-trivial implementation plans before files are modified.
+## Plan Requirements
 
-## AI Role
+계획에는 다음이 있어야 합니다.
 
-The AI assists by:
+- Objective
+- Files Read
+- Current Structure Observed
+- Proposed Changes
+- Files Expected to Change
+- Risks
+- Verification Plan
+- Approval Needed
 
-- Inspecting existing files before proposing changes
-- Summarizing the current project structure
-- Producing scoped implementation plans
-- Implementing only approved changes
-- Identifying Unreal Engine, networking, Mass Entity, and verification risks
-- Suggesting focused tests or manual checks
-- Producing approval reports after implementation
+## Implementation Rules
 
-The AI must not broaden the task, rename unrelated symbols, refactor unrelated systems, or create full-game features unless explicitly requested.
-
-## Standard Workflow
-
-For every non-trivial task:
-
-1. Inspect relevant files.
-2. Summarize the current structure.
-3. Propose a plan using the required plan format.
-4. Wait for explicit human approval.
-5. Implement only the approved changes.
-6. Verify the result.
-7. Provide an approval report using the required report format.
-
-If the task is ambiguous, the AI must state assumptions before implementation. If assumptions materially affect scope or architecture, the AI must ask for clarification before changing files.
-
-## Approval Gates
-
-Approval is required before:
-
-- Creating or modifying source files
-- Creating or modifying config files
-- Adding Unreal modules or plugin dependencies
-- Changing replicated data or RPC behavior
-- Adding Mass Entity systems or processors
-- Adding gameplay systems beyond the approved task
-- Performing broad refactors or renames
-
-Approval reports are required after implementation and must include changed files, verification results, manual test steps, risks, and the next suggested task.
-
-## Task Size Rules
-
-Tasks should be small enough to review in one pass.
-
-Preferred task shape:
-
-- One feature slice
-- One system boundary
-- One verification path
-- Minimal changed files
-
-Avoid combining unrelated work. Mass Entity work must remain incremental and should follow this order unless explicitly approved otherwise:
-
-1. Build/module setup
-2. Spawn only
-3. Movement only
-4. Arrival detection
-5. Objective damage integration
-6. Debug/profiling
-
-Do not combine Mass spawn, movement, arrival detection, and objective damage in one task unless explicitly requested.
+- 승인된 파일/범위만 수정합니다.
+- unrelated refactor를 하지 않습니다.
+- class/function/file rename은 명시적으로 요청된 경우에만 합니다.
+- Mass work는 incremental order를 따릅니다.
+- server-authoritative gameplay를 기본값으로 둡니다.
+- Debug/profiling code는 gameplay correctness에 필수가 되면 안 됩니다.
 
 ## Verification Rules
 
-The AI must not claim a test passed unless it was actually run.
+code change는 관련 검증을 포함해야 합니다.
 
-For code changes, verification should include at least one relevant result:
+예:
 
-- Build result
-- Compile result
-- PIE test result
-- Dedicated server test result
-- Log output check
-- Manual inspection result
+- build / compile
+- PIE
+- dedicated server run
+- server/client logs
+- visible viewport evidence
+- profiling CSV
+- Unreal Insights trace
 
-Networked gameplay changes must include a listen server or dedicated server verification plan. Replicated gameplay state must be checked for server authority, client visibility, and ownership rules.
-
-If verification cannot be run, the approval report must state why and list the remaining manual checks.
+문서 변경만이면 build를 생략할 수 있지만, 생략 이유를 보고해야 합니다.
 
 ## Failure Handling
 
-When a task fails, the AI must:
+실패하면 scope를 넓히지 말고 다음을 보고합니다.
 
-- Stop broadening the scope.
-- Report the exact failure or uncertainty.
-- Identify the smallest next diagnostic step.
-- Avoid hiding unverified assumptions.
-- Avoid rewriting unrelated systems to work around the failure.
+- 무엇이 실패했는지
+- 어떤 error/warning이 있었는지
+- 현재 영향 범위
+- 가장 작은 다음 diagnostic step
 
-If a build, compile, or test fails, the AI should separate:
+## Approval Report
 
-- Failures caused by the current change
-- Pre-existing failures
-- Environment or tooling failures
-- Unknown failures requiring human review
+완료 보고는 간결하고 구체적이어야 합니다.
 
-The next plan should address only the smallest confirmed cause.
+포함 항목:
 
-## Weekly Usage Pattern
+- Objective
+- Plan Executed
+- Changed Files
+- Implementation Summary
+- Verification
+- Manual Test Steps
+- Risks / Notes
+- Next Suggested Task
 
-A practical weekly workflow:
+## Portfolio Value
 
-- Start the week by selecting one portfolio-relevant technical goal.
-- Break the goal into small approved tasks.
-- Use AI for file inspection, planning, focused implementation, and verification checklists.
-- Keep each task reviewable and explainable.
-- End the week by documenting what was built, how it was verified, and what interview topic it demonstrates.
+AI-assisted workflow 자체도 포트폴리오 설명 대상입니다.
 
-Weekly progress should favor demonstrable multiplayer systems, server authority, Mass AI behavior, debug UI, profiling evidence, and clear technical writeups.
+강조할 점:
 
-## Interview Value
-
-The AI harness itself is part of the portfolio story.
-
-It demonstrates that the project was built with:
-
-- Human-owned technical direction
-- Explicit approval gates
-- Controlled AI assistance
-- Small reviewable changes
-- Verification discipline
-- Clear server-authoritative reasoning
-- Documentation suitable for interview discussion
-
-The expected interview message is not that AI replaced engineering judgment. The message is that AI was used as a controlled accelerator while the human maintained ownership of architecture, correctness, verification, and tradeoffs.
-
+- task를 작게 나눴다
+- 승인 전 plan을 만들었다
+- 검증 증거를 남겼다
+- PR 단위로 review 가능하게 관리했다
+- AI가 architecture owner가 아니라 controlled assistant로 사용되었다
