@@ -7,6 +7,7 @@
 class AMDSObjectiveActor;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FMDSActorEnemyArrivedSignature, bool /*bDamageApplied*/, const FVector& /*ArrivalLocation*/);
+DECLARE_MULTICAST_DELEGATE_OneParam(FMDSActorEnemyActiveTickSignature, int32 /*ActiveDelta*/);
 
 UCLASS()
 class MDSPROJECT_API AMDSActorEnemy : public AActor
@@ -20,6 +21,7 @@ public:
 
 	void InitializeActorEnemy(AMDSObjectiveActor* InObjectiveActor, float InMoveSpeed, float InArrivalDistance, float InObjectiveDamageAmount);
 	FMDSActorEnemyArrivedSignature& OnActorEnemyArrived() { return ActorEnemyArrived; }
+	FMDSActorEnemyActiveTickSignature& OnActorEnemyActiveTick() { return ActorEnemyActiveTick; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -39,4 +41,5 @@ private:
 	bool bHasArrived = false;
 
 	FMDSActorEnemyArrivedSignature ActorEnemyArrived;
+	FMDSActorEnemyActiveTickSignature ActorEnemyActiveTick;
 };

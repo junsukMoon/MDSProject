@@ -62,6 +62,8 @@ void AMDSActorEnemy::Tick(const float DeltaSeconds)
 		return;
 	}
 
+	ActorEnemyActiveTick.Broadcast(1);
+
 	const FVector NewLocation = CurrentLocation + (ToTarget / DistanceToTarget) * MoveDistance;
 	SetActorLocation(NewLocation, false);
 
