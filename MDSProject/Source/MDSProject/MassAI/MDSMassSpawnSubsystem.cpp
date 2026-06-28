@@ -25,7 +25,7 @@ static TAutoConsoleVariable<int32> CVarMDSMassBaselineCount(
 	16,
 	TEXT("Mass baseline entity count. Use MDSMassBaselineCount=<N> on the command line for early startup override."));
 
-static bool IsMassDebugDrawEnabled()
+static bool IsMassSpawnDebugDrawEnabled()
 {
 	const IConsoleVariable* MassDebugDrawCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("mds.MassDebugDraw.Enabled"));
 	const bool bCVarEnabled = !MassDebugDrawCVar || MassDebugDrawCVar->GetInt() != 0;
@@ -81,7 +81,7 @@ void UMDSMassSpawnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 		return;
 	}
 
-	if (!IsMassDebugDrawEnabled())
+	if (!IsMassSpawnDebugDrawEnabled())
 	{
 		UE_LOG(LogMDSMassSpawn, Log, TEXT("Mass debug draw disabled for profiling."));
 	}
@@ -144,7 +144,7 @@ void UMDSMassSpawnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	}
 
 	const FVector ObjectiveLocation = ObjectiveActor ? ObjectiveActor->GetActorLocation() : MovementTargetLocation;
-	const bool bDrawDebug = IsMassDebugDrawEnabled();
+	const bool bDrawDebug = IsMassSpawnDebugDrawEnabled();
 	if (bDrawDebug)
 	{
 		DrawDebugSphere(&InWorld, ObjectiveLocation, SpawnDebugRadius, 16, FColor::Red, false, SpawnDebugLifetime, 0, SpawnDebugThickness);

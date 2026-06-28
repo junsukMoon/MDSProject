@@ -152,27 +152,69 @@ Important limitation:
 - This was measured in `-NullRHI`.
 - The actual viewport cost of repeated debug draw may be worse than the measured headless cost.
 
-## Actor-Based Baseline Status
+## Actor vs Mass Phase Capture
 
-An equivalent Actor-based enemy/objective benchmark has not been implemented yet.
+Runtime date: 2026-06-29
 
-For that reason, this document does not claim an Actor-vs-Mass performance win.
+Engine:
 
-Current verified comparison:
+- Source-built UE 5.8
 
-- Mass scenario: measured.
-- Actor scenario: not measured.
+Runtime mode:
 
-To create a valid Actor baseline later, the Actor scenario should match:
+- `MDSProjectEditor-Cmd.exe`
+- `-game -NullRHI -nosound -unattended`
+- CSV profiler capture length: `600` frames
+- Trigger: `MovementActive`
+- Stable frames: `3`
+- Expected count: `1000`
 
-- Same map.
-- Same entity count: `16`.
-- Same spawn grid.
-- Same movement target.
-- Same objective HP: `100`.
-- Same damage per arrival: `5`.
-- Same final damage events: `16`.
-- Same runtime mode and measurement method.
+Mass command contract:
+
+- `-NoMDSMassDebugDraw`
+- `-MDSMassBaselineCount=1000`
+- `-MDSGameplayProfileSubject=Mass`
+- `-MDSGameplayProfileTrigger=MovementActive`
+- `-MDSGameplayProfileExpectedCount=1000`
+- CSV: `MDSProject/Saved/Profiling/CSV/Mass1000_MovementActive_Phase.csv`
+- Log: `C:\Temp\MDS_Profile_Mass1000_MovementActive_Phase.log`
+
+Actor command contract:
+
+- `-NoMDSMassBaseline`
+- `-MDSActorBaseline`
+- `-MDSActorBaselineCount=1000`
+- `-MDSGameplayProfileSubject=Actor`
+- `-MDSGameplayProfileTrigger=MovementActive`
+- `-MDSGameplayProfileExpectedCount=1000`
+- CSV: `MDSProject/Saved/Profiling/CSV/Actor1000_MovementActive_Phase.csv`
+- Log: `C:\Temp\MDS_Profile_Actor1000_MovementActive_Phase.log`
+
+Runtime verification:
+
+- Mass log confirmed `Gameplay CSV profile configured` with `Trigger=MovementActive`, `Subject=Mass`, and `ExpectedCount=1000`.
+- Mass log confirmed `Mass debug draw disabled for profiling`.
+- Mass log confirmed `Gameplay profile trigger condition met after 3 stable frames`.
+- Mass log confirmed CSV capture start/end.
+- Actor log confirmed `Gameplay CSV profile configured` with `Trigger=MovementActive`, `Subject=Actor`, and `ExpectedCount=1000`.
+- Actor log confirmed `Mass baseline disabled`.
+- Actor log confirmed `Actor enemy baseline spawned 1000 enemies`.
+- Actor log confirmed `Gameplay profile trigger condition met after 3 stable frames`.
+- Actor log confirmed CSV capture start/end.
+
+CSV results:
+
+| Scenario | Numeric samples | Avg FrameTime | P95 FrameTime | Max FrameTime | Avg TickActors | P95 TickActors | TotalActorCount | Ticks/Total |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Mass 1000 MovementActive | `600` | `0.4567 ms` | `0.4898 ms` | `7.9245 ms` | `0.0997 ms` | `0.1172 ms` | `87` | `38` |
+| Actor 1000 MovementActive | `600` | `1.2473 ms` | `1.4643 ms` | `7.0531 ms` | `0.7907 ms` | `0.9467 ms` | `1087` | `1038` |
+
+Measured delta:
+
+- Actor average `FrameTime` was about `2.73x` the Mass average in this headless `MovementActive` capture.
+- Actor average `Exclusive/GameThread/TickActors` was about `7.93x` the Mass average.
+- Actor total tick count increased by `1000`, matching the 1000 spawned Actor enemies.
+- This measurement validates the expected Actor tick overhead in this local scenario, but it should not be presented as viewport or GPU performance.
 
 ## Findings
 

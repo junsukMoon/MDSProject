@@ -12,7 +12,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogMDSMassArrival, Log, All);
 
-static bool IsMassDebugDrawEnabled()
+static bool IsMassArrivalDebugDrawEnabled()
 {
 	const IConsoleVariable* MassDebugDrawCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("mds.MassDebugDraw.Enabled"));
 	const bool bCVarEnabled = !MassDebugDrawCVar || MassDebugDrawCVar->GetInt() != 0;
@@ -47,7 +47,7 @@ void UMDSMassArrivalProcessor::Execute(FMassEntityManager& EntityManager, FMassE
 	int32 TotalArrivalCount = 0;
 	int32 ObjectiveDamageCount = 0;
 	int32 CheckedEntityCount = 0;
-	const bool bDrawDebug = IsMassDebugDrawEnabled();
+	const bool bDrawDebug = IsMassArrivalDebugDrawEnabled();
 	AMDSObjectiveActor* ObjectiveActor = CachedObjectiveActor.Get();
 	if (!ObjectiveActor)
 	{

@@ -15,7 +15,7 @@ static TAutoConsoleVariable<int32> CVarMDSMassDebugDrawEnabled(
 	1,
 	TEXT("Enables Mass debug draw. Use -NoMDSMassDebugDraw for profiling runs."));
 
-static bool IsMassDebugDrawEnabled()
+static bool IsMassMovementDebugDrawEnabled()
 {
 	return CVarMDSMassDebugDrawEnabled.GetValueOnGameThread() != 0 && !FParse::Param(FCommandLine::Get(), TEXT("NoMDSMassDebugDraw"));
 }
@@ -47,7 +47,7 @@ void UMDSMassMovementProcessor::Execute(FMassEntityManager& EntityManager, FMass
 
 	int32 MovedEntityCount = 0;
 	const float DeltaTimeSeconds = Context.GetDeltaTimeSeconds();
-	const bool bDrawDebug = IsMassDebugDrawEnabled();
+	const bool bDrawDebug = IsMassMovementDebugDrawEnabled();
 
 	EntityQuery.ForEachEntityChunk(Context, [World, DeltaTimeSeconds, bDrawDebug, &MovedEntityCount](FMassExecutionContext& Context)
 	{
