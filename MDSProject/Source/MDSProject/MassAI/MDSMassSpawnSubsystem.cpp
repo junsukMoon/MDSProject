@@ -15,10 +15,25 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogMDSMassSpawn, Log, All);
 
+static TAutoConsoleVariable<int32> CVarMDSMassBaselineEnabled(
+	TEXT("mds.MassBaseline.Enabled"),
+	1,
+	TEXT("Enables the server-only Mass baseline. Use -NoMDSMassBaseline on the command line to disable it before world begin play."));
+
 static TAutoConsoleVariable<int32> CVarMDSMassBaselineCount(
 	TEXT("mds.MassBaseline.Count"),
 	16,
 	TEXT("Mass baseline entity count. Use MDSMassBaselineCount=<N> on the command line for early startup override."));
+
+bool UMDSMassSpawnSubsystem::IsMassBaselineEnabled()
+{
+	if (FParse::Param(FCommandLine::Get(), TEXT("NoMDSMassBaseline")))
+	{
+		return false;
+	}
+
+	return CVarMDSMassBaselineEnabled.GetValueOnGameThread() != 0 || FParse::Param(FCommandLine::Get(), TEXT("MDSMassBaseline"));
+}
 
 int32 UMDSMassSpawnSubsystem::GetSpawnEntityCount()
 {
@@ -50,6 +65,12 @@ void UMDSMassSpawnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 
 	if (bSpawned)
 	{
+		return;
+	}
+
+	if (!IsMassBaselineEnabled())
+	{
+		UE_LOG(LogMDSMassSpawn, Log, TEXT("Mass baseline disabled. Set mds.MassBaseline.Enabled=1 or omit -NoMDSMassBaseline to enable it."));
 		return;
 	}
 
