@@ -16,6 +16,7 @@ public:
 	void SetMassSpawnedCount(int32 InSpawnedCount);
 	void SetMassMovedCount(int32 InMovedCount);
 	void SetMassArrivalCounts(int32 InArrivedCount, int32 InDamageAppliedCount);
+	void SetActorEnemyCounts(int32 InSpawnedCount, int32 InArrivedCount, int32 InDamageAppliedCount);
 	void SetObjectiveHealth(float InCurrentHealth, float InMaxHealth);
 
 private:
@@ -29,6 +30,9 @@ private:
 	int32 LastMovedCount = 0;
 	int32 ArrivedCount = 0;
 	int32 DamageAppliedCount = 0;
+	int32 ActorSpawnedCount = 0;
+	int32 ActorArrivedCount = 0;
+	int32 ActorDamageAppliedCount = 0;
 	float ObjectiveCurrentHealth = 0.0f;
 	float ObjectiveMaxHealth = 0.0f;
 };

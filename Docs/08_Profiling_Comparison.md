@@ -90,6 +90,37 @@ Important cook/stage note:
 - The first cook/stage attempt produced a Zen project store marker but did not stage loose UFS content needed for this standalone server runtime check.
 - Re-cooking with `-skipzenstore` produced loose cooked content, after which staging copied UFS files and the dedicated server runtime check succeeded.
 
+### Dedicated Server Two-Client Replication Check
+
+- Runtime date: 2026-06-29
+- Engine: source-built UE 5.8
+- Server:
+  - Staged `MDSProjectServer.exe`
+  - Log: `C:\Temp\MDS_Dedicated_TwoClients_Server.log`
+- Clients:
+  - Staged `MDSProject.exe`
+  - Runtime mode: `127.0.0.1:7777 -log -unattended -nosound -NullRHI`
+  - Client 1 log: `C:\Temp\MDS_Dedicated_TwoClients_Client1.log`
+  - Client 2 log: `C:\Temp\MDS_Dedicated_TwoClients_Client2.log`
+- Server connection verification:
+  - `IpNetDriver listening on port 7777`
+  - Two client `Login request` entries
+  - Two client `Join succeeded` entries
+- Server final debug line:
+  - `MDS Debug | NetMode=DedicatedServer | ObjectiveHP=20/100 | Mass Spawned=16 Moved=0 Arrived=16 Damage=16`
+- Client replication verification:
+  - Client 1 logged `MDS Debug | NetMode=Client | ObjectiveHP=20/100 | Mass Spawned=0 Moved=0 Arrived=0 Damage=0` 72 times.
+  - Client 2 logged `MDS Debug | NetMode=Client | ObjectiveHP=20/100 | Mass Spawned=0 Moved=0 Arrived=0 Damage=0` 72 times.
+
+Result:
+
+- Both standalone clients observed the same replicated server-owned Objective HP result: `20/100`.
+
+Important limitation:
+
+- This was a headless `-NullRHI` log verification. Visible viewport or recorded-video verification is still pending.
+- Both clients emitted repeated `LogNetPlayerMovement: Warning: CreateSavedMove: Hit limit of 96 saved moves` warnings under the headless run. The Objective HP replication result remained stable.
+
 ## Debug Draw Fix Measurement
 
 Before Phase 8, a post-arrival slowdown was investigated and fixed in PR #11.
@@ -146,6 +177,7 @@ To create a valid Actor baseline later, the Actor scenario should match:
 ## Findings
 
 - The Mass-based scenario currently reaches the expected objective state in standalone, editor server-mode, and staged dedicated server binary runs.
+- The staged dedicated server also replicated the final Objective HP result to two standalone clients in a headless log verification.
 - Post-arrival movement work drops to `0` moved entities.
 - Debug output now exposes runtime state clearly enough for recording:
   - NetMode
@@ -160,7 +192,7 @@ To create a valid Actor baseline later, the Actor scenario should match:
 ## Known Limitations
 
 - `-NullRHI` results should not be presented as final rendering performance.
-- Client viewport replication has not been verified in this phase.
+- Client Objective HP replication has been verified through two standalone client logs, but visible viewport or recorded-video verification is still pending.
 - No Actor baseline has been implemented or measured yet.
 - No Unreal Insights trace was captured.
 - UE 5.8 `ZenStore` cook output needs separate handling; this verification used `-skipzenstore` for loose staged server content.
@@ -170,4 +202,4 @@ To create a valid Actor baseline later, the Actor scenario should match:
 1. Re-run the same scenario in a visible viewport and record `stat fps` / `stat unit`.
 2. Capture Unreal Insights trace once a stable recording workflow is available.
 3. Build a minimal Actor-based baseline only if an actual Actor-vs-Mass comparison is needed.
-4. Add a client connection check against the staged dedicated server and verify replicated Objective HP from the client view.
+4. Record visible client viewport evidence showing both clients display the same replicated Objective HP.
