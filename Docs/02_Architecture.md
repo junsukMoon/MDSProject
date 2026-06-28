@@ -1,246 +1,122 @@
-﻿# MVP Architecture
+# 아키텍처
 
-## Architecture Overview
+이 문서는 `MDSProject`의 high-level architecture와 system responsibility를 정의합니다.
 
-`MDSProject` is a server-authoritative multiplayer defense sandbox for Unreal Engine client/gameplay programming interviews.
+아키텍처는 의도적으로 작게 유지합니다. 목표는 full game framework가 아니라 ownership, replication, Mass Entity boundary, verification discipline을 명확하게 보여주는 것입니다.
 
-The MVP architecture separates player input, combat requests, objective state, Mass-based enemy simulation, network authority, debug visibility, profiling, and AI-assisted documentation workflow.
+## 핵심 원칙
 
-The architecture is intentionally small. It should demonstrate clear ownership, replication reasoning, Mass Entity boundaries, and verification discipline without becoming a full game framework.
+- 서버가 gameplay state의 source of truth입니다.
+- client는 replicated result를 관찰합니다.
+- Objective HP, damage, score, win/loss 같은 gameplay state는 client-owned가 되면 안 됩니다.
+- Mass simulation은 scalable enemy behavior를 보여주기 위한 도구입니다.
+- Debug output과 profiling은 설명과 검증을 돕는 보조 수단입니다.
 
-## Major Systems
+## 주요 시스템
 
-- Player
-- Combat
-- Objective
-- MassAI
-- Network
-- DebugUI
-- Profiling
-- Docs / AI Harness
+### Objective
 
-## System Responsibilities
+책임:
 
-Player:
+- Objective HP 소유
+- server-side damage application
+- replicated HP 노출
+- client-side `OnRep` 반응
 
-- Owns local input and local control.
-- Provides the weapon/action request entry point.
-- Sends gameplay requests through approved server-authoritative paths.
-- Does not directly apply authoritative gameplay results on clients.
+규칙:
 
-Combat:
+- Objective HP 변경은 서버에서만 발생합니다.
+- client는 HP를 직접 감소시키면 안 됩니다.
+- Objective state는 debug output과 logs로 확인 가능해야 합니다.
 
-- Defines the boundary between damage requests and damage application.
-- Routes valid gameplay requests toward server-side validation.
-- Keeps damage application separate from input and presentation.
+### MassAI
 
-Objective:
+책임:
 
-- Owns objective HP, damage handling, and destruction state.
-- Treats objective HP as server-authoritative gameplay state.
-- Exposes state through replication, logs, or debug UI as approved.
+- Mass entity spawn
+- Objective 방향 movement
+- arrival detection
+- server-side objective damage trigger
+- debug/profiling state 제공
 
-MassAI:
+규칙:
 
-- Owns enemy entity data, spawn behavior, movement behavior, and arrival detection.
-- Keeps spawn, movement, arrival detection, and objective damage integration in separate tasks unless explicitly approved.
-- Handles large enemy simulation responsibilities without becoming a full AI system.
+- Mass 작업은 spawn, movement, arrival, damage로 나누어 진행합니다.
+- Mass fragment/tag/processor는 작고 설명 가능해야 합니다.
+- Mass presentation은 gameplay authority가 아닙니다.
 
-Network:
+### ActorAI Baseline
 
-- Defines authority, replication, ownership, and server/client validation expectations.
-- Ensures replicated state has a server-side source of truth.
-- Requires server/client verification notes for network changes.
+책임:
 
-DebugUI:
+- Mass 비교용 최소 Actor enemy baseline 제공
+- Actor spawn / movement / arrival damage 흐름 제공
+- profiling comparison용 count와 tick behavior 제공
 
-- Visualizes key runtime state such as authority role, objective HP, enemy count, spawn state, movement state, arrival state, and damage events.
-- Must remain lightweight and must not become a large UI framework.
-- Must not be required for gameplay correctness.
+규칙:
 
-Profiling:
+- full AI, behavior tree, animation, combat system으로 확장하지 않습니다.
+- Mass와 비교 가능한 최소 baseline에 집중합니다.
 
-- Defines measurement points and comparison data.
-- Supports later Actor-based vs Mass-based comparison.
-- Records FPS, frame time, GameThread impact, runtime mode, and entity or actor count when relevant.
+### Debug
 
-Docs / AI Harness:
+책임:
 
-- Controls task planning, approval, verification, and report history.
-- Keeps work small, reviewable, and interview-oriented.
-- Prevents scope expansion into full game production.
-
-## Data Flow
-
-Primary gameplay flow:
-
-1. Player input creates a local action or weapon request.
-2. The request is routed to the server through an approved ownership path.
-3. The server validates the request.
-4. Combat applies valid gameplay results on the server.
-5. Objective updates server-owned HP when valid damage is applied.
-6. Replicated state, logs, or debug UI expose the result to clients and developers.
-
-MassAI objective flow:
-
-1. MassAI spawns enemy entities in an approved scenario.
-2. MassAI moves entities toward the Objective.
-3. MassAI detects arrival separately from damage application.
-4. Arrival requests objective damage through a server-authoritative path.
-5. Objective applies valid damage on the server.
-6. Debug UI, logs, and profiling notes expose entity count, arrival behavior, objective HP, and performance impact.
-
-## Networking / Authority Model
-
-Server-authoritative gameplay is the default.
-
-- The server owns HP, damage, score, objective damage, objective HP, and enemy arrival results.
-- Clients may display state but must not directly apply authoritative gameplay results.
-- Clients may request actions, but the server validates and applies results.
-- Replicated state must have a clear server-side source of truth.
-- RPCs must be justified by ownership and direction.
-- Network changes require listen-server or dedicated-server verification notes.
-
-Manual inspection alone is not runtime network verification.
-
-## Mass Entity Architecture
-
-MassAI is responsible for scalable enemy simulation, not full enemy gameplay production.
-
-Mass work must follow the incremental order from `Docs/Mass_Rules.md`:
-
-1. Concept document
-2. Build/module setup
-3. Spawn only
-4. Movement only
-5. Arrival detection only
-6. Objective damage integration
-7. Debug UI integration
-8. Profiling comparison
-
-Mass boundaries:
-
-- Fragments store focused entity data.
-- Tags classify simple entity state.
-- Processors perform one behavior at a time.
-- Spawners create only the approved entity scenario.
-- Representation stays separate from authoritative gameplay state.
-
-Objective damage should be integrated only after spawn, movement, and arrival detection are implemented separately, unless explicitly approved.
-
-## Objective System Architecture
-
-The Objective system is the authoritative owner of objective HP.
-
-Responsibilities:
-
-- Store objective HP on the server.
-- Accept damage only through validated server-side logic.
-- Track destruction state if implemented.
-- Expose current state through replication, logs, or debug UI.
-- Keep objective damage separate from arrival detection until integration is explicitly approved.
-
-Clients may observe objective state but must not own HP changes.
-
-## Debug UI / Logging Architecture
-
-Debug UI and logs expose runtime state for development and interview discussion.
-
-They should show, when relevant:
-
-- Authority role
+- NetMode
 - Objective HP
-- Enemy count
-- Spawn state
-- Movement state
-- Arrival state
-- Damage events
-- Server/client differences
-- Relevant Mass state
+- Mass count
+- Actor baseline count
+- runtime verification에 필요한 상태 표시
 
-Debug UI must stay lightweight. Logs must avoid per-frame spam. Neither debug UI nor logs should become required for gameplay correctness.
+규칙:
 
-## Profiling Architecture
+- Debug UI는 lightweight해야 합니다.
+- debug output은 gameplay correctness의 필수 조건이 되면 안 됩니다.
+- dedicated server logic은 viewport나 HUD에 의존하면 안 됩니다.
 
-Profiling supports later Actor-based vs Mass-based comparison.
+### Profiling
 
-Profiling notes should capture, when relevant:
+책임:
 
-- Scenario or map context
-- Runtime mode
-- FPS
-- Frame time
-- GameThread impact
-- Entity count or actor count
-- Baseline comparison
+- profiling scenario 실행 보조
+- CSV capture trigger
+- Actor/Mass phase-based comparison
+- performance notes 문서화
 
-Profiling should support technical explanation and decision-making, not scope expansion.
+규칙:
 
-## AI-Assisted Development Boundaries
+- `-NullRHI` 결과는 local comparison으로만 설명합니다.
+- viewport/GPU 성능 주장으로 확대하지 않습니다.
+- 필요할 때만 deeper Unreal Insights analysis를 수행합니다.
 
-AI assistance is part of the architecture only as a controlled workflow.
+## 네트워크 구조
 
-Rules:
+- 서버가 Objective HP를 소유합니다.
+- client는 action을 요청할 수 있지만 서버가 검증하고 적용합니다.
+- replicated state에는 명확한 source of truth가 있어야 합니다.
+- RPC는 ownership과 방향이 설명 가능해야 합니다.
+- `OnRep`는 client-side presentation/cache update에 사용하고 authoritative gameplay source가 되면 안 됩니다.
 
-- Human approval is required before non-trivial file changes.
-- AI must inspect relevant files before proposing implementation.
-- AI must implement only approved changes.
-- AI must verify results or state why verification was not possible.
-- AI must provide an approval report after implementation.
-- AI must not broaden scope, perform broad refactors, or create full-game systems unless explicitly requested.
+## 코드 배치 원칙
 
-## Initial Folder / File Direction
+- Objective code는 `Objective` 영역에 둡니다.
+- Mass 관련 code는 `MassAI` 영역에 둡니다.
+- Actor baseline은 `ActorAI` 영역에 둡니다.
+- Debug state는 `Debug` 영역에 둡니다.
+- Profiling helper는 `Profiling` 영역에 둡니다.
+- player/controller 관련 확장은 기존 player/controller code와 가까운 곳에 둡니다.
 
-Exact source paths should be chosen during approved implementation tasks after inspecting the project structure.
+## 검증 원칙
 
-Initial direction:
+각 task는 다음 중 관련된 검증을 실제로 수행하고 보고해야 합니다.
 
-- Player-related code should stay near existing player or pawn/controller code once present.
-- Combat code should stay near the damage request/application boundary.
-- Objective code should be isolated enough to make server-owned HP easy to review.
-- MassAI code should be grouped so fragments, tags, processors, spawners, and representation remain understandable.
-- DebugUI code should remain lightweight and separate from authoritative gameplay logic.
-- Profiling notes should live in documentation unless an approved implementation task creates runtime profiling helpers.
+- build / compile
+- editor startup
+- PIE
+- dedicated server runtime
+- server/client logs
+- visible viewport evidence
+- profiling CSV
+- Unreal Insights trace
 
-Do not create folders, files, classes, or modules from this architecture document alone.
-
-## Implementation Order
-
-Recommended MVP implementation order:
-
-1. Confirm project build and baseline startup.
-2. Establish multiplayer or dedicated-server test path.
-3. Add server-authoritative Objective HP.
-4. Add minimal debug logs or debug UI for authority and objective HP.
-5. Add Mass concept and module setup.
-6. Add Mass spawn only.
-7. Add Mass movement only.
-8. Add Mass arrival detection only.
-9. Integrate server-authoritative objective damage.
-10. Expand debug UI/logging for Mass and objective state.
-11. Add profiling comparison notes for Actor-based vs Mass-based approaches.
-
-Each step should be planned, approved, implemented, verified, and reported separately unless explicitly approved otherwise.
-
-## Risks and Constraints
-
-- Overbuilding combat, UI, AI, or animation would weaken the technical portfolio focus.
-- Combining Mass spawn, movement, arrival detection, and damage can hide bugs and make verification weak.
-- Client-side authority mistakes can invalidate multiplayer behavior.
-- Tick, logging, debug UI, and Mass processors can create performance issues if added casually.
-- Dedicated server behavior can break if gameplay relies on viewport, HUD, local player, or visual-only systems.
-- Source structure is not defined by this document; implementation tasks must inspect existing files first.
-
-## Interview Explanation Points
-
-This architecture should help explain:
-
-- Why the project is a technical sandbox, not a full game.
-- How server authority protects gameplay state.
-- How clients request actions and observe results.
-- Why objective HP is owned by the server.
-- Why MassAI is split into spawn, movement, arrival, and damage integration steps.
-- How debug UI and logs expose runtime state without becoming a large UI framework.
-- How profiling supports Actor-based vs Mass-based comparison.
-- How AI-assisted development is controlled through approval gates and verification reports.
-
+실행하지 않은 검증은 성공했다고 기록하지 않습니다.

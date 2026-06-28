@@ -1,110 +1,41 @@
-﻿# Approval Report Template
+# Approval Report Template
 
-Use this template after completing an approved Codex task for `MDSProject`.
+이 템플릿은 task 완료 후 결과를 보고할 때 사용합니다.
 
-The report must describe what was done, what changed, how it was verified, and whether the implementation stayed inside the approved scope.
+보고서는 무엇을 했고, 무엇이 바뀌었고, 어떻게 검증했으며, 승인된 범위를 지켰는지 설명해야 합니다.
 
-## Objective
+```text
+Approval Report
 
-State the approved task objective.
+Objective:
+<이번 작업의 목표>
 
-`<Objective from the approved plan>`
+Plan Executed:
+<승인된 계획을 어떻게 실행했는지>
 
-## Plan Executed
+Changed Files:
+<변경된 파일 목록>
 
-Summarize the approved plan that was implemented.
+Implementation Summary:
+<핵심 구현 요약>
 
-- `<Approved plan item 1>`
-- `<Approved plan item 2>`
-- `<Approved plan item 3>`
+Verification:
+<실제로 실행한 검증 결과>
 
-If the final implementation differed from the approved plan, describe that in `Deviations From Plan`.
+Manual Test Steps:
+<재현 가능한 수동 테스트 단계>
 
-## Changed Files
+Risks / Notes:
+<남은 위험, 제한, 주의 사항>
 
-List every file that was created, modified, moved, or deleted.
+Next Suggested Task:
+<다음으로 할 만한 작고 review 가능한 작업>
+```
 
-- `<Changed file path>` - `<Created / Modified / Moved / Deleted>`
+## 작성 규칙
 
-If any file was changed outside the approved scope, report it explicitly:
-
-- `Out-of-scope change:` `<File path>` - `<Reason and impact>`
-
-Do not omit accidental or unexpected file changes.
-
-## Implementation Summary
-
-Describe the completed work in reviewable terms.
-
-- `<What was added or changed>`
-- `<How it fits the approved objective>`
-- `<Important behavior or workflow impact>`
-
-For `.Build.cs` or module dependency changes, include the reason for each added, removed, or changed module:
-
-- `<Module name>` - `<Reason required>`
-
-## Verification
-
-State exactly what verification was performed and the result.
-
-- `<Build / compile / PIE / dedicated server / log check / manual inspection>` - `<Result>`
-
-Do not claim any test, build, compile, PIE run, dedicated server run, or log check passed unless it was actually run.
-
-If verification was not possible, state the reason:
-
-- `Not run:` `<Verification step>` - `<Reason>`
-
-For network or replication-related changes, include server/client verification notes:
-
-- `Server behavior:` `<Observed or expected result>`
-- `Client behavior:` `<Observed or expected result>`
-- `Authority / ownership notes:` `<Relevant replication or RPC notes>`
-
-## Manual Test Steps
-
-List the steps a human can use to verify the result.
-
-1. `<Manual step 1>`
-2. `<Manual step 2>`
-3. `<Expected result>`
-
-Manual steps should be concrete enough to reproduce in the editor, a listen server, a dedicated server, logs, or file review.
-
-## Risks / Notes
-
-List remaining risks, known limitations, or review notes.
-
-- `<Risk or note>`
-
-Separate current-task risks from pre-existing issues when possible.
-
-## Deviations From Plan
-
-State whether the implementation deviated from the approved plan.
-
-- `None`
-
-If there were deviations, replace `None` with:
-
-- `<Deviation>` - `<Reason>` - `<Impact>`
-
-Any file changed outside the approved scope must also be listed in `Changed Files`.
-
-## Assumptions Made
-
-List assumptions used during implementation or verification.
-
-- `<Assumption>`
-
-If no assumptions were made, write:
-
-- `None`
-
-## Next Suggested Task
-
-Suggest one focused next task that follows from the completed work.
-
-`<Next small, reviewable task>`
-
+- 실행하지 않은 검증을 성공했다고 쓰지 않습니다.
+- build를 실행하지 않았으면 “문서 변경만이라 build는 실행하지 않음”처럼 명확히 씁니다.
+- runtime behavior는 실제 runtime/log/viewport/profiling 증거가 있을 때만 성공으로 기록합니다.
+- 변경 파일이 승인 범위를 벗어났다면 반드시 명시합니다.
+- Next Suggested Task는 너무 큰 scope가 아니라 작은 다음 작업이어야 합니다.

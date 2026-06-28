@@ -1,197 +1,169 @@
-﻿# Verification Guide
+# Verification Guide
 
-This document defines verification standards for `MDSProject`.
+이 문서는 `MDSProject`의 verification standard를 정의합니다.
 
-Verification must be accurate and specific. Do not report a test, build, compile, PIE session, dedicated server run, log check, or profiling pass as successful unless it was actually run.
-
-Manual inspection is useful, but it is not the same as runtime verification.
+검증은 정확하고 구체적이어야 합니다. 실행하지 않은 build, compile, PIE, dedicated server run, log check, profiling pass를 성공했다고 보고하지 않습니다.
 
 ## Build / Compile Checks
 
-Use build or compile checks for C++, module, plugin, config, and Unreal API changes.
+C++, module, plugin, config, Unreal API 변경에는 build 또는 compile check를 사용합니다.
 
-Report:
+보고할 내용:
 
-- Target built or compiled
-- Build configuration
-- Platform
-- Result
-- Relevant errors or warnings
+- target
+- configuration
+- platform
+- result
+- relevant errors/warnings
 
-If `.Build.cs` or module dependencies changed, report why each added, removed, or changed module was required.
-
-Do not claim a successful build if only files were inspected.
+`.Build.cs`가 바뀌면 각 module이 왜 필요한지 설명합니다.
 
 ## Editor Startup Checks
 
-Use editor startup checks when changes may affect assets, config loading, modules, plugins, game modes, maps, subsystems, or editor-facing APIs.
+asset, config, module, plugin, game mode, map, subsystem에 영향을 줄 수 있으면 editor startup check를 사용합니다.
 
-Report:
+보고할 내용:
 
-- Whether the editor opened successfully
-- Project or map loaded
-- Any startup warnings, errors, crashes, missing modules, or asset load failures
-- Whether the issue appears related to the current change
-
-If the editor cannot be started, state the reason.
+- editor가 열렸는지
+- project/map load 상태
+- startup warning/error/crash
+- 현재 변경과 관련 있는지
 
 ## PIE Single-Player Checks
 
-Use PIE single-player checks for local gameplay flow, objective behavior, UI visibility, input handling, and basic runtime errors.
+local gameplay flow, objective behavior, UI visibility, input handling, basic runtime error 확인에 사용합니다.
 
-Report:
-
-- Map or test context used
-- Number of PIE players
-- What action was performed
-- Expected result
-- Observed result
-- Runtime warnings or errors
-
-PIE single-player checks do not verify multiplayer authority, ownership, or replication.
+PIE single-player는 multiplayer authority/ownership/replication을 검증하지 않습니다.
 
 ## PIE Listen-Server Checks
 
-Use PIE listen-server checks for multiplayer behavior that can be validated with an editor-hosted server and one or more clients.
+editor-hosted server와 client로 multiplayer behavior를 확인할 때 사용합니다.
 
-Report:
+보고할 내용:
 
-- Number of players
-- Which instance acted as server
-- Which instance acted as client
-- Server-observed result
-- Client-observed result
-- Any ownership, RPC, or replication notes
-
-Network-related changes require server/client verification notes. If listen-server verification was not run, state why.
+- player 수
+- server instance
+- client instance
+- server-observed result
+- client-observed result
+- ownership/RPC/replication notes
 
 ## Dedicated Server Checks
 
-Use dedicated server checks for server-authoritative gameplay, standalone client behavior, objective state, replicated data, and changes intended to demonstrate dedicated server support.
+dedicated server support, standalone client behavior, objective state, replicated data 검증에 사용합니다.
 
-Report:
+보고할 내용:
 
-- Dedicated server target or launch method
-- Client launch method
-- Map or test context
-- Server log result
-- Client log result
-- Observed gameplay result
-
-If a dedicated server check is required but cannot be executed, state the reason and list the closest available substitute, such as PIE listen-server testing.
+- server target 또는 launch method
+- client launch method
+- map/test context
+- server log result
+- client log result
+- observed gameplay result
 
 ## Network Replication Checks
 
-Use network replication checks for any change involving replicated properties, RPCs, authority checks, ownership, damage, health, score, objective HP, spawning, possession, or client-visible gameplay state.
+replicated property, RPC, authority check, ownership, damage, health, score, Objective HP, spawning, possession, client-visible gameplay state 변경에 사용합니다.
 
-Report:
+보고할 내용:
 
-- Server authority path
-- Client request path, if any
-- Replicated data observed on clients
-- RPC ownership assumptions
-- Lifetime replicated properties affected
-- Server/client result notes
-
-Server-authoritative gameplay is the default. Clients may request actions, but the server must validate and apply gameplay results.
+- server authority path
+- client request path
+- client에서 관찰된 replicated data
+- RPC ownership assumption
+- lifetime replicated properties
+- server/client result notes
 
 ## Objective Gameplay Checks
 
-Use objective gameplay checks for changes involving base health, objective HP, score, enemy arrival, win/loss conditions, damage application, or defense goals.
+Objective HP, score, enemy arrival, win/loss, damage application, defense goal 변경에 사용합니다.
 
-Report:
+보고할 내용:
 
-- Initial objective state
-- Action that changed the objective state
-- Server-side result
-- Client-visible result, when networked
-- Expected and observed final state
+- initial objective state
+- state를 바꾼 action
+- server-side result
+- client-visible result
+- expected/observed final state
 
-Objective gameplay state must be owned by the server unless the approved task explicitly states otherwise.
+Objective gameplay state는 승인된 task에서 다르게 정하지 않는 한 server-owned입니다.
 
 ## Mass Entity Checks
 
-Use Mass Entity checks for Mass spawn, movement, arrival detection, objective damage integration, debug visualization, or profiling work.
+Mass spawn, movement, arrival detection, objective damage integration, debug visualization, profiling에 사용합니다.
 
-Report when applicable:
+보고할 내용:
 
-- Entity count
-- Spawn behavior
-- Movement or processor behavior
-- Arrival or damage behavior
-- Performance impact
-- Relevant Mass warnings or errors
+- entity count
+- spawn behavior
+- movement / processor behavior
+- arrival / damage behavior
+- performance impact
+- Mass warnings/errors
 
-Mass-related work must be incremental. Do not treat spawn, movement, arrival detection, and objective damage as verified together unless all of those behaviors were actually tested.
+실제로 테스트하지 않은 behavior를 함께 verified로 쓰지 않습니다.
 
 ## Debug UI Checks
 
-Use Debug UI checks for changes involving runtime status display, debug panels, counters, toggles, overlays, logs, or developer-facing feedback.
+runtime status display, counters, overlays, logs, developer feedback 변경에 사용합니다.
 
-Report:
+보고할 내용:
 
-- UI entry point or display location
-- Values shown
-- How values were produced
-- Whether values update at runtime
-- Server/client visibility, if networked
-
-Debug UI should support technical understanding and interview discussion without hiding authority or replication behavior.
+- display location
+- 표시 값
+- 값 생성 방식
+- runtime update 여부
+- server/client visibility
 
 ## Log Review
 
-Use log review for builds, editor startup, PIE, dedicated server, client runs, Mass warnings, replication warnings, runtime ensures, and crashes.
+build, editor startup, PIE, dedicated server, client run, Mass warnings, replication warnings, crash/ensure 확인에 사용합니다.
 
-Report:
+보고할 내용:
 
-- Log source
-- Relevant warnings
-- Relevant errors
-- Crashes, ensures, or failed loads
-- Whether findings are new, pre-existing, or unknown
-
-Log review can support verification, but log review alone does not prove gameplay behavior unless the task only required log behavior.
+- log source
+- relevant warnings
+- relevant errors
+- crash/ensure
+- 새 문제인지 기존 문제인지
 
 ## Profiling Checks
 
-Use profiling checks for changes that may affect performance, Tick cost, Mass processing, entity counts, debug UI overhead, spawning, movement, or server load.
+performance, Tick cost, Mass processing, entity/actor count, debug UI overhead, spawning, movement, server load 변경에 사용합니다.
 
-Report when relevant:
+보고할 내용:
 
 - FPS
-- Frame time
+- frame time
 - GameThread impact
-- Entity count or actor count
-- Test map or scenario
-- Whether measurement was editor, PIE, standalone, client, or server
+- entity/actor count
+- map/scenario
+- runtime mode
 
-Profiling numbers should include enough context to be useful in an interview or future comparison.
+Profiling number는 interview/future comparison에 의미가 있을 정도의 context를 포함해야 합니다.
 
 ## Manual Test Steps
 
-Manual test steps must be concrete and reproducible.
+manual test step은 재현 가능해야 합니다.
 
-Include:
+포함할 것:
 
-1. Setup or map to open
-2. Number of players or server mode
-3. Actions to perform
-4. Expected result
-5. Observed result, if already tested
+1. setup 또는 map
+2. player/server mode 수
+3. 수행할 action
+4. expected result
+5. observed result
 
-Manual inspection should be labeled as manual inspection. Runtime checks should be labeled with the runtime mode used, such as PIE single-player, PIE listen-server, standalone, or dedicated server.
+manual inspection과 runtime check는 구분해서 기록합니다.
 
 ## When Verification Cannot Be Executed
 
-If verification cannot be executed, state:
+검증을 실행할 수 없으면 다음을 적습니다.
 
-- Which verification step was not run
-- Why it could not be run
-- What was checked instead
-- What remains unverified
-- Recommended next manual check
+- 어떤 검증을 실행하지 못했는지
+- 이유
+- 대신 확인한 것
+- 남은 unverified 항목
+- 추천 manual check
 
-Acceptable reasons may include missing project files, unavailable editor, missing build target, environment limitations, dependency failure, or insufficient task scope.
-
-Do not replace a required runtime check with manual inspection without clearly stating the limitation.
-
+manual inspection을 runtime verification처럼 쓰면 안 됩니다.

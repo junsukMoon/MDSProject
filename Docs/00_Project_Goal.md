@@ -1,48 +1,33 @@
-﻿# Project Goal
+# 프로젝트 목표
 
-## Project Name
+`MDSProject`는 UE5 기술 포트폴리오 프로젝트입니다.
 
-`MDSProject`
+목표는 완성형 게임을 만드는 것이 아니라, 면접에서 설명 가능한 **서버 권위 기반 멀티플레이어 디펜스 샌드박스**를 만드는 것입니다.
 
-## One-line Summary
+## 핵심 목표
 
-MDSProject is a server-authoritative UE5 multiplayer defense sandbox built to demonstrate dedicated server gameplay, replication, Mass AI, debugging, profiling, and AI-assisted development workflow.
+- Dedicated Server 실행 가능성 증명
+- 서버 권위 기반 Objective HP
+- Replication과 client 관찰 흐름 검증
+- Mass Entity 기반 enemy simulation
+- Debug output으로 runtime state 확인
+- Actor baseline과 Mass 비교 profiling
+- AI-assisted development workflow 기록
 
-## Portfolio Purpose
+## 범위
 
-This project is a technical portfolio for Unreal Engine client/gameplay programming interviews.
+이 프로젝트는 작은 기술 데모입니다.
 
-It is designed to show practical engineering judgment around multiplayer gameplay, authority boundaries, scalable AI simulation, verification, and focused documentation.
+포함 범위:
 
-## Core Gameplay Concept
+- Objective Actor와 server-owned HP
+- Mass enemy spawn / movement / arrival / objective damage
+- client가 replicated Objective HP를 관찰하는 흐름
+- runtime debug line
+- profiling / verification 문서
+- dedicated server build/cook/stage/runtime 검증
 
-Players run in a multiplayer or dedicated-server environment while AI enemies move toward a shared objective.
-
-The objective has server-authoritative HP. When enemies validly arrive and apply damage, the server updates objective HP and clients observe the result through approved replicated state or debug output.
-
-## Technical Goals
-
-- Dedicated Server
-- Replication
-- Authority / Ownership
-- Objective gameplay
-- Mass Entity / Mass AI
-- Debug UI
-- Profiling
-- AI-assisted development workflow
-
-## MVP Scope
-
-- Player can run in a multiplayer/dedicated-server environment.
-- Objective has server-authoritative HP.
-- Mass-based enemies can be spawned.
-- Mass enemies move toward the objective.
-- Arrival can be detected.
-- Objective HP decreases on valid arrival/damage.
-- Debug UI or logs expose key state.
-- Profiling document can compare Actor-based and Mass-based approaches later.
-
-## Explicit Non-Scope
+비범위:
 
 - Inventory
 - Quest system
@@ -54,43 +39,23 @@ The objective has server-authoritative HP. When enemies validly arrive and apply
 - Large UI framework
 - Complex animation system
 - Full GAS expansion
-- Full game production content
+- Full production-quality game content
 
-## AI-Assisted Development Goal
+## 면접 가치
 
-AI assistance is used as a controlled development workflow, not as a replacement for engineering judgment.
+이 프로젝트는 다음 질문에 답할 수 있어야 합니다.
 
-The human owns project direction, task approval, architecture decisions, final review, and verification judgment. AI assists with file inspection, planning, scoped implementation, risk identification, verification checklists, and documentation.
+- 왜 Objective HP를 서버가 소유해야 하는가?
+- client는 어떤 상태를 관찰하고, 어떤 상태를 직접 바꾸면 안 되는가?
+- Mass Entity를 actor-only 방식과 비교할 때 어떤 장점과 tradeoff가 있는가?
+- spawn, movement, arrival, damage를 왜 나누어 구현했는가?
+- dedicated server에서 visual/debug system에 의존하지 않는 구조인가?
+- profiling 결과를 어디까지 주장할 수 있고, 어디부터는 제한해야 하는가?
 
-Every non-trivial task should remain small, reviewable, approved before implementation, and reported after verification.
+## 개발 원칙
 
-## Interview Value
-
-The project should support clear interview discussion about:
-
-- Designing server-authoritative gameplay in UE5
-- Separating client requests from server-owned results
-- Using replication and ownership deliberately
-- Building objective gameplay with verifiable state changes
-- Integrating Mass Entity incrementally
-- Comparing Actor-based and Mass-based approaches through profiling
-- Exposing runtime state through debug UI or logs
-- Using AI assistance with explicit approval gates and verification discipline
-
-## Target Completion Date
-
-`2026-07-31`
-
-## Success Criteria
-
-The project is successful when it can demonstrate:
-
-- A multiplayer or dedicated-server run path.
-- Server-owned objective HP that changes only through validated gameplay.
-- Mass-based enemy spawn, movement, arrival detection, and objective damage flow.
-- Debug UI or logs that make authority, objective state, and Mass behavior inspectable.
-- Verification notes for build/compile, runtime behavior, network behavior, and logs where applicable.
-- Profiling notes that can compare Actor-based and Mass-based approaches.
-- Documentation that explains project scope, implementation rules, Mass rules, verification standards, and AI-assisted workflow.
-- A concise interview narrative focused on Unreal Engine client/gameplay programming rather than full game production.
-
+- 작은 task 단위로 작업합니다.
+- non-trivial 작업은 계획을 먼저 제안하고 승인 후 구현합니다.
+- server-authoritative gameplay를 기본값으로 둡니다.
+- debug/profiling은 설명을 돕기 위한 도구이며 gameplay correctness의 필수 조건이 되면 안 됩니다.
+- 검증하지 않은 build, runtime, replication, profiling 결과는 성공했다고 말하지 않습니다.

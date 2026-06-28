@@ -1,292 +1,122 @@
 # AI Task Commands
 
-## Purpose
+이 문서는 `MDSProject`에서 AI-assisted workflow를 반복적으로 실행하기 위한 command pattern을 정리합니다.
 
-This document defines standard commands for running the AI task branch workflow in `MDSProject`.
-
-These commands are written as reusable prompts that the user can give to Codex. They are intended to keep planning, execution, learning review, PR preparation, and merge work separated.
-
-Unless the user explicitly requests otherwise, Codex should answer in Korean.
-
-## Approval Chain Rule
-
-When the user approves an Orchestrator plan, that approval allows Codex to continue through Execute, Learning Review, and PR Preparation for the approved task scope.
-
-This chained approval applies only while all of the following remain true:
-
-- The task objective is unchanged.
-- The branch matches the approved task.
-- Changed files stay within the approved scope.
-- Verification follows the approved plan.
-- The PR is prepared for review, not merged.
-
-If Codex needs to expand scope, modify unapproved files, change the task objective, or skip required verification, Codex must stop and ask for additional approval.
-
-Merge is never included in Orchestrator approval. Merge requires a separate explicit user approval for the specific PR.
+Codex는 기본적으로 한국어로 답합니다. 단, code, command, log, Unreal API 이름은 원문을 유지합니다.
 
 ## Orchestrator Command
 
-Use this command to select and scope the next task before implementation.
+목적:
+
+- 다음 task를 고르고 scope를 좁힙니다.
+- 관련 파일을 읽고 plan을 제안합니다.
+- 승인 전에는 파일을 수정하지 않습니다.
+
+사용 예:
 
 ```text
-Read AGENTS.md, Docs/AI_Harness.md, Docs/04_Git_Workflow.md, Docs/05_Progress_Log.md, and any task-specific documents.
-
-Role:
-Act as Orchestrator.
-
-Task:
-Select and scope the next AI task branch.
-
-Requirements:
-- Identify the linked task from Docs/03_MVP_Task_Breakdown.md.
-- Identify required context files to inspect.
-- Identify allowed files to modify.
-- Identify forbidden changes.
-- Identify verification requirements.
-- Identify branch name.
-- Do not modify files.
-- Provide a Plan using the AGENTS.md required format.
-- Wait for explicit user approval before implementation.
+다음 오케스트레이터 진행해줘
 ```
 
-Expected output:
+필수 동작:
 
-- Current structure summary.
-- Proposed task scope.
-- Expected changed files.
-- Verification plan.
-- Approval request.
+- 현재 branch와 worktree 확인
+- 관련 문서/코드 확인
+- 현재 구조 요약
+- 변경 계획 제안
+- approval 필요 여부 명시
 
 ## Execute Command
 
-Use this command after the Orchestrator plan has been approved.
+목적:
+
+- 승인된 plan만 구현합니다.
+
+사용 예:
 
 ```text
-Read AGENTS.md, Docs/AI_Harness.md, Docs/04_Git_Workflow.md, Docs/05_Progress_Log.md, and the approved task plan.
-
-Role:
-Act as Execute.
-
-Task:
-Implement only the approved task scope on the approved task branch.
-
-Requirements:
-- Create or switch to the approved task branch.
-- Modify only approved files.
-- Do not commit directly to main.
-- Do not broaden scope.
-- If scope expansion is required, stop and ask for approval.
-- Run the approved verification steps.
-- Do not claim unrun tests passed.
-- Provide an Approval Report using the AGENTS.md required format.
-- Do not merge to main.
+승인
 ```
 
-Expected output:
+필수 동작:
 
-- Changed files.
-- Implementation summary.
-- Verification results.
-- Manual test steps.
-- Risks and notes.
-- Next suggested task.
-
-## Learning Review Command
-
-Use this command after implementation and verification, before PR merge.
-
-```text
-Read AGENTS.md, Docs/AI_Harness.md, Docs/04_Git_Workflow.md, Docs/05_Progress_Log.md, and the Approval Report for the task.
-
-Role:
-Act as Learning Review.
-
-Task:
-Prepare a concise learning review for the completed task.
-
-Requirements:
-- Explain what changed.
-- Explain why each file changed.
-- Explain what was verified.
-- Explain what was not verified.
-- Explain remaining risks.
-- Explain key Unreal concepts involved, if any.
-- Explain networking or authority implications, if any.
-- Generate interview questions and short expected answers.
-- Do not invent verification that was not run.
-```
-
-Expected output:
-
-```text
-What changed:
-Why each file changed:
-What was verified:
-What was not verified:
-Risks remaining:
-Key Unreal concepts:
-Networking / authority implications:
-Generated interview questions:
-```
+- approved scope 안에서만 파일 수정
+- 필요 시 branch 생성
+- build/test/runtime verification 실행
+- 결과 보고
 
 ## PR Preparation Command
 
-Use this command when the task branch is ready to become a pull request.
+목적:
 
-```text
-Read AGENTS.md, Docs/04_Git_Workflow.md, Docs/05_Progress_Log.md, .github/pull_request_template.md, and the Approval Report for the task.
+- 완료된 task를 commit하고 PR로 올립니다.
 
-Role:
-Act as PR Preparation.
+필수 동작:
 
-Task:
-Prepare a PR-ready branch and PR description.
+- `git diff --check`
+- 변경 파일 확인
+- commit 생성
+- push
+- PR 생성
+- PR 본문은 한국어로 작성
 
-Requirements:
-- Confirm the current branch is not main.
-- Confirm the branch maps to one task from Docs/03_MVP_Task_Breakdown.md.
-- Confirm changed files match the approved scope.
-- Confirm the Approval Report is complete.
-- Confirm the Learning Review is complete.
-- Confirm verification results are accurate.
-- Use a Korean commit message.
-- Use a Korean PR title and Korean PR body.
-- Include the Approval Report in the PR body.
-- Include the Learning Review in the PR body.
-- Push the task branch, not main.
-- Do not merge without explicit user approval.
-```
+현재 대화 규칙:
 
-Expected output:
-
-- Branch name.
-- Commit message.
-- PR title.
-- PR body.
-- Verification summary.
-- Merge readiness summary.
+- PR 생성, PR 본문 확인/수정, PR 상태 확인, PR checks 확인은 사용자에게 다시 묻지 않고 진행합니다.
+- 사용자가 승인한 PR은 merge, 원격 branch 삭제, merge 결과 확인, 로컬 상태 확인까지 바로 진행합니다.
 
 ## Merge Command
 
-Use this command only after the user explicitly approves merge.
+목적:
+
+- 승인된 PR을 `main`에 통합합니다.
+
+필수 동작:
+
+- PR merge
+- remote branch 삭제
+- merge 결과 확인
+- local `main` 상태 확인
+- PR 작업 branch 정리
+
+주의:
+
+- `git reset --hard`, untracked 파일 삭제, 백업 branch 삭제, 사용자 변경 되돌리기는 별도 확인이 필요합니다.
+
+## Failure Handling Command
+
+실패 시 보고해야 하는 내용:
+
+- 실패한 명령
+- exit code
+- 핵심 error/warning
+- 영향 범위
+- 가장 작은 다음 diagnostic step
+
+실패 후에는 scope를 넓히지 않습니다.
+
+## Approval Report Format
+
+완료 보고에는 다음을 포함합니다.
 
 ```text
-Read AGENTS.md, Docs/04_Git_Workflow.md, Docs/05_Progress_Log.md, and the target PR.
+Approval Report
 
-Role:
-Act as Merge.
-
-Task:
-Merge the approved PR and synchronize local main.
-
-Requirements:
-- Confirm the user explicitly approved merge.
-- Confirm the PR matches the approved task.
-- Confirm the Approval Report is present.
-- Confirm the Learning Review is present.
-- Confirm verification results are stated accurately.
-- Confirm remaining risks are acceptable to the user.
-- Merge only the approved PR.
-- Do not bypass branch protection.
-- After merge, switch to main.
-- Pull origin/main with fast-forward only.
-- Confirm working tree is clean.
-- Delete the local task branch if appropriate.
-- Delete the remote task branch if appropriate.
-- Report the merge commit and final status.
+Objective:
+Plan Executed:
+Changed Files:
+Implementation Summary:
+Verification:
+Manual Test Steps:
+Risks / Notes:
+Next Suggested Task:
 ```
 
-Expected output:
+## Working Rules
 
-- PR number.
-- Merge result.
-- Merge commit.
-- Local `main` sync result.
-- Branch cleanup result.
-- Final `git status`.
-- Next suggested task.
-
-## When To Use Each Command
-
-Use Orchestrator when:
-
-- Choosing the next task.
-- Turning a rough idea into a scoped task.
-- Defining allowed files and forbidden changes.
-- Preparing a task plan before implementation.
-
-Use Execute when:
-
-- The plan has been approved.
-- The branch exists or should be created.
-- Files need to be changed.
-- Verification needs to be run.
-
-Use Learning Review when:
-
-- The implementation is complete.
-- The Approval Report exists.
-- The PR needs interview-ready explanation.
-- The user wants to understand what was learned.
-
-Use PR Preparation when:
-
-- The task branch is ready for review.
-- The Approval Report and Learning Review should be placed into a PR.
-- The branch should be pushed to GitHub.
-
-Use Merge when:
-
-- The PR is open and reviewed.
-- The user explicitly approves merge.
-- Remaining risks are understood.
-- The branch should be integrated into `main`.
-
-## Safety Rules
-
-Safety rules:
-
-- Codex must never commit directly to `main`.
-- Codex must never push directly to `main`.
-- Each AI task must use a separate task branch.
-- Each task branch must map to one task from `Docs/03_MVP_Task_Breakdown.md`.
-- Codex must inspect relevant files before proposing a plan.
-- Codex must wait for explicit user approval before modifying files.
-- After Orchestrator approval, Codex may continue through Execute, Learning Review, and PR Preparation for the approved scope.
-- Codex must modify only approved files.
-- Codex must stop and ask for approval if scope expansion is required.
-- Codex must not claim unrun tests passed.
-- PRs must include an Approval Report.
-- PRs must include a Learning Review.
-- Commit messages, PR titles, and PR bodies should be written in Korean.
-- Merge must not happen until the user explicitly approves it.
-
-## Main Merge Approval Rule
-
-`main` merge requires explicit user approval.
-
-Rules:
-
-- Opening a PR is not merge approval.
-- A completed Approval Report is not merge approval.
-- A completed Learning Review is not merge approval.
-- A clean PR state is not merge approval.
-- Passing checks are not merge approval.
-- Codex must ask before merging.
-- Codex may merge only after the user clearly approves merge for that PR.
-
-Accepted merge approval examples:
-
-```text
-PR #3 merge 승인.
-이 PR merge 진행해.
-검토 완료, merge 해줘.
-```
-
-Not accepted as merge approval:
-
-```text
-확인해줘.
-PR 상태 봐줘.
-다음 작업 가자.
-```
+- 각 AI task는 별도 branch를 사용합니다.
+- 승인 전 파일 수정 금지.
+- 승인된 파일/범위만 수정.
+- verification을 실행하지 않았으면 실행하지 않았다고 말합니다.
+- PR body에는 approval report 또는 핵심 검증 내용을 포함합니다.
+- commit message, PR title/body는 한국어를 기본으로 합니다.

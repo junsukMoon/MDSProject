@@ -1,60 +1,48 @@
-﻿# Mass Rules
+# Mass Rules
 
-This document defines Mass Entity / Mass AI working rules for `MDSProject`.
+이 문서는 `MDSProject`의 Mass Entity / Mass AI 작업 규칙을 정의합니다.
 
-Mass work must be incremental, measurable, and focused on technical portfolio value.
+Mass 작업은 incremental, measurable, technical portfolio value 중심이어야 합니다.
 
-## Purpose of Mass Entity Usage in This Project
+## 목적
 
-Mass Entity is used to demonstrate scalable AI-style simulation for a multiplayer defense sandbox.
+Mass Entity는 multiplayer defense sandbox에서 scalable AI-style simulation을 보여주기 위해 사용합니다.
 
-The goal is not to build a full enemy system in one pass. The goal is to show that the project can use Mass Entity for controlled spawning, movement, arrival detection, objective interaction, debugging, and profiling.
+목표는 full enemy system을 한 번에 만드는 것이 아닙니다. controlled spawning, movement, arrival detection, objective interaction, debugging, profiling을 설명 가능하게 만드는 것입니다.
 
-Mass work should support interview discussion around:
+## 허용 범위
 
-- Why Mass was chosen
-- What problem it solves compared with actor-only AI
-- How server authority is preserved
-- How performance impact is measured
-- How Mass behavior integrates with objective gameplay
+Mass work에 포함될 수 있는 것:
 
-## Scope of Mass Work
+- concept documentation
+- module/build setup
+- fragments / tags
+- entity spawning
+- processor-driven movement
+- arrival detection
+- server-authoritative objective damage integration
+- debug UI integration
+- profiling and comparison notes
 
-Mass work may include:
+각 task는 승인된 한 조각에 집중해야 합니다.
 
-- Concept documentation
-- Module and build setup
-- Entity fragments and tags
-- Entity spawning
-- Processor-driven movement
-- Arrival detection
-- Server-authoritative objective damage integration
-- Debug UI integration
-- Profiling and comparison notes
+## 금지 범위
 
-Each task must focus on one approved slice.
+명시적 승인 없이는 하지 않습니다.
 
-## Forbidden Mass Scope
+- spawn, movement, arrival detection, damage를 한 task에 결합
+- full combat AI
+- behavior tree replacement
+- complex animation integration
+- crowd avoidance 확장
+- dynamic formations
+- large debug UI framework
+- broad gameplay refactor
+- client-authoritative Mass gameplay state
 
-Do not add full AI gameplay systems unless explicitly requested.
+## 필수 Incremental Task 순서
 
-Forbidden unless explicitly approved:
-
-- Combining spawn, movement, arrival detection, and objective damage in one task
-- Full combat AI
-- Behavior tree replacement work
-- Complex animation integration
-- Crowd avoidance beyond the approved task
-- Dynamic formations
-- Large debug UI frameworks
-- Broad refactors of existing gameplay systems
-- Client-authoritative Mass gameplay state
-
-Mass spawn, movement, arrival detection, and objective damage must not be implemented in a single task unless explicitly approved.
-
-## Required Incremental Task Order
-
-Mass work must follow this order unless the approved task explicitly says otherwise:
+Mass 작업 순서:
 
 1. Concept document
 2. Build/module setup
@@ -65,156 +53,99 @@ Mass work must follow this order unless the approved task explicitly says otherw
 7. Debug UI integration
 8. Profiling comparison
 
-Do not skip ahead from setup directly to objective damage. Do not combine multiple behavior steps just because they are nearby in code.
+## Mass 개념
 
-## Required Explanation Before Each Mass Implementation
+### Fragments
 
-Before implementing Mass work, explain:
+- Mass data의 가장 작은 useful unit을 저장합니다.
+- Objective HP처럼 server-owned gameplay state를 중복 저장하지 않습니다.
+- data layout은 단순하고 설명 가능해야 합니다.
 
-- Which incremental step is being implemented
-- Why Mass is appropriate for that step
-- Which files are expected to change
-- Which Mass concepts are involved
-- What gameplay state is server-owned
-- What will not be implemented in this task
-- How the result will be verified
+### Tags
 
-If the task affects networking, include server/client verification notes in the plan.
+- simple state classification에 사용합니다.
+- 측정하거나 replicate해야 하는 data의 대체물로 사용하지 않습니다.
 
-## Required Build.cs / Module Dependency Explanation
+### Processors
 
-Any `.Build.cs` or module dependency change must include a reason for each module.
+- 한 behavior에 집중합니다.
+- spawn, movement, arrival, damage를 섞지 않습니다.
+- processor work는 bounded/performance-aware해야 합니다.
+- frequent update에서 expensive world search를 피합니다.
 
-For each added, removed, or changed module, report:
+### Spawners
 
-- Module name
-- Why the module is required
-- Whether it is runtime or editor-only
-- Which approved task needs it
+- 승인된 scenario/entity type만 spawn합니다.
+- entity count와 spawn behavior를 보고합니다.
+- spawn-only task에서 movement/damage를 추가하지 않습니다.
 
-Do not add broad Mass dependency sets speculatively.
+### Representation
 
-## Fragment / Tag / Processor / Spawner / Representation Rules
+- visual feedback용입니다.
+- gameplay authority가 아닙니다.
+- dedicated server logic이 visual representation에 의존하면 안 됩니다.
 
-Mass types must have clear responsibilities.
+## 서버 권위
 
-Fragments:
+- gameplay result에 영향을 주는 Mass simulation은 서버가 소유하거나 검증해야 합니다.
+- client는 Mass-related result를 관찰할 수 있지만 objective damage, score, win/loss의 source가 되면 안 됩니다.
+- replicated state는 clear server-side source of truth를 가져야 합니다.
 
-- Store the smallest useful unit of Mass data.
-- Avoid duplicating state that should remain owned by gameplay actors or the server.
-- Keep data layout simple enough to profile and explain.
+## Objective 연동
 
-Tags:
+- Objective HP와 objective damage는 server-owned입니다.
+- Mass arrival은 objective damage request의 근거가 될 수 있지만 서버가 실제 결과를 적용합니다.
+- Objective damage는 log/debug/verification으로 측정 가능해야 합니다.
+- client-only Mass presentation에서 objective damage를 적용하지 않습니다.
 
-- Use tags for simple state classification.
-- Do not use tags as a substitute for data that must be measured or replicated.
+## Debug 및 Profiling
 
-Processors:
+Debug reporting은 필요할 때 다음을 포함합니다.
 
-- Keep processors focused on one behavior.
-- Avoid combining spawn, movement, arrival detection, and damage in one processor.
-- Keep processor work bounded and performance-aware.
-- Avoid per-entity expensive world searches when a shared query or cached reference is appropriate.
+- entity count
+- spawn state
+- movement state
+- arrival state
+- objective interaction state
+- server/client visibility
 
-Spawners:
-
-- Spawn only the approved entity type or scenario for the task.
-- Report entity count and spawn behavior during verification.
-- Do not add movement or damage behavior during a spawn-only task.
-
-Representation:
-
-- Keep visual representation separate from authoritative gameplay state.
-- Do not require visual representation for dedicated server logic.
-- Debug representation must not become required for gameplay correctness.
-
-## Server Authority and Networking Considerations
-
-Server-authoritative gameplay remains the default for Mass work.
-
-Rules:
-
-- Mass simulation that affects gameplay results should be owned or validated by the server.
-- Clients may observe Mass-related results but must not be the source of objective damage, score, or win/loss state.
-- Replicated state must have a clear server-side source of truth.
-- If clients need visual feedback, separate presentation from authoritative state.
-- Network changes require server/client verification notes.
-
-Do not assume Mass behavior is verified for multiplayer unless listen-server or dedicated-server behavior was actually tested.
-
-## Objective Integration Rules
-
-Objective integration must happen only after spawn, movement, and arrival detection are already established or explicitly approved for the same task.
-
-Rules:
-
-- Objective HP and objective damage are server-owned.
-- Mass arrival may request objective damage, but the server applies the result.
-- Objective damage must be measurable and logged or visible through approved debug output.
-- Do not apply objective damage from client-only Mass presentation.
-- Do not combine first-time arrival detection and objective damage unless explicitly approved.
-
-## Debug and Profiling Requirements
-
-Mass debug and profiling work should make behavior explainable.
-
-Debug reporting should include when relevant:
-
-- Entity count
-- Spawn state
-- Movement state
-- Arrival state
-- Objective interaction state
-- Server/client visibility
-
-Profiling should include when relevant:
+Profiling은 필요할 때 다음을 포함합니다.
 
 - FPS
-- Frame time
+- frame time
 - GameThread impact
-- Entity count
-- Scenario or map context
-- Baseline compared against
+- entity count
+- scenario / map context
+- baseline comparison
 
-Avoid debug UI or logging that creates meaningful runtime overhead during normal play.
+Debug UI/logging이 runtime overhead를 만들지 않도록 주의합니다.
 
-## Verification Checklist for Each Mass Task
+## Verification Checklist
 
-For every Mass task, report which checks were actually run.
+Mass task마다 실제 실행한 항목만 보고합니다.
 
-Minimum checklist:
+- files manually inspected
+- build / compile
+- editor startup
+- PIE
+- dedicated server / listen server
+- entity count
+- spawn behavior
+- movement behavior
+- arrival behavior
+- objective damage behavior
+- performance impact
+- relevant logs/warnings/errors
 
-- Files manually inspected
-- Build or compile result, if code or modules changed
-- Editor startup result, if modules, plugins, assets, or config are affected
-- PIE single-player result, if runtime behavior was changed
-- PIE listen-server or dedicated-server result, if gameplay state is networked
-- Entity count, when entities are spawned
-- Spawn behavior, when spawning is changed
-- Movement behavior, when movement is changed
-- Arrival behavior, when arrival detection is changed
-- Objective damage behavior, when objective integration is changed
-- Performance impact, when entity count, processors, Tick, debug UI, or spawning changes
-- Relevant logs, warnings, or errors
+실제로 확인하지 않은 spawn/movement/arrival/damage를 verified로 쓰지 않습니다.
 
-Do not report spawn, movement, arrival detection, or objective damage as verified unless each behavior was actually tested.
+## 면접 설명 포인트
 
-If verification cannot be executed, state the reason and list what remains unverified.
+설명할 수 있어야 하는 것:
 
-## Interview Explanation Points
-
-Mass work should be explainable in an interview.
-
-Be prepared to explain:
-
-- Why the work was split into small steps
-- Why Mass Entity was used instead of actor-only AI
-- How fragments, tags, processors, spawners, and representation were separated
-- What remains server-authoritative
-- How clients observe results
-- How objective damage is protected from client authority
-- How performance was measured
-- What tradeoffs were made for portfolio scope
-
-The expected message is that Mass was integrated deliberately and verified incrementally, not that a large AI system was generated all at once.
-
+- 왜 Mass를 사용했는가?
+- 왜 작업을 작은 단계로 나눴는가?
+- fragment/tag/processor/spawner/representation을 어떻게 나눴는가?
+- server-authoritative state는 무엇인가?
+- client는 무엇을 관찰하고 무엇을 결정하지 않는가?
+- profiling은 어떤 조건에서 측정했는가?

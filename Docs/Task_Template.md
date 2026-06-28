@@ -1,117 +1,32 @@
-﻿# Task Template
+# Task Template
 
-Use this template when requesting Codex work for `MDSProject`.
+이 템플릿은 새 task를 요청하거나 계획할 때 사용합니다.
 
-Copy the sections below into a new task request and fill in the placeholders.
+## Task Request
 
-## Task Name
+```text
+Objective:
+<작업 목표>
 
-`<Short task name>`
+Context:
+<왜 필요한지, 관련 배경>
 
-## Objective
+Allowed Files:
+<수정 가능한 파일 또는 폴더>
 
-Describe the exact outcome wanted from this task.
+Forbidden Scope:
+<하지 말아야 할 것>
 
-Keep the objective focused on one reviewable change.
+Acceptance Criteria:
+<완료 판단 기준>
 
-Example:
+Verification:
+<실행해야 할 검증>
+```
 
-`Create a documentation template for future Codex tasks.`
+## Plan Format
 
-## Context Files to Read First
-
-List the files Codex must inspect before proposing a plan.
-
-Required defaults:
-
-- `AGENTS.md`
-
-Add task-specific files when relevant:
-
-- `<Relevant source file>`
-- `<Relevant config file>`
-- `<Relevant documentation file>`
-
-For Mass Entity work, include:
-
-- `Docs/Mass_Rules.md`
-
-For verification-heavy work, include:
-
-- `Docs/Verification.md`
-
-## Allowed Files to Modify
-
-List every file Codex is allowed to create or edit.
-
-Codex must not modify files outside this list.
-
-- `<Allowed file path>`
-- `<Allowed file path>`
-
-## Forbidden Changes
-
-State changes that are explicitly out of scope.
-
-Recommended defaults:
-
-- Do not modify `AGENTS.md` unless explicitly requested.
-- Do not modify unrelated Source files.
-- Do not modify unrelated Config files.
-- Do not perform broad refactoring.
-- Do not rename existing files, classes, functions, variables, or folders unless explicitly requested.
-- Do not create implementation code unless this task specifically requests implementation.
-- Do not add full-game systems such as inventory, quests, save systems, matchmaking, lobby, crafting, skill trees, large UI frameworks, complex animation systems, or full GAS expansion unless explicitly requested.
-
-## Implementation Requirements
-
-Describe what the implementation must include.
-
-Use concrete bullets:
-
-- `<Requirement 1>`
-- `<Requirement 2>`
-- `<Requirement 3>`
-
-For Unreal C++ work, include any requirements for:
-
-- Replication
-- Server authority
-- RPC ownership
-- Lifetime replicated properties
-- BeginPlay order
-- Tick cost
-- UObject lifetime
-- Build.cs module dependencies
-
-When changing `.Build.cs`, require an explanation for each added module.
-
-## Acceptance Criteria
-
-Define what must be true for the task to be accepted.
-
-- `<Expected result 1>`
-- `<Expected result 2>`
-- `<Expected result 3>`
-
-Acceptance criteria should be observable through review, build, test, PIE, dedicated server testing, logs, or manual inspection.
-
-## Verification Steps
-
-List the verification Codex should run or describe.
-
-- `<Build, compile, test, PIE, dedicated server, log, or manual inspection step>`
-- `<Expected verification result>`
-
-Codex must not claim a test passed unless it was actually run.
-
-If verification cannot be run, Codex must clearly state why and list the remaining manual checks.
-
-For networked gameplay changes, include a listen server or dedicated server verification plan.
-
-## Required Plan Format Reminder
-
-Before modifying files, Codex must respond with this plan format and wait for explicit approval:
+구현 전 계획은 다음 형식을 사용합니다.
 
 ```text
 Plan
@@ -126,9 +41,9 @@ Verification Plan:
 Approval Needed:
 ```
 
-## Required Approval Report Reminder
+## Approval Report Format
 
-After implementation, Codex must respond with this approval report format:
+구현 후 보고는 다음 형식을 사용합니다.
 
 ```text
 Approval Report
@@ -143,3 +58,15 @@ Risks / Notes:
 Next Suggested Task:
 ```
 
+## Acceptance Criteria 작성 규칙
+
+- review, build, test, PIE, dedicated server, logs, manual inspection 등으로 관찰 가능해야 합니다.
+- “잘 동작한다”처럼 모호하게 쓰지 않습니다.
+- network task는 server/client result를 포함해야 합니다.
+- profiling task는 scenario, runtime mode, count, metric을 포함해야 합니다.
+
+## Verification 작성 규칙
+
+- 실행할 검증을 구체적으로 씁니다.
+- 실행하지 못할 수 있는 검증은 대체 검증과 남은 gap을 명시합니다.
+- 실행하지 않은 test를 passed로 쓰면 안 됩니다.

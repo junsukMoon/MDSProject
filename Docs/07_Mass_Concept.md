@@ -1,125 +1,94 @@
-# Mass Concept Study
+# Mass Concept
 
-## Purpose
+이 문서는 `MDSProject`에서 Mass Entity를 어떤 목적으로 사용할지 정리합니다.
 
-This document defines how Mass Entity will be used in `MDSProject` before any Mass implementation code is added.
+목표는 큰 AI 시스템을 한 번에 만드는 것이 아니라, server-authoritative defense sandbox 안에서 Mass가 spawn, movement, arrival, objective interaction, debug, profiling에 어떻게 쓰이는지 설명 가능하게 만드는 것입니다.
 
-The goal is to keep Mass work incremental, server-authoritative, and useful for interview discussion. Mass should demonstrate large-scale AI behavior without turning the project into a full game system.
+## 왜 Mass를 사용하는가
 
-## Why Mass Is Used
+Mass Entity는 많은 수의 lightweight agent를 data-oriented 방식으로 처리하기 위한 UE 시스템입니다.
 
-Mass Entity is used to represent and update many lightweight enemy agents more efficiently than traditional Actor-heavy gameplay.
+이 프로젝트에서 Mass는 다음을 보여줍니다.
 
-For this project, Mass is intended to demonstrate:
+- actor-only enemy와 비교되는 scalable simulation
+- fragment/tag/processor 기반 data flow
+- dedicated server에서도 동작하는 gameplay simulation
+- objective gameplay와 server authority를 유지하는 integration
+- profiling 비교 근거
 
-- Data-oriented AI representation
-- Batch-style movement and processing
-- Scalable enemy simulation
-- Clear separation between simulation data and gameplay authority
-- Profiling and debugging opportunities for technical discussion
+## Server Authority
 
-Mass is not being used to replace all gameplay Actors. Objective gameplay, scoring, replicated state, and authoritative damage rules remain owned by server-side gameplay systems.
+Mass simulation이 gameplay result에 영향을 준다면 서버가 소유하거나 검증해야 합니다.
 
-## MVP Mass Scope
+규칙:
 
-The MVP Mass scope is limited to enemy-style agents moving toward an objective.
+- Objective HP는 Mass fragment에 저장하지 않습니다.
+- client는 objective damage를 결정하지 않습니다.
+- Mass arrival은 damage request의 근거가 될 수 있지만, 실제 damage application은 server-owned Objective에서 수행합니다.
+- client는 replicated outcome을 관찰합니다.
 
-In scope:
-
-- Define Mass agent concepts
-- Spawn Mass entities in a controlled way
-- Move entities toward a target
-- Detect arrival at an objective
-- Apply objective damage through server-authoritative gameplay code
-- Add debug and profiling visibility after core behavior works
-
-Out of scope:
-
-- Inventory
-- Quest systems
-- Matchmaking or lobby systems
-- Complex animation systems
-- Full GAS expansion
-- Advanced perception or behavior trees for Mass agents
-- Client-authoritative damage or scoring
-
-## Server Authority Rule
-
-The server owns gameplay state.
-
-Mass may simulate enemy movement and arrival data, but gameplay results must be applied by server-authoritative systems. Clients may observe replicated outcomes, but they must not decide objective HP, score, damage, wave completion, or win/loss state.
-
-Server-owned gameplay state includes:
-
-- Objective HP
-- Enemy damage application
-- Score or kill credit
-- Wave state
-- Match state
-
-Mass-owned or Mass-related simulation data may include:
-
-- Entity position or target direction
-- Movement speed
-- Agent tags
-- Arrival candidate state
-- Lightweight debug state
-
-## Expected Mass Concepts
+## 주요 Mass 개념
 
 ### Entity
 
-A Mass Entity represents a lightweight enemy agent. It should be treated as simulation data, not as a full replicated gameplay Actor.
+Mass Entity는 lightweight enemy agent입니다.
+
+이 프로젝트에서는 full replicated Actor가 아니라 simulation data로 취급합니다.
 
 ### Fragment
 
-Fragments store the data needed by Mass processors. Expected fragments may include movement data, target data, objective approach data, and lightweight state used for arrival checks.
+Fragment는 entity에 붙는 작은 data unit입니다.
 
-Fragments should remain focused. Gameplay state such as objective HP does not belong in Mass fragments.
+예:
+
+- location / target
+- movement speed
+- arrival state
+- damage-applied marker
+
+Objective HP 같은 authoritative gameplay state는 fragment가 아니라 gameplay actor가 소유해야 합니다.
 
 ### Tag
 
-Tags classify entities for processor selection or state transitions. Example uses include spawned, moving, arrived, or pending-damage states.
+Tag는 entity 상태 분류에 사용합니다.
 
-Tags should not become a replacement for authoritative gameplay rules.
+예:
+
+- spawned
+- moving
+- arrived
+- pending-damage
+
+Tag는 authoritative gameplay rule의 대체물이 아닙니다.
 
 ### Processor
 
-Processors update Mass entities in focused passes. Each processor should do one clear job, such as spawn setup, movement, arrival detection, or debug collection.
+Processor는 focused pass로 entity를 업데이트합니다.
 
-Processors must not combine spawn, movement, arrival detection, and objective damage in one task.
+각 processor는 한 가지 책임에 집중합니다.
+
+- movement
+- arrival check
+- debug collection
+- damage trigger
+
+spawn, movement, arrival, damage를 하나의 processor/task에 섞지 않습니다.
 
 ### Spawner
 
-The spawner creates Mass entities in a controlled server-side flow. The first Mass implementation task should prove spawn only, without movement or objective damage.
+Spawner는 controlled server-side flow에서 entity를 생성합니다.
+
+첫 Mass task는 spawn만 증명하고 movement/damage를 포함하지 않아야 합니다.
 
 ### Representation
 
-Representation is used only when visual feedback is needed. It should not be the source of gameplay truth.
+Representation은 visual feedback을 위한 것입니다.
 
-Visual representation can be added after entity creation and movement are understood.
-
-## Responsibility Split
-
-Mass responsibilities:
-
-- Represent many lightweight agents
-- Store agent simulation data
-- Run batch movement logic
-- Mark arrival candidates
-- Provide data for debug and profiling
-
-Gameplay responsibilities:
-
-- Validate gameplay effects
-- Apply objective damage
-- Own replicated objective state
-- Own scoring and match state
-- Expose player-visible authoritative results
+dedicated server gameplay correctness는 representation에 의존하면 안 됩니다.
 
 ## Incremental Task Order
 
-Mass work must proceed in this order:
+Mass 작업 순서:
 
 1. Concept document
 2. Build/module setup
@@ -130,48 +99,29 @@ Mass work must proceed in this order:
 7. Debug UI integration
 8. Profiling comparison
 
-Each step should be its own task branch and PR.
+각 단계는 별도 task branch와 PR로 진행하는 것이 원칙입니다.
 
-## Branch and PR Expectations
+## 검증 기준
 
-Each Mass task branch must map to one task from `Docs/03_MVP_Task_Breakdown.md`.
+Mass task는 실제로 실행한 검증만 보고해야 합니다.
 
-Each PR must include:
+확인 항목:
 
-- Approval Report
-- Verification result
-- Scope check
-- Learning Review
+- build / compile
+- entity count
+- spawn behavior
+- movement behavior
+- arrival behavior
+- objective damage behavior
+- server/client visibility
+- profiling impact
+- relevant logs/warnings/errors
 
-Merging to `main` requires explicit user approval.
+## 면접 설명 포인트
 
-## Verification Approach
-
-This concept document is verified by manual inspection against:
-
-- `Docs/Mass_Rules.md`
-- `Docs/03_MVP_Task_Breakdown.md`
-- `Docs/04_Git_Workflow.md`
-
-No Build, PIE, or Dedicated Server test is required for this document-only task.
-
-Future implementation tasks must include the relevant Unreal verification, such as build, PIE, dedicated server, log inspection, or manual in-editor checks.
-
-## Risks and Notes
-
-Mass implementation can easily expand in scope. If a task needs to add behavior outside the approved step, Codex must stop and ask for user approval before continuing.
-
-Objective damage must not be added during spawn, movement, or arrival-only tasks.
-
-Mass should be used to demonstrate scalable simulation, not to hide gameplay authority inside data processors.
-
-## Learning Review Questions
-
-- Why is Mass useful for this project?
-- What gameplay state must remain server-authoritative?
-- What is the difference between a Mass Entity and an Actor?
-- What type of data belongs in a Fragment?
-- When should a Tag be used?
-- Why should spawn, movement, arrival, and objective damage be separate tasks?
-- What should clients observe, and what should the server decide?
-- Why should visual representation not become gameplay authority?
+- 왜 Mass를 사용했는가?
+- 왜 spawn/movement/arrival/damage를 나누었는가?
+- fragment와 tag를 어떻게 구분했는가?
+- server authority는 어디에 있는가?
+- client는 무엇을 관찰하고 무엇을 결정하지 않는가?
+- profiling은 어떤 조건에서 측정했는가?

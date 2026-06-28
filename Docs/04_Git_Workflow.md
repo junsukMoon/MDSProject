@@ -1,349 +1,87 @@
 # Git Workflow
 
-## Purpose
+Git workflow는 포트폴리오 프로세스의 일부입니다. 목적은 빠른 변경이 아니라, task selection, approval gate, verification, review discipline을 보여주는 것입니다.
 
-This document defines the Git-based AI task workflow for `MDSProject`.
+## 기본 규칙
 
-The workflow keeps AI-assisted work isolated, reviewable, and aligned with the approved MVP task breakdown. Codex works on a separate task branch or git worktree, verifies the approved change, prepares PR-ready results, and waits for user approval before anything is merged to `main`.
+- `main`에는 직접 commit하지 않습니다.
+- `main`에는 직접 push하지 않습니다.
+- `main`은 PR merge된 work만 포함해야 합니다.
+- 각 task는 별도 branch에서 진행합니다.
+- task branch는 최신 `origin/main`에서 시작합니다.
+- PR title/body는 이 프로젝트에서는 한국어를 사용합니다.
 
-Git workflow is part of the portfolio process. It should demonstrate disciplined task selection, approval gates, verification, and learning review rather than fast unreviewed changes.
+## Branch 규칙
 
-## Main Branch Rule
+예시:
 
-`main` is the protected integration branch.
+- `docs/...`
+- `feature/...`
+- `fix/...`
+- `verify/...`
+- `profile/...`
 
-Rules:
+작업 전 `main`에 있다면 새 task branch를 만듭니다.
 
-- Codex must never commit directly to `main`.
-- Codex must never push directly to `main`.
-- `main` should contain only reviewed, PR-merged work.
-- `main` should remain buildable or have known documented verification limitations.
-- Each change merged to `main` must map back to an approved task and approval report.
+## Approval Workflow
 
-If Codex finds itself on `main` before making a change, it must create or switch to an approved task branch before editing files.
+non-trivial task는 다음 순서를 따릅니다.
 
-## Branch Strategy
+1. 관련 파일 확인
+2. 현재 구조 요약
+3. 계획 제안
+4. 사용자 승인 대기
+5. 승인된 변경만 구현
+6. 검증
+7. approval report 제공
 
-Each AI task must use a separate branch.
+승인 전에는 파일을 수정하지 않습니다.
 
-Rules:
+## PR Workflow
 
-- One task branch maps to one task from `Docs/03_MVP_Task_Breakdown.md`.
-- Do not combine unrelated MVP phases in one branch.
-- Do not combine Mass spawn, movement, arrival detection, and objective damage in one branch unless explicitly approved.
-- Keep each branch small enough to review in one pass.
-- Delete task branches after merge unless the user asks to keep them.
+PR은 작고 task-specific이어야 합니다.
 
-Task branches should start from the latest `origin/main`.
+PR body에는 다음이 포함되어야 합니다.
 
-Recommended setup:
+- 요약
+- 변경 파일
+- 검증 결과
+- 제한 / notes
 
-```text
-git fetch origin
-git switch main
-git pull --ff-only origin main
-git switch -c <task-branch>
-```
+문서 변경만 있으면 build를 생략할 수 있지만, 그 사실을 명확히 적습니다.
 
-## Worktree Strategy
+## Merge Workflow
 
-Git worktrees may be used when multiple tasks need to remain available at the same time.
+일반 원칙:
 
-Use a worktree when:
+- 사용자가 merge를 승인한 PR만 merge합니다.
+- merge 후 원격 branch를 삭제합니다.
+- 로컬 `main` 상태를 확인합니다.
+- 로컬 PR 작업 branch가 남아 있으면 정리합니다.
 
-- A task is blocked but should be preserved.
-- A second independent task must start without disturbing the blocked branch.
-- The user wants separate folders for Orchestrator, Execute, or review work.
+현재 대화 규칙:
 
-Rules:
+- PR 생성, PR 본문 확인/수정, PR 상태 확인, PR checks 확인은 별도 승인 질문 없이 진행합니다.
+- 사용자가 승인한 PR은 merge, 원격 branch 삭제, merge 결과 확인, 로컬 상태 확인까지 별도 재확인 없이 진행합니다.
+- `git reset --hard`, untracked 파일 삭제, 백업 branch 삭제, 사용자 변경 되돌리기 같은 손실 가능 작업은 별도 확인을 받습니다.
 
-- Each worktree must still use one task branch.
-- Do not edit the same task from multiple worktrees at the same time.
-- Keep worktree folder names clear and task-specific.
-- Remove completed worktrees after merge.
+## Verification Rule
 
-Example:
+실제로 실행하지 않은 검증은 성공했다고 쓰지 않습니다.
 
-```text
-git worktree add ../MDSProject-task-mass-study task/mass-concept-study
-```
+예:
 
-## Task Branch Naming Convention
-
-Use short, descriptive branch names that identify the task type and MVP phase when possible.
-
-Format:
-
-```text
-<type>/<phase-or-area>-<short-task-name>
-```
-
-Recommended types:
-
-- `docs/`
-- `setup/`
-- `feature/`
-- `debug/`
-- `profile/`
-- `smoke/`
-- `fix/`
-
-Examples:
-
-```text
-docs/phase-1-mass-concept-study
-setup/phase-2-mass-modules
-feature/phase-3-mass-spawn-only
-debug/phase-7-objective-logs
-smoke/readme-workflow-test
-```
-
-## Task Selection Workflow
-
-Task selection starts from `Docs/03_MVP_Task_Breakdown.md`.
-
-Workflow:
-
-1. Select the next approved MVP task.
-2. Confirm dependencies are complete.
-3. Confirm the task is small and reviewable.
-4. Identify required context documents.
-5. Identify allowed files to modify.
-6. Identify forbidden scope.
-7. Ask Codex to inspect files and produce a plan.
-
-Mass tasks must follow the incremental order in `Docs/Mass_Rules.md` unless the user explicitly approves a different sequence.
-
-## Codex Plan / Approval / Implementation Workflow
-
-For every non-trivial task, Codex must follow the required approval workflow:
-
-1. Inspect relevant existing files.
-2. Summarize current structure.
-3. Provide a plan using the required `AGENTS.md` plan format.
-4. Wait for explicit user approval.
-5. Create or switch to the task branch.
-6. Implement only the approved changes.
-7. Verify the result.
-8. Provide an Approval Report.
-9. Prepare PR-ready output.
-
-Codex must not modify files before approval.
-
-Codex must modify only the files allowed by the approved task. If the approved task allows only one file, only that file may change.
-
-## Verification Before PR
-
-Before opening or preparing a PR, Codex must verify the task according to `Docs/Verification.md`.
-
-Minimum verification for documentation-only changes:
-
-- Manual inspection of the changed document.
-- Confirm changed files match the approved scope.
-- Confirm no source or config files changed.
-
-Minimum verification for code or config changes:
-
-- Build or compile check when available.
-- Relevant Unreal runtime check when behavior changed.
-- Listen-server or dedicated-server notes for networked gameplay changes.
-- Log review when logs are relevant.
-- Clear statement of anything not run.
-
-Codex must not claim that a test, build, compile, PIE run, dedicated server run, or log check passed unless it was actually run.
-
-## PR Title and Description Format
-
-Each PR should be small, task-specific, and reviewable.
-
-Commit messages, PR titles, and PR descriptions should be written in Korean for this project workflow.
-
-Recommended commit message format:
-
-```text
-[Type] Korean summary
-```
-
-Example:
-
-```text
-[문서] Git workflow와 PR 템플릿 추가
-```
-
-Recommended PR title format:
-
-```text
-<Type>: <short task summary>
-```
-
-Examples:
-
-```text
-Docs: Add Git workflow
-Setup: Add Mass module dependencies
-Feature: Add Mass spawn-only path
-```
-
-Required PR description sections:
-
-```text
-Objective:
-Linked MVP Task:
-Changed Files:
-Approval Report:
-Verification:
-Learning Review:
-Risks / Notes:
-```
-
-The PR description must include the Approval Report or a link to the exact Approval Report.
-
-The PR description must include a Learning Review before merge.
-
-## Merge Approval Rule
-
-Merging is user-owned.
-
-Rules:
-
-- Codex may prepare a PR-ready branch and PR.
-- Codex may summarize merge readiness.
-- The user must approve before merge.
-- Codex must not merge without explicit user approval.
-- If branch protection blocks merge, Codex must report the blocker and avoid bypassing protection.
-
-After merge:
-
-1. Sync local `main`.
-2. Confirm the merge commit or squash commit exists on `origin/main`.
-3. Confirm the working tree is clean.
-4. Delete the task branch if appropriate.
-5. Update the next suggested task.
+- build를 실행하지 않았다면 “build 실행 안 함”이라고 적습니다.
+- runtime verification을 하지 않았다면 manual inspection과 구분합니다.
+- profiling은 runtime mode, scenario, entity/actor count, limitation을 기록합니다.
 
 ## Failure Handling
 
-When a task fails, Codex must stop broadening the scope and report the exact failure.
+task가 실패하면 scope를 넓히지 말고 다음을 보고합니다.
 
-Failure report should include:
+- 실패한 명령 또는 검증
+- 관찰된 error/warning
+- 영향 범위
+- 가장 작은 다음 diagnostic step
 
-- What command or verification step failed.
-- Whether the failure appears current-task, pre-existing, environment-related, or unknown.
-- The smallest next diagnostic step.
-- What remains unverified.
-
-Codex must not hide verification gaps.
-
-Codex must not rewrite unrelated systems to work around a failure.
-
-## Scope Expansion Rule
-
-If a task requires scope expansion, Codex must stop and ask for approval.
-
-Scope expansion includes:
-
-- Modifying files outside the allowed list.
-- Adding new Source or Config files during a documentation task.
-- Adding modules or plugin dependencies not in the approved plan.
-- Combining multiple MVP phases in one task.
-- Adding gameplay systems outside the approved task.
-- Renaming existing files, classes, functions, variables, or folders.
-- Changing replication, RPC, authority, or Objective HP behavior outside the approved plan.
-
-The user must explicitly approve the expanded scope before Codex continues.
-
-## Learning Review Before Merge
-
-Every PR must include a Learning Review before merge.
-
-Purpose:
-
-- Capture what was learned from the task.
-- Support interview discussion.
-- Preserve verification and tradeoff context.
-- Improve the next task plan.
-
-Recommended Learning Review format:
-
-```text
-What changed:
-What was verified:
-What was not verified:
-What risks remain:
-What this demonstrates for the portfolio:
-What should be improved next:
-```
-
-Learning Review should be concise and factual. It should not claim runtime behavior that was not actually tested.
-
-## Daily Workflow
-
-Recommended daily workflow:
-
-1. Start on clean `main`.
-2. Pull latest `origin/main`.
-3. Select one task from `Docs/03_MVP_Task_Breakdown.md`.
-4. Ask Codex to inspect required files and propose a plan.
-5. Approve or revise the plan.
-6. Create a task branch or worktree.
-7. Implement the approved scope.
-8. Run verification.
-9. Produce an Approval Report.
-10. Create or prepare the PR.
-11. Add the Learning Review.
-12. Review and approve merge.
-13. Merge to `main`.
-14. Sync local `main`.
-15. Record progress in the progress log when that document exists.
-
-Do not start a second implementation task while the current task has unreported verification results.
-
-## Orchestrator / Execute / Merge Command Roles
-
-The workflow separates three command roles.
-
-### Orchestrator
-
-The Orchestrator role selects and scopes work.
-
-Responsibilities:
-
-- Choose the next task from `Docs/03_MVP_Task_Breakdown.md`.
-- Identify required context files.
-- Define allowed files and forbidden changes.
-- Ask Codex for a plan.
-- Approve, reject, or revise the plan.
-- Decide whether scope expansion is allowed.
-
-The Orchestrator does not merge unverified work.
-
-### Execute
-
-The Execute role implements the approved task.
-
-Responsibilities:
-
-- Work on the approved task branch or worktree.
-- Modify only approved files.
-- Keep changes small and reviewable.
-- Run required verification.
-- Produce the Approval Report.
-- Prepare PR-ready output.
-- Stop when scope expansion is required.
-
-The Execute role does not merge to `main`.
-
-### Merge
-
-The Merge role reviews and integrates completed work.
-
-Responsibilities:
-
-- Confirm the PR matches the approved task.
-- Confirm the Approval Report is present.
-- Confirm the Learning Review is present.
-- Confirm verification results are stated accurately.
-- Confirm remaining risks are acceptable.
-- Merge only after user approval.
-- Sync local `main` after merge.
-
-The Merge role protects `main` from unapproved or unverified work.
+실패를 숨기거나 unrelated system을 크게 고쳐 우회하지 않습니다.

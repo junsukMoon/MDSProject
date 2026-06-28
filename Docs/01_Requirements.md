@@ -1,126 +1,72 @@
-﻿# MVP Requirements
+# 요구사항
 
-## Overview
+이 문서는 `MDSProject`의 기술 포트폴리오 MVP 요구사항을 정의합니다.
 
-This document defines the MVP requirements for `MDSProject`.
+## 목적
 
-The MVP is a technical portfolio milestone for Unreal Engine client/gameplay programming interviews. It should demonstrate server-authoritative multiplayer gameplay, objective state, Mass Entity enemies, debug visibility, profiling readiness, and a controlled AI-assisted development workflow.
+MVP는 Unreal Engine client/gameplay programming 면접을 위한 기술 milestone입니다.
 
-## MVP Functional Requirements
+보여줘야 하는 핵심은 다음과 같습니다.
 
-- The project must support multiplayer testing.
-- The project should be compatible with a dedicated-server style workflow.
-- The server must own authoritative gameplay state.
-- The Objective must have server-authoritative HP.
-- Mass-based enemies must be spawnable.
-- Mass-based enemies must move toward the Objective.
-- Arrival at the Objective must be detectable.
-- Objective HP must decrease only from valid server-authoritative arrival/damage logic.
-- Debug UI or logs must expose key runtime state.
-- Profiling data must later support Actor-based vs Mass-based comparison.
+- server-authoritative multiplayer gameplay
+- Objective state와 HP replication
+- Mass Entity enemy flow
+- debug visibility
+- profiling readiness
+- controlled AI-assisted development workflow
 
-## Non-Functional Requirements
+## 핵심 요구사항
 
-- Keep systems small and reviewable.
-- Prefer incremental implementation.
-- Avoid broad refactoring.
-- Keep the project suitable for technical interview explanation.
-- Keep implementation scope realistic for completion by `2026-07-31`.
-- Keep gameplay scope focused on technical demonstration, not full game production.
-- Document assumptions, verification gaps, and risks after each non-trivial task.
+- 프로젝트는 multiplayer testing을 지원해야 합니다.
+- dedicated-server style workflow와 호환되어야 합니다.
+- 서버가 authoritative gameplay state를 소유해야 합니다.
+- Objective HP는 server-authoritative여야 합니다.
+- Mass enemy를 spawn할 수 있어야 합니다.
+- Mass enemy는 Objective를 향해 이동해야 합니다.
+- Objective 도착을 감지할 수 있어야 합니다.
+- Objective HP는 유효한 server-authoritative arrival/damage logic으로만 감소해야 합니다.
+- Debug UI 또는 logs는 핵심 runtime state를 노출해야 합니다.
+- Profiling data는 Actor 기반 baseline과 Mass 기반 scenario 비교를 지원해야 합니다.
 
-## Networking / Authority Requirements
+## 네트워크 요구사항
 
-- The server is the source of truth for HP, damage, score, objective damage, and enemy arrival results.
-- Clients may display state but must not directly apply authoritative gameplay results.
-- Clients may request gameplay actions, but the server must validate and apply results.
-- Replicated state must have clear verification steps.
-- Replicated state must have a clear server-side source of truth.
-- RPCs must be justified by ownership and direction.
-- Network-related changes must include server/client verification notes.
+- client는 gameplay result를 직접 적용하면 안 됩니다.
+- client는 gameplay action을 요청할 수 있지만, 서버가 검증하고 적용해야 합니다.
+- replicated state는 명확한 server-side source of truth를 가져야 합니다.
+- network 관련 변경은 server/client 검증 노트를 포함해야 합니다.
+- RPC는 ownership과 방향성이 설명 가능해야 합니다.
 
-## Mass Entity Requirements
+## Mass Entity 요구사항
 
-- Mass work must follow the order defined in `Docs/Mass_Rules.md`.
-- Spawn, movement, arrival detection, and objective damage integration must be separate tasks unless explicitly approved.
-- Each Mass task must explain Entity, Fragment, Processor, Spawner, and Representation responsibilities before implementation.
-- Mass spawn tasks must report entity count and spawn behavior.
-- Mass movement tasks must report movement or processor behavior.
-- Mass arrival tasks must report arrival detection behavior.
-- Mass objective integration tasks must preserve server-authoritative objective damage.
-- Mass profiling tasks must report performance impact when applicable.
+- Mass 작업은 `Docs/Mass_Rules.md`의 순서를 따라야 합니다.
+- spawn, movement, arrival detection, objective damage integration은 명시적으로 승인되지 않는 한 분리된 작업이어야 합니다.
+- Mass task는 Entity, Fragment, Processor, Spawner, Representation 책임을 설명해야 합니다.
+- Mass spawn task는 entity count와 spawn behavior를 보고해야 합니다.
+- Mass movement task는 movement 또는 processor behavior를 보고해야 합니다.
+- Mass arrival task는 arrival detection behavior를 보고해야 합니다.
+- Mass objective integration은 server-authoritative objective damage를 보존해야 합니다.
+- Mass profiling task는 성능 영향을 기록해야 합니다.
 
-## Objective Gameplay Requirements
+## Objective Gameplay 요구사항
 
-- The Objective must expose HP as server-owned gameplay state.
-- Objective HP must change only through validated server gameplay logic.
-- Enemy arrival must be distinguishable from objective damage application.
-- Objective damage must be measurable through debug UI, logs, or verification notes.
-- Clients may observe objective state but must not own objective HP changes.
-- Win/loss or score state derived from objective HP must also be server-owned if implemented.
+- Objective는 HP를 server-owned gameplay state로 노출해야 합니다.
+- Objective HP는 validated server gameplay logic으로만 변경되어야 합니다.
+- enemy arrival과 objective damage application은 구분되어야 합니다.
+- Objective damage는 debug UI, logs, verification notes 중 하나로 측정 가능해야 합니다.
+- client는 Objective state를 관찰할 수 있지만 Objective HP를 소유하면 안 됩니다.
+- objective HP에서 파생되는 score, win/loss state가 추가된다면 그것도 server-owned여야 합니다.
 
-## Debug UI / Logging Requirements
+## Debug / Logs 요구사항
 
-- Debug UI or logs must expose key runtime state relevant to the current task.
-- Key state may include authority role, objective HP, enemy count, spawn state, movement state, arrival state, damage events, and relevant Mass state.
-- Debug output must not become required for gameplay correctness.
-- Debug UI should make server/client differences clear when networked.
-- Logging should support diagnosis without per-frame spam.
+- Debug UI 또는 logs는 현재 task와 관련된 key runtime state를 노출해야 합니다.
+- Debug output은 gameplay correctness에 필수이면 안 됩니다.
+- network 상황에서는 server/client 차이가 명확해야 합니다.
+- logging은 진단을 도와야 하며 per-frame spam이 되면 안 됩니다.
 
-## Profiling Requirements
+## Profiling 요구사항
 
-- Profiling work should support future Actor-based vs Mass-based comparison.
-- Profiling notes should record FPS, frame time, and GameThread impact when relevant.
-- Profiling notes should include scenario context, entity or actor count, and runtime mode.
-- Mass profiling must identify entity count and performance impact when applicable.
-- Profiling should be used to support interview discussion, not to overbuild the project.
-
-## Explicit Non-Requirements
-
-- Inventory
-- Quest system
-- Save system
-- Matchmaking
-- Lobby
-- Crafting
-- Skill tree
-- Large UI framework
-- Complex animation system
-- Full GAS expansion
-- Full production-quality game content
-
-## Acceptance Criteria
-
-The MVP is acceptable when:
-
-- Multiplayer testing can be performed through an approved workflow.
-- A dedicated-server style workflow is supported or documented.
-- Objective HP is owned by the server.
-- Clients can observe relevant objective state without directly applying authoritative changes.
-- Mass-based enemies can be spawned in a controlled scenario.
-- Mass-based enemies can move toward the Objective.
-- Arrival at the Objective can be detected separately from damage application.
-- Objective HP decreases only through valid server-authoritative arrival/damage logic.
-- Debug UI or logs expose enough runtime state to inspect authority, objective state, and Mass behavior.
-- Profiling notes can support later Actor-based vs Mass-based comparison.
-- Verification notes identify what was actually run and what remains unverified.
-- The result remains focused on technical portfolio value rather than full game production.
-
-## Verification Mapping
-
-Use `Docs/Verification.md` as the detailed verification guide.
-
-- Multiplayer testing: PIE listen-server checks or dedicated server checks.
-- Dedicated-server style workflow: dedicated server checks, server/client logs, or documented verification limitation.
-- Server-authoritative gameplay state: network replication checks and server/client verification notes.
-- Objective HP: objective gameplay checks, replication checks when networked, and log or debug review.
-- Mass enemy spawn: Mass Entity checks with entity count and spawn behavior.
-- Mass enemy movement: Mass Entity checks with movement or processor behavior.
-- Arrival detection: Mass Entity checks and objective gameplay checks.
-- Objective damage: objective gameplay checks, server authority checks, and client-visible result checks when networked.
-- Debug UI or logs: Debug UI checks and log review.
-- Profiling comparison readiness: profiling checks with FPS, frame time, GameThread impact, scenario context, and entity or actor count when relevant.
-- Non-functional scope control: manual inspection against this document, `Docs/Mass_Rules.md`, and `Docs/Unreal_Rules.md`.
-
-Do not report any verification step as passed unless it was actually run. If verification cannot be executed, state the reason and list what remains unverified.
-
+- profiling은 Actor-based vs Mass-based comparison을 지원해야 합니다.
+- profiling notes는 FPS, frame time, GameThread impact를 필요할 때 기록해야 합니다.
+- scenario context, entity/actor count, runtime mode를 포함해야 합니다.
+- Mass profiling은 entity count와 performance impact를 명시해야 합니다.
+- profiling은 면접 설명을 돕기 위한 것이며 프로젝트를 production optimization으로 확장하기 위한 목적이 아닙니다.
