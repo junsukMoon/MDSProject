@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "MassEntityElementTypes.h"
+#include "Mass/EntityElementTypes.h"
 #include "MDSMassEnemyFragments.generated.h"
 
 USTRUCT()
