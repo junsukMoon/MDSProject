@@ -64,7 +64,7 @@
 
 ## Actor Enemy Baseline
 
-상태: 진행 중
+상태: 완료
 
 완료:
 
@@ -76,12 +76,10 @@
   - `Actor Spawned`
   - `Actor Arrived`
   - `Actor Damage`
-
-미완료:
-
 - Actor baseline profiling.
-  - 기존 600-frame smoke profile은 Mass debug draw와 phase mismatch 때문에 비교 기준으로 사용하지 않습니다.
-  - 공정한 profile은 phase trigger와 debug draw off 조건으로 다시 측정해야 합니다.
+  - 기존 600-frame smoke profile은 Mass debug draw와 phase mismatch 때문에 비교 기준에서 제외했습니다.
+  - UE 5.8 `MovementActive` phase trigger 기준으로 Mass/Actor 1000개 profile을 다시 측정했습니다.
+  - 결과는 `Docs/08_Profiling_Comparison.md`에 기록했습니다.
 
 주의:
 
@@ -90,10 +88,7 @@
 
 다음 순서:
 
-1. phase-based capture harness로 Mass/Actor movement-active profile을 각각 측정.
-2. Mass profile에는 `-NoMDSMassDebugDraw`를 반드시 사용.
-3. Actor profile에는 `-NoMDSMassBaseline`을 반드시 사용.
-4. profiling 결과를 `Docs/08_Profiling_Comparison.md` 또는 별도 profiling 문서에 기록.
+1. visible viewport 또는 Unreal Insights가 필요할 때만 추가 profiling을 진행.
 
 ## Mass Spawn + Movement
 
@@ -173,25 +168,24 @@
 - editor server-mode Mass profiling 기록.
 - staged dedicated server binary profiling 기록.
 - README에 server authority, Mass workflow, dedicated server 검증, profiling snapshot 정리.
+- UE 5.8 `MovementActive` phase trigger 기준 Actor vs Mass 1000개 profile 비교 기록.
+  - Mass: `Mass1000_MovementActive_Phase.csv`
+  - Actor: `Actor1000_MovementActive_Phase.csv`
 
 부족:
 
-- Actor vs Mass 실제 측정 비교가 없습니다.
-  - 기존 smoke profile은 잘못된 조건으로 폐기했습니다.
-  - 최신 비교는 phase-based capture와 debug draw off 조건으로 다시 측정해야 합니다.
 - README 상단에 명시적인 `Interview Demo` 섹션은 아직 없습니다.
 - 2~3분 영상 또는 GIF가 아직 없습니다.
 - Unreal Insights trace는 아직 없습니다.
 
 다음 순서:
 
-1. Actor baseline 구현 후 같은 조건으로 Actor vs Mass profiling.
-2. README 상단에 `Interview Demo` 섹션 추가.
-3. dedicated server + clients + debug output 기준 2~3분 영상 또는 GIF 제작.
-4. 필요 시 Unreal Insights trace 캡처.
+1. README 상단에 `Interview Demo` 섹션 추가.
+2. dedicated server + clients + debug output 기준 2~3분 영상 또는 GIF 제작.
+3. 필요 시 Unreal Insights trace 캡처.
 
 ## Recommended Order After Current Build
 
-1. Profile Actor baseline against Mass scenario.
-2. Update README with `Interview Demo`.
-3. Record 2-3 minute demo video or GIF.
+1. Update README with `Interview Demo`.
+2. Record 2-3 minute demo video or GIF.
+3. Capture Unreal Insights trace if needed.
