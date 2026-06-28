@@ -30,10 +30,12 @@ private:
 
 	void SpawnActorBaseline();
 	AMDSObjectiveActor* FindOrSpawnObjective(UWorld& InWorld, const FVector& ObjectiveLocation) const;
+	void HandleEnemyActiveTick(int32 ActiveDelta);
 	void HandleEnemyArrived(bool bDamageApplied, const FVector& ArrivalLocation);
 
 	bool bSpawned = false;
 	int32 SpawnedEnemyCount = 0;
+	int32 ActiveEnemyTickCount = 0;
 	int32 ArrivedEnemyCount = 0;
 	int32 DamageAppliedCount = 0;
 };

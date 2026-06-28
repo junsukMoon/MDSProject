@@ -115,6 +115,7 @@ void UMDSActorEnemySpawnSubsystem::SpawnActorBaseline()
 		}
 
 		ActorEnemy->OnActorEnemyArrived().AddUObject(this, &UMDSActorEnemySpawnSubsystem::HandleEnemyArrived);
+		ActorEnemy->OnActorEnemyActiveTick().AddUObject(this, &UMDSActorEnemySpawnSubsystem::HandleEnemyActiveTick);
 		ActorEnemy->InitializeActorEnemy(ObjectiveActor, MovementSpeed, ArrivalDistance, ObjectiveDamagePerArrival);
 		++SpawnedEnemyCount;
 	}
@@ -126,6 +127,19 @@ void UMDSActorEnemySpawnSubsystem::SpawnActorBaseline()
 	}
 
 	UE_LOG(LogMDSActorEnemySpawn, Log, TEXT("Actor enemy baseline spawned %d enemies near %s moving toward objective at %s. Requested count: %d. Damage per arrival: %.1f."), SpawnedEnemyCount, *SpawnOrigin.ToCompactString(), *ObjectiveActor->GetActorLocation().ToCompactString(), SpawnEnemyCount, ObjectiveDamagePerArrival);
+}
+
+void UMDSActorEnemySpawnSubsystem::HandleEnemyActiveTick(const int32 ActiveDelta)
+{
+	ActiveEnemyTickCount += ActiveDelta;
+
+	if (UWorld* World = GetWorld())
+	{
+		if (UMDSDebugStateSubsystem* DebugState = World->GetSubsystem<UMDSDebugStateSubsystem>())
+		{
+			DebugState->SetActorActiveCount(ActiveEnemyTickCount);
+		}
+	}
 }
 
 AMDSObjectiveActor* UMDSActorEnemySpawnSubsystem::FindOrSpawnObjective(UWorld& InWorld, const FVector& ObjectiveLocation) const

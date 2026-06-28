@@ -39,6 +39,11 @@ void UMDSDebugStateSubsystem::SetMassArrivalCounts(const int32 InArrivedCount, c
 	DamageAppliedCount += InDamageAppliedCount;
 }
 
+void UMDSDebugStateSubsystem::SetActorActiveCount(const int32 InActiveCount)
+{
+	ActorActiveCount = InActiveCount;
+}
+
 void UMDSDebugStateSubsystem::SetActorEnemyCounts(const int32 InSpawnedCount, const int32 InArrivedCount, const int32 InDamageAppliedCount)
 {
 	ActorSpawnedCount = InSpawnedCount;
@@ -52,10 +57,26 @@ void UMDSDebugStateSubsystem::SetObjectiveHealth(const float InCurrentHealth, co
 	ObjectiveMaxHealth = InMaxHealth;
 }
 
+FMDSDebugStateSnapshot UMDSDebugStateSubsystem::GetSnapshot() const
+{
+	FMDSDebugStateSnapshot Snapshot;
+	Snapshot.MassSpawnedCount = SpawnedCount;
+	Snapshot.MassMovedCount = LastMovedCount;
+	Snapshot.MassArrivedCount = ArrivedCount;
+	Snapshot.MassDamageAppliedCount = DamageAppliedCount;
+	Snapshot.ActorSpawnedCount = ActorSpawnedCount;
+	Snapshot.ActorActiveCount = ActorActiveCount;
+	Snapshot.ActorArrivedCount = ActorArrivedCount;
+	Snapshot.ActorDamageAppliedCount = ActorDamageAppliedCount;
+	Snapshot.ObjectiveCurrentHealth = ObjectiveCurrentHealth;
+	Snapshot.ObjectiveMaxHealth = ObjectiveMaxHealth;
+	return Snapshot;
+}
+
 FString UMDSDebugStateSubsystem::BuildDebugLine() const
 {
 	return FString::Printf(
-		TEXT("MDS Debug | NetMode=%s | ObjectiveHP=%.0f/%.0f | Mass Spawned=%d Moved=%d Arrived=%d Damage=%d | Actor Spawned=%d Arrived=%d Damage=%d"),
+		TEXT("MDS Debug | NetMode=%s | ObjectiveHP=%.0f/%.0f | Mass Spawned=%d Moved=%d Arrived=%d Damage=%d | Actor Spawned=%d ActiveTicks=%d Arrived=%d Damage=%d"),
 		*GetNetModeLabel(),
 		ObjectiveCurrentHealth,
 		ObjectiveMaxHealth,
@@ -64,6 +85,7 @@ FString UMDSDebugStateSubsystem::BuildDebugLine() const
 		ArrivedCount,
 		DamageAppliedCount,
 		ActorSpawnedCount,
+		ActorActiveCount,
 		ActorArrivedCount,
 		ActorDamageAppliedCount);
 }

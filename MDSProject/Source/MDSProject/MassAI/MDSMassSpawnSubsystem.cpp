@@ -25,6 +25,13 @@ static TAutoConsoleVariable<int32> CVarMDSMassBaselineCount(
 	16,
 	TEXT("Mass baseline entity count. Use MDSMassBaselineCount=<N> on the command line for early startup override."));
 
+static bool IsMassDebugDrawEnabled()
+{
+	const IConsoleVariable* MassDebugDrawCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("mds.MassDebugDraw.Enabled"));
+	const bool bCVarEnabled = !MassDebugDrawCVar || MassDebugDrawCVar->GetInt() != 0;
+	return bCVarEnabled && !FParse::Param(FCommandLine::Get(), TEXT("NoMDSMassDebugDraw"));
+}
+
 bool UMDSMassSpawnSubsystem::IsMassBaselineEnabled()
 {
 	if (FParse::Param(FCommandLine::Get(), TEXT("NoMDSMassBaseline")))
@@ -72,6 +79,11 @@ void UMDSMassSpawnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	{
 		UE_LOG(LogMDSMassSpawn, Log, TEXT("Mass baseline disabled. Set mds.MassBaseline.Enabled=1 or omit -NoMDSMassBaseline to enable it."));
 		return;
+	}
+
+	if (!IsMassDebugDrawEnabled())
+	{
+		UE_LOG(LogMDSMassSpawn, Log, TEXT("Mass debug draw disabled for profiling."));
 	}
 
 	if (InWorld.GetNetMode() == NM_Client)
@@ -132,7 +144,11 @@ void UMDSMassSpawnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	}
 
 	const FVector ObjectiveLocation = ObjectiveActor ? ObjectiveActor->GetActorLocation() : MovementTargetLocation;
-	DrawDebugSphere(&InWorld, ObjectiveLocation, SpawnDebugRadius, 16, FColor::Red, false, SpawnDebugLifetime, 0, SpawnDebugThickness);
+	const bool bDrawDebug = IsMassDebugDrawEnabled();
+	if (bDrawDebug)
+	{
+		DrawDebugSphere(&InWorld, ObjectiveLocation, SpawnDebugRadius, 16, FColor::Red, false, SpawnDebugLifetime, 0, SpawnDebugThickness);
+	}
 
 	for (int32 EntityIndex = 0; EntityIndex < SpawnedEntities.Num(); ++EntityIndex)
 	{
@@ -159,7 +175,10 @@ void UMDSMassSpawnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 			ArrivalFragment->bHasAppliedObjectiveDamage = false;
 		}
 
-		DrawDebugSphere(&InWorld, SpawnLocation, SpawnDebugRadius, 16, FColor::Green, false, SpawnDebugLifetime, 0, SpawnDebugThickness);
+		if (bDrawDebug)
+		{
+			DrawDebugSphere(&InWorld, SpawnLocation, SpawnDebugRadius, 16, FColor::Green, false, SpawnDebugLifetime, 0, SpawnDebugThickness);
+		}
 	}
 
 	UE_LOG(LogMDSMassSpawn, Log, TEXT("Mass objective-damage probe initialized %d entities near %s moving toward objective at %s. Requested count: %d. Damage per arrival: %.1f."), SpawnedEntityCount, *SpawnOrigin.ToCompactString(), *ObjectiveLocation.ToCompactString(), SpawnEntityCount, ObjectiveDamagePerArrival);

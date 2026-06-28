@@ -3,11 +3,21 @@
 #include "Debug/MDSDebugStateSubsystem.h"
 #include "DrawDebugHelpers.h"
 #include "EngineUtils.h"
+#include "HAL/IConsoleManager.h"
 #include "MassAI/MDSMassEnemyFragments.h"
 #include "MassExecutionContext.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
 #include "Objective/MDSObjectiveActor.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMDSMassArrival, Log, All);
+
+static bool IsMassDebugDrawEnabled()
+{
+	const IConsoleVariable* MassDebugDrawCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("mds.MassDebugDraw.Enabled"));
+	const bool bCVarEnabled = !MassDebugDrawCVar || MassDebugDrawCVar->GetInt() != 0;
+	return bCVarEnabled && !FParse::Param(FCommandLine::Get(), TEXT("NoMDSMassDebugDraw"));
+}
 
 UMDSMassArrivalProcessor::UMDSMassArrivalProcessor()
 	: EntityQuery(*this)
@@ -37,6 +47,7 @@ void UMDSMassArrivalProcessor::Execute(FMassEntityManager& EntityManager, FMassE
 	int32 TotalArrivalCount = 0;
 	int32 ObjectiveDamageCount = 0;
 	int32 CheckedEntityCount = 0;
+	const bool bDrawDebug = IsMassDebugDrawEnabled();
 	AMDSObjectiveActor* ObjectiveActor = CachedObjectiveActor.Get();
 	if (!ObjectiveActor)
 	{
@@ -48,7 +59,7 @@ void UMDSMassArrivalProcessor::Execute(FMassEntityManager& EntityManager, FMassE
 		}
 	}
 
-	EntityQuery.ForEachEntityChunk(Context, [World, ObjectiveActor, &NewArrivalCount, &TotalArrivalCount, &ObjectiveDamageCount, &CheckedEntityCount](FMassExecutionContext& Context)
+	EntityQuery.ForEachEntityChunk(Context, [World, ObjectiveActor, bDrawDebug, &NewArrivalCount, &TotalArrivalCount, &ObjectiveDamageCount, &CheckedEntityCount](FMassExecutionContext& Context)
 	{
 		TConstArrayView<FMDSMassMovementFragment> MovementFragments = Context.GetFragmentView<FMDSMassMovementFragment>();
 		TArrayView<FMDSMassArrivalFragment> ArrivalFragments = Context.GetMutableFragmentView<FMDSMassArrivalFragment>();
@@ -65,7 +76,10 @@ void UMDSMassArrivalProcessor::Execute(FMassEntityManager& EntityManager, FMassE
 			{
 				ArrivalFragment.bHasArrived = true;
 				++NewArrivalCount;
-				DrawDebugSphere(World, MovementFragment.CurrentLocation, 55.0f, 12, FColor::Cyan, false, 5.0f, 0, 5.0f);
+				if (bDrawDebug)
+				{
+					DrawDebugSphere(World, MovementFragment.CurrentLocation, 55.0f, 12, FColor::Cyan, false, 5.0f, 0, 5.0f);
+				}
 			}
 
 			if (ArrivalFragment.bHasArrived)

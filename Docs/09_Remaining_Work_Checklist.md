@@ -80,6 +80,8 @@
 미완료:
 
 - Actor baseline profiling.
+  - 기존 600-frame smoke profile은 Mass debug draw와 phase mismatch 때문에 비교 기준으로 사용하지 않습니다.
+  - 공정한 profile은 phase trigger와 debug draw off 조건으로 다시 측정해야 합니다.
 
 주의:
 
@@ -88,8 +90,10 @@
 
 다음 순서:
 
-1. Mass와 같은 조건으로 Actor baseline profiling 비교.
-2. profiling 결과를 `Docs/08_Profiling_Comparison.md` 또는 별도 profiling 문서에 기록.
+1. phase-based capture harness로 Mass/Actor movement-active profile을 각각 측정.
+2. Mass profile에는 `-NoMDSMassDebugDraw`를 반드시 사용.
+3. Actor profile에는 `-NoMDSMassBaseline`을 반드시 사용.
+4. profiling 결과를 `Docs/08_Profiling_Comparison.md` 또는 별도 profiling 문서에 기록.
 
 ## Mass Spawn + Movement
 
@@ -173,6 +177,8 @@
 부족:
 
 - Actor vs Mass 실제 측정 비교가 없습니다.
+  - 기존 smoke profile은 잘못된 조건으로 폐기했습니다.
+  - 최신 비교는 phase-based capture와 debug draw off 조건으로 다시 측정해야 합니다.
 - README 상단에 명시적인 `Interview Demo` 섹션은 아직 없습니다.
 - 2~3분 영상 또는 GIF가 아직 없습니다.
 - Unreal Insights trace는 아직 없습니다.

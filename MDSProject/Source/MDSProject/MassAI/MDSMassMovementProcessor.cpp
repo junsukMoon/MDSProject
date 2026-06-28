@@ -2,10 +2,23 @@
 
 #include "Debug/MDSDebugStateSubsystem.h"
 #include "DrawDebugHelpers.h"
+#include "HAL/IConsoleManager.h"
 #include "MassAI/MDSMassEnemyFragments.h"
 #include "MassExecutionContext.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMDSMassMovement, Log, All);
+
+static TAutoConsoleVariable<int32> CVarMDSMassDebugDrawEnabled(
+	TEXT("mds.MassDebugDraw.Enabled"),
+	1,
+	TEXT("Enables Mass debug draw. Use -NoMDSMassDebugDraw for profiling runs."));
+
+static bool IsMassDebugDrawEnabled()
+{
+	return CVarMDSMassDebugDrawEnabled.GetValueOnGameThread() != 0 && !FParse::Param(FCommandLine::Get(), TEXT("NoMDSMassDebugDraw"));
+}
 
 UMDSMassMovementProcessor::UMDSMassMovementProcessor()
 	: EntityQuery(*this)
@@ -34,8 +47,9 @@ void UMDSMassMovementProcessor::Execute(FMassEntityManager& EntityManager, FMass
 
 	int32 MovedEntityCount = 0;
 	const float DeltaTimeSeconds = Context.GetDeltaTimeSeconds();
+	const bool bDrawDebug = IsMassDebugDrawEnabled();
 
-	EntityQuery.ForEachEntityChunk(Context, [World, DeltaTimeSeconds, &MovedEntityCount](FMassExecutionContext& Context)
+	EntityQuery.ForEachEntityChunk(Context, [World, DeltaTimeSeconds, bDrawDebug, &MovedEntityCount](FMassExecutionContext& Context)
 	{
 		TArrayView<FMDSMassMovementFragment> MovementFragments = Context.GetMutableFragmentView<FMDSMassMovementFragment>();
 		TConstArrayView<FMDSMassArrivalFragment> ArrivalFragments = Context.GetFragmentView<FMDSMassArrivalFragment>();
@@ -57,8 +71,11 @@ void UMDSMassMovementProcessor::Execute(FMassEntityManager& EntityManager, FMass
 				++MovedEntityCount;
 			}
 
-			DrawDebugSphere(World, MovementFragment.CurrentLocation, 45.0f, 12, FColor::Yellow, false, 0.0f, 0, 4.0f);
-			DrawDebugLine(World, MovementFragment.CurrentLocation, MovementFragment.TargetLocation, FColor::Orange, false, 0.0f, 0, 2.0f);
+			if (bDrawDebug)
+			{
+				DrawDebugSphere(World, MovementFragment.CurrentLocation, 45.0f, 12, FColor::Yellow, false, 0.0f, 0, 4.0f);
+				DrawDebugLine(World, MovementFragment.CurrentLocation, MovementFragment.TargetLocation, FColor::Orange, false, 0.0f, 0, 2.0f);
+			}
 		}
 	});
 
