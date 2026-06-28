@@ -1,6 +1,7 @@
 #include "ActorAI/MDSActorEnemySpawnSubsystem.h"
 
 #include "ActorAI/MDSActorEnemy.h"
+#include "Debug/MDSDebugStateSubsystem.h"
 #include "EngineUtils.h"
 #include "GameFramework/PlayerStart.h"
 #include "HAL/IConsoleManager.h"
@@ -119,6 +120,11 @@ void UMDSActorEnemySpawnSubsystem::SpawnActorBaseline()
 	}
 
 	bSpawned = true;
+	if (UMDSDebugStateSubsystem* DebugState = World->GetSubsystem<UMDSDebugStateSubsystem>())
+	{
+		DebugState->SetActorEnemyCounts(SpawnedEnemyCount, ArrivedEnemyCount, DamageAppliedCount);
+	}
+
 	UE_LOG(LogMDSActorEnemySpawn, Log, TEXT("Actor enemy baseline spawned %d enemies near %s moving toward objective at %s. Requested count: %d. Damage per arrival: %.1f."), SpawnedEnemyCount, *SpawnOrigin.ToCompactString(), *ObjectiveActor->GetActorLocation().ToCompactString(), SpawnEnemyCount, ObjectiveDamagePerArrival);
 }
 
@@ -148,6 +154,14 @@ void UMDSActorEnemySpawnSubsystem::HandleEnemyArrived(const bool bDamageApplied,
 	if (bDamageApplied)
 	{
 		++DamageAppliedCount;
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		if (UMDSDebugStateSubsystem* DebugState = World->GetSubsystem<UMDSDebugStateSubsystem>())
+		{
+			DebugState->SetActorEnemyCounts(SpawnedEnemyCount, ArrivedEnemyCount, DamageAppliedCount);
+		}
 	}
 
 	UE_LOG(LogMDSActorEnemySpawn, Log, TEXT("Actor enemy baseline counts: Spawned=%d Arrived=%d DamageApplied=%d LastArrival=%s."), SpawnedEnemyCount, ArrivedEnemyCount, DamageAppliedCount, *ArrivalLocation.ToCompactString());
