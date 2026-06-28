@@ -196,16 +196,6 @@ Actor vs Mass baseline은 UE 5.8에서 같은 `MovementActive` phase trigger와 
 
 AI assistance는 통제된 가속 도구로 사용합니다. 목표, 범위, 아키텍처 결정, 최종 검증 판단은 사람이 소유합니다.
 
-## 면접 Discussion Points
-
-- Objective HP를 server-authoritative로 둔 이유
-- Replicated Objective state와 client-requested gameplay action의 차이
-- Mass 작업을 spawn, movement, arrival, damage, debug, profiling 단계로 나눈 이유
-- Debug visualization이 도착 이후 runtime cost를 만든 방식
-- UE 5.8에서 `ZenStore` 기본 cook과 staged dedicated server 검증의 관계
-- `-NullRHI` profiling이 비교에는 유용하지만 성능 주장으로는 제한되는 이유
-- Actor-vs-Mass 비교를 같은 phase trigger와 debug draw off 조건으로 맞춘 이유
-
 ## 명시적 비범위
 
 - Inventory
@@ -219,7 +209,3 @@ AI assistance는 통제된 가속 도구로 사용합니다. 목표, 범위, 아
 - Complex animation system
 - Full GAS expansion
 - Full production-quality game content
-
-## 목표 완료일
-
-`2026-07-31`
