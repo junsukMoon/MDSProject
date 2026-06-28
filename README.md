@@ -46,9 +46,8 @@ Dedicated server owns Objective HP. Mass entities damage the Objective on arriva
 
 알려진 제한:
 
-- Client viewport에서 replicated Objective HP를 직접 확인하는 검증은 아직 별도 단계로 남아 있습니다.
-- Unreal Insights trace는 아직 캡처하지 않았습니다.
 - `-NullRHI` profiling 결과는 로컬 비교에는 유용하지만, 최종 viewport 또는 GPU 성능을 대표하지 않습니다.
+- 현재 프로젝트는 기술 포트폴리오용 샌드박스이며, full game loop나 production content는 의도적으로 범위 밖입니다.
 
 ## 핵심 시나리오
 
@@ -164,12 +163,8 @@ Actor vs Mass baseline은 UE 5.8에서 같은 `MovementActive` phase trigger와 
 - Debug output이 기대한 runtime state를 노출합니다.
 - Profiling log에서 debug visualization 수정 후 도착 이후 frame time이 개선된 것을 확인했습니다.
 - Actor baseline과 Mass baseline을 같은 `MovementActive` phase trigger 조건으로 비교했습니다.
-
-아직 미검증:
-
-- Client viewport에서 replicated Objective HP 직접 확인.
-- Unreal Insights trace capture.
-- 전체 client viewport recording workflow.
+- Visible viewport client 2개가 같은 replicated Objective HP `20/100`을 표시하는 것을 스크린샷과 2분 GIF로 확인했습니다.
+- Unreal Insights smoke trace를 캡처했습니다.
 
 ## 문서 맵
 
@@ -179,6 +174,7 @@ Actor vs Mass baseline은 UE 5.8에서 같은 `MovementActive` phase trigger와 
 - `Docs/03_MVP_Task_Breakdown.md` - phased MVP task breakdown
 - `Docs/07_Mass_Concept.md` - Mass implementation concept notes
 - `Docs/08_Profiling_Comparison.md` - 현재 Mass profiling 결과 및 제한
+- `Docs/10_Visible_Demo_Verification.md` - visible client replication screenshot/GIF 및 Unreal Insights trace 기록
 - `Docs/AI_Harness.md` - AI-assisted development workflow
 - `Docs/Task_Template.md` - 재사용 가능한 task request template
 - `Docs/Approval_Report_Template.md` - 재사용 가능한 completion report template
