@@ -118,7 +118,7 @@ Result:
 
 Important limitation:
 
-- This was a headless `-NullRHI` log verification. Visible viewport or recorded-video verification is still pending.
+- This was a headless `-NullRHI` log verification. Visible two-client screenshot/GIF evidence was captured later and is recorded in `Docs/10_Visible_Demo_Verification.md`.
 - Both clients emitted repeated `LogNetPlayerMovement: Warning: CreateSavedMove: Hit limit of 96 saved moves` warnings under the headless run. The Objective HP replication result remained stable.
 
 ## Debug Draw Fix Measurement
@@ -230,18 +230,17 @@ Measured delta:
   - Damage count
 - The most visible measured performance issue so far was debug visualization overhead, not Mass movement or objective damage logic.
 - Dedicated server binary support is now verified at the staged server runtime/log level with source-built UE 5.8.
+- Visible two-client Objective HP replication evidence and a short Unreal Insights smoke trace are recorded in `Docs/10_Visible_Demo_Verification.md`.
 
 ## Known Limitations
 
 - `-NullRHI` results should not be presented as final rendering performance.
-- Client Objective HP replication has been verified through two standalone client logs, but visible viewport or recorded-video verification is still pending.
-- No Actor baseline has been implemented or measured yet.
-- No Unreal Insights trace was captured.
+- The visible client evidence verifies replicated Objective HP display, not final viewport performance.
+- The Unreal Insights trace is a smoke capture, not a full performance investigation.
 - UE 5.8 `ZenStore` cook output needs separate handling; this verification used `-skipzenstore` for loose staged server content.
 
-## Recommended Next Profiling Steps
+## Optional Future Profiling Refinements
 
-1. Re-run the same scenario in a visible viewport and record `stat fps` / `stat unit`.
-2. Capture Unreal Insights trace once a stable recording workflow is available.
-3. Build a minimal Actor-based baseline only if an actual Actor-vs-Mass comparison is needed.
-4. Record visible client viewport evidence showing both clients display the same replicated Objective HP.
+1. Run repeated captures if tighter variance data is needed.
+2. Capture a deeper Unreal Insights session if processor-level analysis becomes necessary.
+3. Record `stat unit` / `stat fps` in a visible viewport only if viewport performance claims are needed.
