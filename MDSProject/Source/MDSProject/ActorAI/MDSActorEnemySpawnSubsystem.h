@@ -16,7 +16,6 @@ public:
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 
 private:
-	static constexpr int32 SpawnEnemyCount = 16;
 	static constexpr int32 SpawnGridColumns = 4;
 	static constexpr float SpawnGridSpacing = 150.0f;
 	static constexpr float MovementTargetOffset = 1200.0f;
@@ -25,6 +24,7 @@ private:
 	static constexpr float ObjectiveDamagePerArrival = 5.0f;
 
 	static bool IsActorBaselineEnabled();
+	static int32 GetSpawnEnemyCount();
 	static FVector CalculateSpawnLocation(const FVector& SpawnOrigin, int32 SpawnIndex);
 	static FVector CalculateMovementTargetLocation(const FVector& SpawnOrigin);
 

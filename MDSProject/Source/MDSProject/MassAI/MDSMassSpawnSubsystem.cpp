@@ -4,13 +4,28 @@
 #include "Debug/MDSDebugStateSubsystem.h"
 #include "EngineUtils.h"
 #include "GameFramework/PlayerStart.h"
+#include "HAL/IConsoleManager.h"
 #include "MassAI/MDSMassEnemyFragments.h"
 #include "MassArchetypeTypes.h"
 #include "MassEntityManager.h"
 #include "MassEntitySubsystem.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
 #include "Objective/MDSObjectiveActor.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMDSMassSpawn, Log, All);
+
+static TAutoConsoleVariable<int32> CVarMDSMassBaselineCount(
+	TEXT("mds.MassBaseline.Count"),
+	16,
+	TEXT("Mass baseline entity count. Use MDSMassBaselineCount=<N> on the command line for early startup override."));
+
+int32 UMDSMassSpawnSubsystem::GetSpawnEntityCount()
+{
+	int32 SpawnCount = CVarMDSMassBaselineCount.GetValueOnGameThread();
+	FParse::Value(FCommandLine::Get(), TEXT("MDSMassBaselineCount="), SpawnCount);
+	return FMath::Max(1, SpawnCount);
+}
 
 FVector UMDSMassSpawnSubsystem::CalculateSpawnLocation(const FVector& SpawnOrigin, const int32 SpawnIndex)
 {
@@ -62,7 +77,8 @@ void UMDSMassSpawnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	const FMassArchetypeHandle EnemyArchetype = EntityManager.CreateArchetype(EntityComposition);
 
 	TArray<FMassEntityHandle> SpawnedEntities;
-	EntityManager.BatchCreateEntities(EnemyArchetype, SpawnOnlyEntityCount, SpawnedEntities);
+	const int32 SpawnEntityCount = GetSpawnEntityCount();
+	EntityManager.BatchCreateEntities(EnemyArchetype, SpawnEntityCount, SpawnedEntities);
 
 	SpawnedEntityCount = SpawnedEntities.Num();
 	bSpawned = true;
@@ -125,5 +141,5 @@ void UMDSMassSpawnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 		DrawDebugSphere(&InWorld, SpawnLocation, SpawnDebugRadius, 16, FColor::Green, false, SpawnDebugLifetime, 0, SpawnDebugThickness);
 	}
 
-	UE_LOG(LogMDSMassSpawn, Log, TEXT("Mass objective-damage probe initialized %d entities near %s moving toward objective at %s. Damage per arrival: %.1f."), SpawnedEntityCount, *SpawnOrigin.ToCompactString(), *ObjectiveLocation.ToCompactString(), ObjectiveDamagePerArrival);
+	UE_LOG(LogMDSMassSpawn, Log, TEXT("Mass objective-damage probe initialized %d entities near %s moving toward objective at %s. Requested count: %d. Damage per arrival: %.1f."), SpawnedEntityCount, *SpawnOrigin.ToCompactString(), *ObjectiveLocation.ToCompactString(), SpawnEntityCount, ObjectiveDamagePerArrival);
 }
