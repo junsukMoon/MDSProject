@@ -2,19 +2,19 @@
 
 ## Current Status
 
-Workflow setup is complete and Phase 1 Mass planning is complete.
+The portfolio demo scope is implemented and verified at the documentation, runtime log, visible viewport, profiling, and smoke trace levels.
 
 Current focus:
 
-- Keep merged task history accurate.
-- Track active branches, verification status, and learning review status.
-- Prepare for Phase 2: Mass Module Setup.
+- Keep public documentation aligned with verified evidence.
+- Preserve concise interview-facing project status.
+- Treat future work as optional refinement, not required MVP completion.
 
 ## Current Task
 
 Task:
 
-- Update `Docs/05_Progress_Log.md` after workflow setup and Mass Concept Study merge.
+- Maintain final project status documentation after the visible demo verification merge.
 
 Task type:
 
@@ -22,11 +22,11 @@ Task type:
 
 Allowed scope:
 
-- `Docs/05_Progress_Log.md` only.
+- `Docs/05_Progress_Log.md`
 
 Status:
 
-- In progress on branch `docs/update-progress-log-after-mass-concept`.
+- In progress on branch `docs/update-progress-log-final-state`.
 
 ## Completed Tasks
 
@@ -41,30 +41,44 @@ Completed documentation setup:
 - Progress log.
 - PR template.
 - AI task commands.
+- Verification standards.
+- Unreal and Mass working rules.
 
-Completed workflow setup:
+Completed gameplay and systems work:
 
-- Initial Git repository setup.
-- GitHub remote connection and push.
-- Git LFS / `.gitignore` inspection.
-- Branch protection setup.
-- README smoke task branch / PR / merge workflow test.
-- Orchestrator / Execute / Learning Review / PR Preparation / Merge command flow documented.
-- Orchestrator approval chain rule documented.
+- Server-authoritative Objective Actor.
+- Replicated Objective HP with client-side debug visibility.
+- Dedicated Server target and staged runtime workflow.
+- Mass module setup.
+- Mass spawn.
+- Mass movement toward Objective.
+- Mass arrival detection.
+- Server-side once-only Objective damage integration.
+- Runtime debug state and debug line.
+- Actor enemy baseline for Mass comparison.
+- Phase-based gameplay CSV profiling harness.
+- Actor vs Mass `MovementActive` phase profiling comparison.
+- Mass debug draw profiling guard.
+- Dedicated server console launch batch file.
 
-Completed Mass planning:
+Completed verification evidence:
 
-- Phase 1: Mass Concept Study.
-- `Docs/07_Mass_Concept.md` defines Mass purpose, scope, server authority rules, expected Mass concepts, incremental task order, and learning review questions.
+- UE 5.8 source engine build/runtime verification.
+- WindowsServer cook/stage/runtime verification.
+- Dedicated server log verification.
+- Two standalone client log verification.
+- Visible two-client Objective HP screenshot verification.
+- 2-minute visible demo GIF.
+- Short Unreal Insights smoke trace.
 
 ## Active Branches
 
-Known active or pending branches:
+Known active branches:
 
-- `main` - Protected integration branch.
-- `docs/update-progress-log-after-mass-concept` - Current documentation update branch.
+- `main` - integration branch.
+- `docs/update-progress-log-final-state` - current documentation update branch.
 
-No Mass implementation branch is active yet.
+No gameplay implementation branch is currently active.
 
 ## Blocked Tasks
 
@@ -72,70 +86,71 @@ None.
 
 ## Next Recommended Task
 
-Next technical task:
+No required MVP task remains in the previous checklist scope.
 
-- Phase 2: Mass Module Setup from `Docs/03_MVP_Task_Breakdown.md`.
+Optional future refinements:
 
-Recommended branch:
-
-- `setup/phase-2-mass-modules`
-
-Expected next-task focus:
-
-- Inspect the current `.Build.cs` files.
-- Identify the smallest required Mass-related module dependencies.
-- Explain why each added module is required.
-- Avoid spawn, movement, arrival detection, or objective damage logic.
-- Run a build or report why build verification cannot be executed.
+1. Capture a deeper Unreal Insights session if processor-level analysis is needed.
+2. Run repeated profiling captures if tighter variance data is needed.
+3. Record visible `stat unit` / `stat fps` only if viewport performance claims are needed.
+4. Polish demo presentation materials if this project is prepared for a specific interview or portfolio page.
 
 ## Verification Status
 
 Current verification status:
 
-- Documentation tasks: manual inspection completed per PR.
-- Git workflow smoke test: completed through README PR workflow.
-- Git LFS / `.gitignore`: inspected.
-- Mass Concept Study: manually inspected against `Docs/Mass_Rules.md` and `Docs/03_MVP_Task_Breakdown.md`.
-- Unreal build / compile: not run for documentation-only workflow tasks.
-- PIE / listen-server / dedicated-server checks: not run for documentation-only workflow tasks.
-- Mass runtime behavior: not implemented or verified yet.
+- Documentation inspection: completed across public project docs.
+- C++ build checks: completed for the implemented gameplay/profiling changes when those changes were made.
+- Dedicated server runtime: verified with staged server binary.
+- Network replication: verified through two standalone client logs and visible client windows.
+- Objective gameplay: verified through server-owned HP reaching `20/100`.
+- Mass spawn/movement/arrival/damage: verified through runtime debug state and logs.
+- Actor baseline: implemented and phase-profiled against Mass.
+- Profiling: Mass runtime snapshots and Actor vs Mass phase capture recorded.
+- Visible demo evidence: recorded as screenshots and a 2-minute GIF.
+- Unreal Insights: smoke trace captured.
 
-Verification rule:
+Verification evidence references:
 
-- Do not mark build, compile, PIE, dedicated server, log review, Mass spawn, Mass movement, arrival detection, or objective damage as passed unless it was actually run.
+- `Docs/08_Profiling_Comparison.md`
+- `Docs/10_Visible_Demo_Verification.md`
+- `Docs/Verification/VisibleObjectiveHP_Client1.png`
+- `Docs/Verification/VisibleObjectiveHP_Client2.png`
+- `Docs/Verification/VisibleObjectiveHP_Demo.gif`
+- `Docs/Verification/MDS_Insights_TraceSmoke.utrace`
 
 ## Merge History
 
-Known merge history:
+Milestone merge history:
 
-- Initial project documentation and UE baseline committed to `main`.
-- PR #1: README workflow smoke test merged.
-- PR #2: Git workflow, progress log, and PR template merged.
-- PR #3: AI task commands merged.
-- PR #4: Mass concept document and approval chain rule merged.
-
-Latest known `main` commit after PR #4:
-
-- `9baddff` - `[문서] Mass 개념 문서와 승인 흐름 규칙 추가`
+- Initial project documentation and UE baseline.
+- Workflow and AI harness documentation.
+- Mass concept and Mass working rules.
+- Objective HP implementation and replication verification.
+- Dedicated server build/cook/stage/runtime support.
+- Mass spawn, movement, arrival, and damage integration.
+- Debug output and replicated Objective HP client debug fixes.
+- Actor enemy baseline.
+- Phase-based profiling harness.
+- Actor vs Mass phase profiling comparison.
+- README Interview Demo update.
+- Visible client demo verification, GIF, and Unreal Insights smoke trace.
+- Final README/profiling status cleanup.
 
 ## Learning Review Status
 
-Learning review expectations:
+Learning review expectations remain:
 
-- Every PR must include a Learning Review before merge.
-- Learning Review should record what changed, what was verified, what was not verified, remaining risks, portfolio value, and the next improvement.
+- Non-trivial tasks should describe what changed, what was verified, what was not verified, remaining risks, portfolio value, and the next improvement.
 
-Known learning review status:
+Current learning review state:
 
-- README smoke task validated the branch, PR, and merge workflow.
-- Git workflow and PR template work included review context before merge.
-- AI task commands PR included command-role review context before merge.
-- Mass Concept Study PR included Learning Review and interview questions.
+- The project now has enough implementation and verification evidence for interview discussion.
+- Remaining improvements are optional depth work rather than missing MVP work.
 
 ## Risks / Notes
 
-- This progress log is manually maintained and can become stale if task branches or PRs are merged without updating it.
-- Phase 2 Mass Module Setup should not add gameplay behavior.
-- `.Build.cs` changes must explain each added module and why it is required.
-- Mass spawn, movement, arrival detection, and objective damage must remain separate tasks.
-- Build, PIE, dedicated server, and Mass runtime checks are still unverified because no Mass implementation has been added yet.
+- `-NullRHI` profiling results are useful for local comparison, but they should not be presented as final viewport or GPU performance.
+- The Unreal Insights trace is a smoke capture, not a full performance investigation.
+- The project is intentionally a technical portfolio sandbox, not a full game.
+- This log should remain milestone-oriented to avoid becoming stale after every small PR.
