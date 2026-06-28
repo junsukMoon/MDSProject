@@ -15,7 +15,6 @@ public:
 	int32 GetSpawnedEntityCount() const { return SpawnedEntityCount; }
 
 private:
-	static constexpr int32 SpawnOnlyEntityCount = 16;
 	static constexpr int32 SpawnGridColumns = 4;
 	static constexpr float SpawnGridSpacing = 150.0f;
 	static constexpr float SpawnDebugLifetime = 0.75f;
@@ -26,6 +25,7 @@ private:
 	static constexpr float ArrivalDistance = 75.0f;
 	static constexpr float ObjectiveDamagePerArrival = 5.0f;
 
+	static int32 GetSpawnEntityCount();
 	static FVector CalculateSpawnLocation(const FVector& SpawnOrigin, int32 SpawnIndex);
 	static FVector CalculateMovementTargetLocation(const FVector& SpawnOrigin);
 
