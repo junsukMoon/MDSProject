@@ -25,6 +25,8 @@ VS2022에서 코드 구조를 보고 싶다면 다음 솔루션 파일을 열면
 MDSProject/MDSProject.sln
 ```
 
+이 솔루션은 제출 샘플 안의 핵심 C++ 파일을 직접 연결한 코드 탐색용 솔루션입니다. Unreal Build Tool로 빌드하는 전체 프로젝트 솔루션이 아닙니다.
+
 이 패키지는 코드 리뷰용 샘플입니다. 실행 가능한 전체 UE 프로젝트 패키지가 아니며 `Content`, `Binaries`, `Saved`, `Intermediate`는 제외했습니다.
 
 ```text

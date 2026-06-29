@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source">
+      <UniqueIdentifier>{A9D20B4E-7E07-4F0C-A41A-C9725B1910D2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\ActorAI">
+      <UniqueIdentifier>{A7B41A2F-C88E-45B5-B2D9-465CE126E55B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Debug">
+      <UniqueIdentifier>{8640DEB0-F91F-463F-B8D3-9E0C5851E81F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\MassAI">
+      <UniqueIdentifier>{01F150A8-13B3-48D8-9ED0-F629A08B574A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Objective">
+      <UniqueIdentifier>{1579777D-A22F-4FEC-A13F-4C2AB64D4609}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Profiling">
+      <UniqueIdentifier>{A75849F3-5355-49F7-BD8E-708FE3638996}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Targets">
+      <UniqueIdentifier>{7F3A2E39-1D2B-4277-9B2F-7273DF4DA0C8}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Source\MDSProject\ActorAI\MDSActorEnemy.cpp">
+      <Filter>Source\ActorAI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\MDSProject\ActorAI\MDSActorEnemySpawnSubsystem.cpp">
+      <Filter>Source\ActorAI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\MDSProject\Debug\MDSDebugStateSubsystem.cpp">
+      <Filter>Source\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\MDSProject\MassAI\MDSMassArrivalProcessor.cpp">
+      <Filter>Source\MassAI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\MDSProject\MassAI\MDSMassMovementProcessor.cpp">
+      <Filter>Source\MassAI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\MDSProject\MassAI\MDSMassSpawnSubsystem.cpp">
+      <Filter>Source\MassAI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\MDSProject\Objective\MDSObjectiveActor.cpp">
+      <Filter>Source\Objective</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\MDSProject\Profiling\MDSGameplayProfileSubsystem.cpp">
+      <Filter>Source\Profiling</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\MDSProject\ActorAI\MDSActorEnemy.h">
+      <Filter>Source\ActorAI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\MDSProject\ActorAI\MDSActorEnemySpawnSubsystem.h">
+      <Filter>Source\ActorAI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\MDSProject\Debug\MDSDebugStateSubsystem.h">
+      <Filter>Source\Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\MDSProject\MassAI\MDSMassArrivalProcessor.h">
+      <Filter>Source\MassAI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\MDSProject\MassAI\MDSMassEnemyFragments.h">
+      <Filter>Source\MassAI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\MDSProject\MassAI\MDSMassMovementProcessor.h">
+      <Filter>Source\MassAI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\MDSProject\MassAI\MDSMassSpawnSubsystem.h">
+      <Filter>Source\MassAI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\MDSProject\Objective\MDSObjectiveActor.h">
+      <Filter>Source\Objective</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\MDSProject\Profiling\MDSGameplayProfileSubsystem.h">
+      <Filter>Source\Profiling</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Source\MDSProject\MDSProject.Build.cs">
+      <Filter>Source</Filter>
+    </None>
+    <None Include="Source\MDSProject.Target.cs">
+      <Filter>Source\Targets</Filter>
+    </None>
+    <None Include="Source\MDSProjectEditor.Target.cs">
+      <Filter>Source\Targets</Filter>
+    </None>
+    <None Include="Source\MDSProjectServer.Target.cs">
+      <Filter>Source\Targets</Filter>
+    </None>
+  </ItemGroup>
+</Project>
