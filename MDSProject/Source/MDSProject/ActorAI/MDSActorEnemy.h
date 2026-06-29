@@ -5,6 +5,7 @@
 #include "MDSActorEnemy.generated.h"
 
 class AMDSObjectiveActor;
+class USceneComponent;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FMDSActorEnemyArrivedSignature, bool /*bDamageApplied*/, const FVector& /*ArrivalLocation*/);
 DECLARE_MULTICAST_DELEGATE_OneParam(FMDSActorEnemyActiveTickSignature, int32 /*ActiveDelta*/);

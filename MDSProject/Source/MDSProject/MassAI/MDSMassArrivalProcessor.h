@@ -21,6 +21,7 @@ protected:
 
 private:
 	TWeakObjectPtr<AMDSObjectiveActor> CachedObjectiveActor;
+	double LastArrivalLogTime = 0.0;
 
 	FMassEntityQuery EntityQuery;
 };

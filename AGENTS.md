@@ -77,6 +77,16 @@ When changing `.Build.cs`, explain why each added module is required.
 
 ---
 
+## Coding Standards
+
+For C++ changes, follow:
+
+* `Docs/Coding_Standards.md`
+* `Docs/Unreal_Rules.md`
+* `Docs/Mass_Rules.md` when touching Mass code
+
+---
+
 ## Network Rules
 
 Server-authoritative gameplay is the default.
@@ -196,6 +206,7 @@ When relevant, read:
 * `Docs/Task_Template.md`
 * `Docs/Approval_Report_Template.md`
 * `Docs/Verification.md`
+* `Docs/Coding_Standards.md`
 * `Docs/Unreal_Rules.md`
 * `Docs/Mass_Rules.md`
 * `Docs/Requirements.md`

@@ -1,117 +1,131 @@
 # Unreal Rules
 
-이 문서는 `MDSProject`의 Unreal Engine C++ 및 multiplayer implementation rules를 정의합니다.
+This document defines Unreal Engine C++ and multiplayer implementation rules for `MDSProject`.
 
-server-authoritative gameplay가 기본값입니다. broad refactor는 명시적으로 요청/승인된 경우에만 허용합니다.
+Server-authoritative gameplay is the default. Broad refactors are allowed only when explicitly requested and approved.
 
 ## Class Structure
 
-- class는 한 가지 책임에 집중합니다.
-- 기존 project convention을 따릅니다.
-- 명시적 요청 없이는 file/class/function/variable/folder rename을 하지 않습니다.
-- 큰 gameplay class를 수정하기보다 필요한 경우 작은 component/helper를 추가합니다.
+- Keep each class focused on one clear responsibility.
+- Follow existing project conventions before adding new structure.
+- Do not rename files, classes, functions, variables, or folders unless explicitly requested.
+- Prefer small focused helpers, components, or subsystems over broad gameplay class changes.
+- Keep technical portfolio value in mind; do not expand the project into a full game system.
 
 ## UCLASS / USTRUCT / UENUM
 
-Unreal reflection, serialization, Blueprint exposure, replication, editor integration이 필요할 때만 사용합니다.
+Use Unreal reflection only when it supports serialization, editor integration, replication, Blueprint exposure, delegates, or tooling.
 
-규칙:
+Rules:
 
-- reflected type은 최소화합니다.
-- 작은 data container에는 `USTRUCT`를 선호합니다.
-- stable gameplay state에는 `UENUM`을 사용할 수 있습니다.
-- client가 mutable gameplay state를 직접 바꾸게 노출하지 않습니다.
+- Keep reflected types minimal.
+- Prefer `USTRUCT` for small data containers.
+- Use `UENUM` for stable gameplay state when it improves readability or tooling.
+- Do not expose mutable client access to server-owned gameplay state.
+- Do not add Blueprint exposure unless the task needs it.
 
 ## UPROPERTY / UFUNCTION
 
-`UPROPERTY`는 lifetime tracking, serialization, replication, editor exposure가 필요할 때 사용합니다.
+Use `UPROPERTY` when Unreal needs to track lifetime, GC visibility, serialization, editor exposure, or replication.
 
-`UFUNCTION`은 reflection, Blueprint access, RPC, delegate, console/editor tooling이 필요할 때 사용합니다.
+Use `UFUNCTION` when Unreal reflection is needed for RPCs, delegates, Blueprint access, editor tooling, or console/tool integration.
 
-규칙:
+Rules:
 
-- Blueprint exposure는 의도적으로만 합니다.
-- replicated property는 owner, update path, verification plan이 명확해야 합니다.
-- public mutable property는 신중하게 사용합니다.
+- Add Blueprint access intentionally, not by default.
+- Replicated properties must have a clear owner, update path, and verification plan.
+- Avoid public mutable properties unless the class is specifically a data container or Unreal tooling requires it.
+- Prefer explicit functions for gameplay state changes.
 
 ## BeginPlay / Tick
 
-- runtime world/actor 접근은 BeginPlay 이후가 안전합니다.
-- BeginPlay order를 가정하지 말고 필요한 조건을 확인합니다.
-- Tick은 필요할 때만 추가합니다.
-- Tick work는 bounded해야 하며 allocation, expensive search, log spam을 피합니다.
-- Tick 관련 변경은 profiling-sensitive로 봅니다.
+- Constructor logic must not depend on world state, players, networking, subsystems, or runtime actors.
+- Runtime world/actor access is safer in or after `BeginPlay`.
+- Do not assume `BeginPlay` order; check required actors, components, and subsystems before use.
+- Add Tick only when necessary.
+- Tick work must be bounded.
+- Avoid allocation, expensive searches, and log spam in Tick.
+- Treat Tick changes as performance-sensitive and verify accordingly.
 
 ## Replication
 
-- server가 gameplay state를 소유합니다.
-- client는 replicated result를 관찰합니다.
-- replicated property는 lifetime replication에 등록해야 합니다.
-- replication condition은 의도적으로 사용합니다.
-- derived state를 불필요하게 replicate하지 않습니다.
-- replication으로 ownership 불명확성을 덮지 않습니다.
+- The server owns gameplay state.
+- Clients observe replicated results.
+- Register replicated properties in `GetLifetimeReplicatedProps`.
+- Use replication conditions intentionally.
+- Do not replicate derived state unless there is a clear reason.
+- Do not use replication to hide unclear ownership.
+- Do not let clients directly mutate replicated server-owned gameplay state.
 
 ## Authority / Ownership
 
-- server-authoritative gameplay가 기본값입니다.
-- client는 request를 보낼 수 있지만 서버가 validate/apply해야 합니다.
-- health, damage, score, Objective HP는 client-owned가 되면 안 됩니다.
-- gameplay state 변경 지점에는 authority check가 필요합니다.
+- Server-authoritative gameplay is the default.
+- Clients may request actions, but the server validates and applies gameplay results.
+- Health, damage, score, and Objective HP must not be client-owned.
+- Authority checks are required at gameplay state mutation points.
+- Ownership assumptions must be stated when adding RPCs or client/server interaction.
 
 ## RPC Usage
 
-- Server RPC는 client request를 서버가 validate/apply해야 할 때 사용합니다.
-- Client RPC는 특정 owning client에게 targeted message가 필요할 때만 사용합니다.
-- NetMulticast RPC는 sparingly 사용합니다.
-- RPC로 replicated state ownership을 우회하지 않습니다.
-- high-frequency reliable RPC를 피합니다.
+- Use Server RPCs only for client requests that the server validates and applies.
+- Use Client RPCs only for targeted messages to an owning client.
+- Use NetMulticast RPCs sparingly.
+- Do not use RPCs to bypass replicated state ownership.
+- Avoid high-frequency reliable RPCs.
+- Prefer replicated state for durable gameplay outcomes.
 
 ## OnRep Usage
 
-- `OnRep`는 client-side presentation/cache/local reaction에 사용합니다.
-- `OnRep`가 authoritative gameplay source가 되면 안 됩니다.
-- server-side state change가 replication보다 먼저 발생해야 합니다.
-- `OnRep`에서 새 server gameplay decision을 만들지 않습니다.
+- Use `OnRep` for client-side presentation, cache updates, or local reactions to replicated state.
+- `OnRep` must not become an authoritative gameplay source.
+- Server-side state changes should happen before client observation.
+- Do not make server gameplay decisions inside `OnRep`.
 
 ## Health / Damage / Objective HP
 
-- health, damage, Objective HP는 server-owned gameplay state입니다.
-- damage는 gameplay에서 request/trigger되고 서버가 validate/apply합니다.
-- client는 replication 또는 approved server-to-client messaging으로 결과를 봅니다.
-- Objective damage는 client-only path에서 적용되면 안 됩니다.
-- Objective HP에서 파생되는 score/win/loss도 server-owned여야 합니다.
+- Health, damage, and Objective HP are server-owned gameplay state.
+- Damage may be requested or triggered by gameplay, but the server applies the result.
+- Clients observe results through replication or approved server-to-client messaging.
+- Objective damage must not be applied from client-only paths.
+- Any score, win/loss, or objective state derived from Objective HP must remain server-owned.
 
 ## Dedicated Server
 
-- server logic은 local player, viewport, HUD, input, audio, visual-only system에 의존하면 안 됩니다.
-- client-only presentation code는 dedicated server에서 실행되지 않도록 guard합니다.
-- logs는 server-side behavior를 진단할 수 있어야 합니다.
-- network 변경은 listen-server 또는 dedicated-server verification notes를 포함합니다.
+- Server logic must not depend on local player, viewport, HUD, input, audio, or visual-only systems.
+- Guard client-only presentation code so it does not run on dedicated servers.
+- Logs must be useful for diagnosing server-side behavior.
+- Network changes require listen-server or dedicated-server verification notes.
+- Dedicated server checks should report launch method, map, server log result, client log result, and observed gameplay result.
 
 ## Build.cs
 
-`.Build.cs` 변경은 각 module 이유를 설명해야 합니다.
+When changing `.Build.cs`, explain why each added module is required.
 
-- 승인된 task에 필요한 module만 추가합니다.
-- runtime/editor dependency를 구분합니다.
-- broad dependency set을 speculative하게 추가하지 않습니다.
+Rules:
+
+- Add only modules required by the approved task.
+- Separate runtime and editor dependencies.
+- Do not add broad dependency sets speculatively.
+- Prefer include cleanup over adding dependencies to hide coupling.
 
 ## Logging
 
-- project-specific log category를 선호합니다.
-- authority-sensitive event는 server path에서 useful하게 log합니다.
-- per-frame spam을 피합니다.
-- actor, role, state, result를 진단할 수 있는 context를 포함합니다.
+- Prefer project-specific log categories.
+- Log authority-sensitive events where server/client diagnosis benefits from them.
+- Avoid per-frame log spam.
+- Include useful context such as actor, role/net mode, state, and result.
+- Use `Warning` or `Error` for actionable problems or invalid/rejected paths.
 
 ## Debug-Only Code
 
-- debug UI/draw/profiling helper는 authoritative gameplay logic과 분리합니다.
-- debug-only behavior는 필요할 때 guard합니다.
-- dedicated server behavior가 visual debug system에 의존하면 안 됩니다.
+- Keep debug UI, debug draw, and profiling helpers separate from authoritative gameplay logic.
+- Guard debug-only behavior when needed.
+- Dedicated server behavior must not depend on visual debug systems.
+- Debug output should report state rather than create gameplay state.
 
 ## Performance-Sensitive Code
 
-다음은 performance-sensitive로 봅니다.
+Treat these areas as performance-sensitive:
 
 - Tick
 - spawning
@@ -119,26 +133,27 @@ Unreal reflection, serialization, Blueprint exposure, replication, editor integr
 - replication frequency
 - debug UI updates
 - logging
+- profiling harnesses
 
-규칙:
+Rules:
 
-- hot path allocation을 피합니다.
-- frequent update에서 expensive world search를 피합니다.
-- high-frequency reliable RPC를 피합니다.
-- 불필요한 replication을 피합니다.
-- profiling checks는 필요할 때 FPS, frame time, GameThread impact를 기록합니다.
+- Avoid hot path allocation.
+- Avoid expensive world searches in frequent updates.
+- Avoid high-frequency reliable RPCs.
+- Avoid unnecessary replication.
+- Record FPS, frame time, GameThread impact, or relevant context when making performance claims.
 
 ## Network Change Verification
 
-network/replication 변경 후 보고할 것:
+Network or replication changes should report:
 
 - server-side source of truth
-- client request path
-- server validation/application result
+- client request path, if any
+- server validation and application result
 - client-visible replicated result
-- RPC ownership/direction
+- RPC ownership and direction
 - `OnRep` behavior
-- listen-server 또는 dedicated-server result
+- listen-server or dedicated-server result
 - relevant server/client logs
 
-manual inspection만으로 runtime network verification을 대체하지 않습니다.
+Manual inspection alone does not replace runtime network verification when behavior changes.

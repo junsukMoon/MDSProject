@@ -11,6 +11,7 @@ class MDSPROJECT_API UMDSGameplayProfileSubsystem : public UWorldSubsystem
 
 public:
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
+	virtual void Deinitialize() override;
 
 private:
 	enum class EProfileTriggerMode : uint8
@@ -53,6 +54,8 @@ private:
 	void TickUntilExit();
 	void FailAndQuit(const FString& Reason);
 
+	FTimerHandle TriggerTimerHandle;
+	FTimerHandle ExitTimerHandle;
 	bool bCaptureStarted = false;
 	int32 FramesUntilExit = 0;
 	int32 TriggerTimeoutFrames = 0;

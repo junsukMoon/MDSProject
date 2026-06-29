@@ -118,7 +118,8 @@ void UMDSDebugStateSubsystem::PublishDebugState()
 	const FString DebugLine = BuildDebugLine();
 	UE_LOG(LogMDSDebugState, Log, TEXT("%s"), *DebugLine);
 
-	if (GEngine && GetWorld() && GetWorld()->GetNetMode() != NM_DedicatedServer)
+	UWorld* World = GetWorld();
+	if (GEngine && World && World->GetNetMode() != NM_DedicatedServer)
 	{
 		GEngine->AddOnScreenDebugMessage(
 			1237001,

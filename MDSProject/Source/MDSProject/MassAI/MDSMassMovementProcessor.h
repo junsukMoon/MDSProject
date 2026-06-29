@@ -18,5 +18,7 @@ protected:
 	virtual void Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context) override;
 
 private:
+	double LastMovementLogTime = 0.0;
+
 	FMassEntityQuery EntityQuery;
 };

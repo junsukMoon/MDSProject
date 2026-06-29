@@ -225,13 +225,24 @@ void UMDSGameplayProfileSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	if (TriggerMode == EProfileTriggerMode::Immediate)
 	{
 		FTimerDelegate StartDelegate = FTimerDelegate::CreateUObject(this, &UMDSGameplayProfileSubsystem::StartCapture);
-		InWorld.GetTimerManager().SetTimerForNextTick(StartDelegate);
+		TriggerTimerHandle = InWorld.GetTimerManager().SetTimerForNextTick(StartDelegate);
 	}
 	else
 	{
 		FTimerDelegate TriggerDelegate = FTimerDelegate::CreateUObject(this, &UMDSGameplayProfileSubsystem::TickUntilTrigger);
-		InWorld.GetTimerManager().SetTimerForNextTick(TriggerDelegate);
+		TriggerTimerHandle = InWorld.GetTimerManager().SetTimerForNextTick(TriggerDelegate);
 	}
+}
+
+void UMDSGameplayProfileSubsystem::Deinitialize()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(TriggerTimerHandle);
+		World->GetTimerManager().ClearTimer(ExitTimerHandle);
+	}
+
+	Super::Deinitialize();
 }
 
 bool UMDSGameplayProfileSubsystem::ValidateConfiguration() const
@@ -337,7 +348,7 @@ void UMDSGameplayProfileSubsystem::TickUntilTrigger()
 	}
 
 	FTimerDelegate TickDelegate = FTimerDelegate::CreateUObject(this, &UMDSGameplayProfileSubsystem::TickUntilTrigger);
-	World->GetTimerManager().SetTimerForNextTick(TickDelegate);
+	TriggerTimerHandle = World->GetTimerManager().SetTimerForNextTick(TickDelegate);
 }
 
 void UMDSGameplayProfileSubsystem::StartCapture()
@@ -363,7 +374,7 @@ void UMDSGameplayProfileSubsystem::StartCapture()
 	IConsoleManager::Get().ProcessUserConsoleInput(*CsvFramesCommand, *GLog, World);
 
 	FTimerDelegate TickDelegate = FTimerDelegate::CreateUObject(this, &UMDSGameplayProfileSubsystem::TickUntilExit);
-	World->GetTimerManager().SetTimerForNextTick(TickDelegate);
+	ExitTimerHandle = World->GetTimerManager().SetTimerForNextTick(TickDelegate);
 }
 
 void UMDSGameplayProfileSubsystem::TickUntilExit()
@@ -383,7 +394,7 @@ void UMDSGameplayProfileSubsystem::TickUntilExit()
 	}
 
 	FTimerDelegate TickDelegate = FTimerDelegate::CreateUObject(this, &UMDSGameplayProfileSubsystem::TickUntilExit);
-	World->GetTimerManager().SetTimerForNextTick(TickDelegate);
+	ExitTimerHandle = World->GetTimerManager().SetTimerForNextTick(TickDelegate);
 }
 
 void UMDSGameplayProfileSubsystem::FailAndQuit(const FString& Reason)

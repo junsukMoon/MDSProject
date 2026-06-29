@@ -113,11 +113,10 @@ void UMDSMassArrivalProcessor::Execute(FMassEntityManager& EntityManager, FMassE
 	}
 	else
 	{
-		static double LastLogTime = 0.0;
 		const double CurrentTime = World->GetTimeSeconds();
-		if (CurrentTime - LastLogTime >= 1.0)
+		if (CurrentTime - LastArrivalLogTime >= 1.0)
 		{
-			LastLogTime = CurrentTime;
+			LastArrivalLogTime = CurrentTime;
 			UE_LOG(LogMDSMassArrival, Log, TEXT("Mass arrival-only processor checked %d entities, %d total arrived."), CheckedEntityCount, TotalArrivalCount);
 		}
 	}

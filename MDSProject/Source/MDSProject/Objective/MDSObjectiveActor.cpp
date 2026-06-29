@@ -22,9 +22,12 @@ void AMDSObjectiveActor::BeginPlay()
 	if (HasAuthority())
 	{
 		CurrentHealth = MaxHealth;
-		if (UMDSDebugStateSubsystem* DebugState = GetWorld()->GetSubsystem<UMDSDebugStateSubsystem>())
+		if (UWorld* World = GetWorld())
 		{
-			DebugState->SetObjectiveHealth(CurrentHealth, MaxHealth);
+			if (UMDSDebugStateSubsystem* DebugState = World->GetSubsystem<UMDSDebugStateSubsystem>())
+			{
+				DebugState->SetObjectiveHealth(CurrentHealth, MaxHealth);
+			}
 		}
 
 		UE_LOG(LogMDSObjective, Log, TEXT("Objective initialized on server with %.1f / %.1f HP at %s."), CurrentHealth, MaxHealth, *GetActorLocation().ToCompactString());
@@ -53,9 +56,12 @@ bool AMDSObjectiveActor::ApplyObjectiveDamage(const float DamageAmount, const FN
 
 	const float PreviousHealth = CurrentHealth;
 	CurrentHealth = FMath::Clamp(CurrentHealth - DamageAmount, 0.0f, MaxHealth);
-	if (UMDSDebugStateSubsystem* DebugState = GetWorld()->GetSubsystem<UMDSDebugStateSubsystem>())
+	if (UWorld* World = GetWorld())
 	{
-		DebugState->SetObjectiveHealth(CurrentHealth, MaxHealth);
+		if (UMDSDebugStateSubsystem* DebugState = World->GetSubsystem<UMDSDebugStateSubsystem>())
+		{
+			DebugState->SetObjectiveHealth(CurrentHealth, MaxHealth);
+		}
 	}
 
 	UE_LOG(LogMDSObjective, Log, TEXT("Objective damage applied by %s: %.1f damage, HP %.1f -> %.1f."), *DamageSource.ToString(), DamageAmount, PreviousHealth, CurrentHealth);
@@ -64,9 +70,12 @@ bool AMDSObjectiveActor::ApplyObjectiveDamage(const float DamageAmount, const FN
 
 void AMDSObjectiveActor::OnRep_CurrentHealth()
 {
-	if (UMDSDebugStateSubsystem* DebugState = GetWorld()->GetSubsystem<UMDSDebugStateSubsystem>())
+	if (UWorld* World = GetWorld())
 	{
-		DebugState->SetObjectiveHealth(CurrentHealth, MaxHealth);
+		if (UMDSDebugStateSubsystem* DebugState = World->GetSubsystem<UMDSDebugStateSubsystem>())
+		{
+			DebugState->SetObjectiveHealth(CurrentHealth, MaxHealth);
+		}
 	}
 
 	UE_LOG(LogMDSObjective, Log, TEXT("Objective HP replicated on client: %.1f / %.1f."), CurrentHealth, MaxHealth);

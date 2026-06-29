@@ -84,11 +84,10 @@ void UMDSMassMovementProcessor::Execute(FMassEntityManager& EntityManager, FMass
 		DebugState->SetMassMovedCount(MovedEntityCount);
 	}
 
-	static double LastLogTime = 0.0;
 	const double CurrentTime = World->GetTimeSeconds();
-	if (CurrentTime - LastLogTime >= 1.0)
+	if (CurrentTime - LastMovementLogTime >= 1.0)
 	{
-		LastLogTime = CurrentTime;
+		LastMovementLogTime = CurrentTime;
 		UE_LOG(LogMDSMassMovement, Log, TEXT("Mass movement-only processor updated %d entities."), MovedEntityCount);
 	}
 }

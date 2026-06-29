@@ -4,6 +4,8 @@
 #include "GameFramework/Actor.h"
 #include "MDSObjectiveActor.generated.h"
 
+class USceneComponent;
+
 UCLASS()
 class MDSPROJECT_API AMDSObjectiveActor : public AActor
 {
