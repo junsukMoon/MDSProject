@@ -19,6 +19,14 @@
 
 평가자는 아래 파일부터 보면 전체 구조를 빠르게 파악할 수 있습니다.
 
+VS2022에서 코드 구조를 보고 싶다면 다음 솔루션 파일을 열면 됩니다.
+
+```text
+MDSProject/MDSProject.sln
+```
+
+이 패키지는 코드 리뷰용 샘플입니다. 실행 가능한 전체 UE 프로젝트 패키지가 아니며 `Content`, `Binaries`, `Saved`, `Intermediate`는 제외했습니다.
+
 ```text
 MDSProject/Source/MDSProject/Objective/MDSObjectiveActor.h
 MDSProject/Source/MDSProject/Objective/MDSObjectiveActor.cpp
