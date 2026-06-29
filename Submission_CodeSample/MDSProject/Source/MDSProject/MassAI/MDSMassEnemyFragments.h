@@ -1,0 +1,56 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Mass/EntityElementTypes.h"
+#include "MDSMassEnemyFragments.generated.h"
+
+USTRUCT()
+struct MDSPROJECT_API FMDSMassEnemyTag : public FMassTag
+{
+	GENERATED_BODY()
+};
+
+USTRUCT()
+struct MDSPROJECT_API FMDSMassSpawnFragment : public FMassFragment
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	int32 SpawnIndex = INDEX_NONE;
+
+	UPROPERTY()
+	FVector SpawnLocation = FVector::ZeroVector;
+};
+
+USTRUCT()
+struct MDSPROJECT_API FMDSMassMovementFragment : public FMassFragment
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FVector CurrentLocation = FVector::ZeroVector;
+
+	UPROPERTY()
+	FVector TargetLocation = FVector::ZeroVector;
+
+	UPROPERTY()
+	float MoveSpeed = 250.0f;
+};
+
+USTRUCT()
+struct MDSPROJECT_API FMDSMassArrivalFragment : public FMassFragment
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	float ArrivalDistance = 75.0f;
+
+	UPROPERTY()
+	float ObjectiveDamageAmount = 5.0f;
+
+	UPROPERTY()
+	bool bHasArrived = false;
+
+	UPROPERTY()
+	bool bHasAppliedObjectiveDamage = false;
+};
