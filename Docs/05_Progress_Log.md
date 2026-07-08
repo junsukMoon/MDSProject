@@ -32,9 +32,14 @@
 - Mass arrival detection
 - once-only Objective damage integration
 - runtime debug state subsystem
-- Actor enemy baseline
+- Combat enemy spawn baseline
 - phase-based profiling harness
 - smoke verification script
+- CommonUI 기반 debug overlay C++ 골격
+- Widget Blueprint 연동용 `BindWidgetOptional` 필드와 제작 가이드
+- UI 화면 검증은 Widget Blueprint asset 생성 후 진행 필요
+- 제출용 코드 샘플 정리 및 VS2022 탐색용 프로젝트 패키징
+- 원본 프로젝트 기준 MDS v2 구조 정합성 리뷰
 
 검증:
 
@@ -60,10 +65,19 @@ main
 
 ## 다음 후보 작업
 
-- 제출용 코드 샘플 정리
+- Runtime Review / Verification Evidence 정리
+- Widget Blueprint asset 생성 후 UI 화면 검증
 - 문서 한글화
-- 추가 profiling 반복 측정
-- Unreal Insights deeper capture
+- 추가 profiling 반복 측정 또는 Unreal Insights deeper capture는 필요 시 future/reference 작업으로만 진행
+
+## 최근 구조 리뷰 메모
+
+- Wave authority는 `AMDSProjectGameMode`가 담당하고, replicated Wave display state는 `AMDSProjectGameState`가 담당합니다.
+- Objective HP는 `AMDSObjectiveActor`가 서버 권한으로 계산하고 `CurrentHealth`를 복제합니다.
+- Enemy HP는 `AMDSCombatEnemyActor`가 별도 경로로 계산하며, death 상태는 `CurrentHealth <= 0.0f`에서 파생됩니다.
+- `UMDSActorEnemySpawnSubsystem`은 v2 경로에서 `AMDSCombatEnemyActor`를 생성합니다. 삭제된 `AMDSActorEnemy`는 MVP runtime path에 남아 있지 않습니다.
+- Debug overlay와 `UMDSDebugStateSubsystem`은 관찰/검증 보조이며 gameplay truth source가 아닙니다.
+- Mass와 profiling 자료는 MVP 필수 구현이 아니라 reference/future extension으로 유지합니다.
 
 ## 주의사항
 

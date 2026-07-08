@@ -1,8 +1,53 @@
-# Profiling Comparison
+# Runtime Review / Profiling Reference
 
-이 문서는 Mass objective scenario와 Actor baseline 비교 기록입니다.
+MDS v2 MVP에서 이 문서는 formal profiling requirement가 아닙니다.
 
-목표는 production benchmark가 아니라 면접에서 설명 가능한 측정 context를 남기는 것입니다.
+MDS v2는 Dedicated Server Objective Combat Demo이며, MVP의 핵심 검증은 performance number가 아니라 server-authoritative combat, Objective HP, Wave, Replication, UI/Animation sync가 의도대로 동작하는지 확인하는 runtime evidence입니다.
+
+## MVP Position
+
+MVP Phase 8은 `Runtime Review / Verification Evidence`입니다.
+
+MVP에서 필요한 증거:
+
+- Dedicated Server 실행 결과
+- server/client log review
+- Objective HP replication 확인
+- Wave state replication 확인
+- Enemy HP/death presentation 확인
+- Match HUD / Objective World UI / Enemy World UI 확인
+- Attack Montage / AnimNotify timing이 authoritative damage를 직접 만들지 않는 negative test
+- Debug Overlay가 gameplay truth가 아님을 확인
+- 짧은 screenshot, GIF, video, 또는 log snippet
+
+MVP에서 제외:
+
+- formal performance profiling
+- Actor vs Mass benchmark requirement
+- CSV profiling requirement
+- Unreal Insights trace requirement
+- frame-time optimization pass
+- large enemy count stress test
+- Mass performance comparison
+
+## Future Extension Position
+
+기존 profiling 자료는 삭제하지 않습니다. 다만 v2 MVP 필수 산출물이 아니라 future extension/reference로 취급합니다.
+
+사용 가능한 future extension:
+
+- Mass Entity scaling comparison
+- Actor vs Mass benchmark
+- CSV capture automation
+- Unreal Insights trace capture
+- debug draw/log overhead comparison
+- large enemy count stress test
+
+## Existing Profiling Reference
+
+아래 내용은 기존 Mass objective scenario와 Actor baseline 비교 기록입니다.
+
+목표는 production benchmark가 아니라 면접에서 설명 가능한 측정 context를 남기는 것이었습니다. v2 MVP completion 판단 기준으로 사용하지 않습니다.
 
 ## Scenario
 
@@ -79,3 +124,4 @@
 - visible client evidence는 replicated Objective HP 검증이지 viewport performance 검증이 아닙니다.
 - Unreal Insights trace는 smoke capture입니다.
 - 반복 측정이나 variance 분석은 추가 작업입니다.
+- v2 MVP에서는 이 profiling 결과를 필수 성공 기준으로 사용하지 않습니다.

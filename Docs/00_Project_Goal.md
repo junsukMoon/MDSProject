@@ -10,9 +10,12 @@
 - Replication
 - Authority / Ownership
 - Objective gameplay
-- Mass Entity / Mass AI
+- Server-authoritative combat
+- Wave progression
+- UI driven by replicated state
+- Character Movement / Animation baseline
 - Debug output
-- Profiling
+- Runtime Review / Verification Evidence
 - AI-assisted development workflow
 
 ## 범위
@@ -21,12 +24,17 @@
 
 포함 범위:
 
-- 서버가 Objective HP를 소유하는 gameplay loop
-- Mass entity spawn/movement/arrival/damage
+- 서버가 전투 판정, 적 HP, Objective HP, Wave 진행을 소유하는 gameplay loop
+- Objective defense combat loop
 - client-visible replicated Objective HP
-- Actor baseline과 Mass 비교
+- replicated state 기반 UI 갱신
+- CMC 기반 player movement
+- Skeletal Mesh character setup
+- AnimBP State Machine
+- Attack Montage와 AnimNotify timing
+- Hit Reaction과 Death Animation
 - debug state 출력
-- profiling과 smoke verification
+- runtime review와 smoke verification evidence
 
 제외 범위:
 
@@ -40,7 +48,23 @@
 - 대형 UI framework
 - Full GAS
 - 완성형 콘텐츠 제작
+- full Mover migration
+- production Motion Matching implementation
+- full Mutable character customization pipeline
+- Mass Entity as a required v2 MVP feature
+- formal profiling as an MVP requirement
+
+## Future Extension Notes
+
+다음 항목은 MVP에 직접 구현하지 않고 추후 확장 가능한 기술 항목으로 문서화합니다.
+
+- Mover
+- Motion Matching
+- Mutable
+- Mass Entity
+
+기존 profiling, Actor vs Mass 비교, CSV/Insights trace는 future extension/reference 자료로 유지합니다.
 
 ## 포트폴리오 가치
 
-이 프로젝트는 “게임 하나를 완성했다”보다 “멀티플레이어/서버 권한/Mass/검증을 어떻게 설계하고 설명할 수 있는가”에 초점을 둡니다.
+이 프로젝트는 “게임 하나를 완성했다”보다 “Dedicated Server 환경에서 서버 권한 전투, Objective 방어, Replication, UI, Wave, 캐릭터/애니메이션 기본기를 어떻게 설계하고 설명할 수 있는가”에 초점을 둡니다.
