@@ -22,6 +22,7 @@ public class MDSProject : ModuleRules
 			"MassEntity",
 			"MassSpawner",
 			"Niagara",
+			"CommonUI",
 			"UMG",
 			"Slate"
 		});
@@ -35,7 +36,8 @@ public class MDSProject : ModuleRules
 			"MDSProject/Variant_TwinStick",
 			"MDSProject/Variant_TwinStick/AI",
 			"MDSProject/Variant_TwinStick/Gameplay",
-			"MDSProject/Variant_TwinStick/UI"
+			"MDSProject/Variant_TwinStick/UI",
+			"MDSProject/UI"
 		});
 
 		// Uncomment if you are using Slate UI

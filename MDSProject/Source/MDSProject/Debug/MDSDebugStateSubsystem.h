@@ -16,6 +16,10 @@ struct FMDSDebugStateSnapshot
 	int32 ActorDamageAppliedCount = 0;
 	float ObjectiveCurrentHealth = 0.0f;
 	float ObjectiveMaxHealth = 0.0f;
+	int32 CurrentWaveIndex = 0;
+	int32 EnemiesRemaining = 0;
+	int32 TotalEnemiesThisWave = 0;
+	bool bWaveActive = false;
 };
 
 UCLASS()
@@ -33,6 +37,7 @@ public:
 	void SetActorActiveCount(int32 InActiveCount);
 	void SetActorEnemyCounts(int32 InSpawnedCount, int32 InArrivedCount, int32 InDamageAppliedCount);
 	void SetObjectiveHealth(float InCurrentHealth, float InMaxHealth);
+	void SetWaveState(int32 InCurrentWaveIndex, int32 InEnemiesRemaining, int32 InTotalEnemiesThisWave, bool bInWaveActive);
 	FMDSDebugStateSnapshot GetSnapshot() const;
 
 private:
@@ -52,4 +57,8 @@ private:
 	int32 ActorDamageAppliedCount = 0;
 	float ObjectiveCurrentHealth = 0.0f;
 	float ObjectiveMaxHealth = 0.0f;
+	int32 CurrentWaveIndex = 0;
+	int32 EnemiesRemaining = 0;
+	int32 TotalEnemiesThisWave = 0;
+	bool bWaveActive = false;
 };

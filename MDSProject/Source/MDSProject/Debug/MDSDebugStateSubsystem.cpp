@@ -57,6 +57,14 @@ void UMDSDebugStateSubsystem::SetObjectiveHealth(const float InCurrentHealth, co
 	ObjectiveMaxHealth = InMaxHealth;
 }
 
+void UMDSDebugStateSubsystem::SetWaveState(const int32 InCurrentWaveIndex, const int32 InEnemiesRemaining, const int32 InTotalEnemiesThisWave, const bool bInWaveActive)
+{
+	CurrentWaveIndex = InCurrentWaveIndex;
+	EnemiesRemaining = InEnemiesRemaining;
+	TotalEnemiesThisWave = InTotalEnemiesThisWave;
+	bWaveActive = bInWaveActive;
+}
+
 FMDSDebugStateSnapshot UMDSDebugStateSubsystem::GetSnapshot() const
 {
 	FMDSDebugStateSnapshot Snapshot;
@@ -70,14 +78,22 @@ FMDSDebugStateSnapshot UMDSDebugStateSubsystem::GetSnapshot() const
 	Snapshot.ActorDamageAppliedCount = ActorDamageAppliedCount;
 	Snapshot.ObjectiveCurrentHealth = ObjectiveCurrentHealth;
 	Snapshot.ObjectiveMaxHealth = ObjectiveMaxHealth;
+	Snapshot.CurrentWaveIndex = CurrentWaveIndex;
+	Snapshot.EnemiesRemaining = EnemiesRemaining;
+	Snapshot.TotalEnemiesThisWave = TotalEnemiesThisWave;
+	Snapshot.bWaveActive = bWaveActive;
 	return Snapshot;
 }
 
 FString UMDSDebugStateSubsystem::BuildDebugLine() const
 {
 	return FString::Printf(
-		TEXT("MDS Debug | NetMode=%s | ObjectiveHP=%.0f/%.0f | Mass Spawned=%d Moved=%d Arrived=%d Damage=%d | Actor Spawned=%d ActiveTicks=%d Arrived=%d Damage=%d"),
+		TEXT("MDS Debug | NetMode=%s | Wave=%d Active=%s Remaining=%d/%d | ObjectiveHP=%.0f/%.0f | Mass Spawned=%d Moved=%d Arrived=%d Damage=%d | Actor Spawned=%d ActiveTicks=%d Arrived=%d Damage=%d"),
 		*GetNetModeLabel(),
+		CurrentWaveIndex,
+		bWaveActive ? TEXT("true") : TEXT("false"),
+		EnemiesRemaining,
+		TotalEnemiesThisWave,
 		ObjectiveCurrentHealth,
 		ObjectiveMaxHealth,
 		SpawnedCount,

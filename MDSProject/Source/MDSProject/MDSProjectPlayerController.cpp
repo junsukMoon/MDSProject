@@ -11,7 +11,9 @@
 #include "InputActionValue.h"
 #include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"
+#include "InputCoreTypes.h"
 #include "MDSProject.h"
+#include "UI/MDSDebugOverlayWidget.h"
 
 AMDSProjectPlayerController::AMDSProjectPlayerController()
 {
@@ -23,6 +25,16 @@ AMDSProjectPlayerController::AMDSProjectPlayerController()
 	DefaultMouseCursor = EMouseCursor::Default;
 	CachedDestination = FVector::ZeroVector;
 	FollowTime = 0.f;
+}
+
+void AMDSProjectPlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (IsLocalPlayerController())
+	{
+		GetOrCreateDebugOverlay();
+	}
 }
 
 void AMDSProjectPlayerController::SetupInputComponent()
@@ -58,6 +70,8 @@ void AMDSProjectPlayerController::SetupInputComponent()
 		{
 			UE_LOG(LogMDSProject, Error, TEXT("'%s' Failed to find an Enhanced Input Component! This template is built to use the Enhanced Input system. If you intend to use the legacy system, then you will need to update this C++ file."), *GetNameSafe(this));
 		}
+
+		InputComponent->BindKey(EKeys::F1, IE_Pressed, this, &AMDSProjectPlayerController::ToggleDebugOverlay);
 	}
 }
 
@@ -122,4 +136,51 @@ void AMDSProjectPlayerController::OnTouchReleased()
 {
 	bIsTouch = false;
 	OnSetDestinationReleased();
+}
+
+void AMDSProjectPlayerController::ToggleDebugOverlay()
+{
+	UMDSDebugOverlayWidget* OverlayWidget = GetOrCreateDebugOverlay();
+	if (!OverlayWidget)
+	{
+		return;
+	}
+
+	if (OverlayWidget->IsActivated())
+	{
+		OverlayWidget->DeactivateWidget();
+		OverlayWidget->SetVisibility(ESlateVisibility::Collapsed);
+		return;
+	}
+
+	OverlayWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	OverlayWidget->ActivateWidget();
+}
+
+UMDSDebugOverlayWidget* AMDSProjectPlayerController::GetOrCreateDebugOverlay()
+{
+	if (!IsLocalPlayerController())
+	{
+		return nullptr;
+	}
+
+	if (DebugOverlayWidget)
+	{
+		return DebugOverlayWidget;
+	}
+
+	if (!DebugOverlayWidgetClass)
+	{
+		UE_LOG(LogMDSProject, Log, TEXT("Debug overlay widget class is not configured on %s."), *GetNameSafe(this));
+		return nullptr;
+	}
+
+	DebugOverlayWidget = CreateWidget<UMDSDebugOverlayWidget>(this, DebugOverlayWidgetClass);
+	if (DebugOverlayWidget)
+	{
+		DebugOverlayWidget->AddToViewport(10);
+		DebugOverlayWidget->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	return DebugOverlayWidget;
 }
