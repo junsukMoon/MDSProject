@@ -37,6 +37,7 @@
 - smoke verification script
 - CommonUI 기반 debug overlay C++ 골격
 - Widget Blueprint 연동용 `BindWidgetOptional` 필드와 제작 가이드
+- CommonUI viewport client config 정리
 - UI 화면 검증은 Widget Blueprint asset 생성 후 진행 필요
 - 제출용 코드 샘플 정리 및 VS2022 탐색용 프로젝트 패키징
 - 원본 프로젝트 기준 MDS v2 구조 정합성 리뷰
@@ -50,22 +51,25 @@
 - dedicated server listen 확인
 - server final Objective/Mass state 확인
 - client replicated Objective HP 확인
+- staged client/server Wave display state 확인
+- client CommonUI viewport 설정 오류 제거 확인
 
 최근 smoke 결과:
 
 ```text
 SMOKE RESULT: PASS
+WAVE VERIFY RESULT: PASS
 ```
 
 ## 현재 브랜치
 
 ```text
-main
+mds-v2-objective-combat-demo
 ```
 
 ## 다음 후보 작업
 
-- Runtime Review / Verification Evidence 정리
+- Runtime Review / Verification Evidence 추가 정리
 - Widget Blueprint asset 생성 후 UI 화면 검증
 - 문서 한글화
 - 추가 profiling 반복 측정 또는 Unreal Insights deeper capture는 필요 시 future/reference 작업으로만 진행
@@ -77,6 +81,7 @@ main
 - Enemy HP는 `AMDSCombatEnemyActor`가 별도 경로로 계산하며, death 상태는 `CurrentHealth <= 0.0f`에서 파생됩니다.
 - `UMDSActorEnemySpawnSubsystem`은 v2 경로에서 `AMDSCombatEnemyActor`를 생성합니다. 삭제된 `AMDSActorEnemy`는 MVP runtime path에 남아 있지 않습니다.
 - Debug overlay와 `UMDSDebugStateSubsystem`은 관찰/검증 보조이며 gameplay truth source가 아닙니다.
+- CommonUI debug overlay runtime을 위해 `GameViewportClientClassName=/Script/CommonUI.CommonGameViewportClient` 설정을 사용합니다.
 - Mass와 profiling 자료는 MVP 필수 구현이 아니라 reference/future extension으로 유지합니다.
 
 ## 주의사항
