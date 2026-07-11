@@ -20,6 +20,7 @@
 - 검증 기준
 - profiling 기록
 - visible demo 검증 기록
+- runtime review evidence 기록
 
 구현:
 
@@ -89,3 +90,4 @@ mds-v2-objective-combat-demo
 - `-NullRHI` profiling은 viewport/GPU 성능 주장이 아닙니다.
 - 프로젝트는 완성형 게임이 아니라 기술 샌드박스입니다.
 - visible demo는 replicated Objective HP 검증에 초점을 둡니다.
+- 최신 runtime review evidence는 `Docs/11_Runtime_Review_Evidence.md`에 정리되어 있습니다.
