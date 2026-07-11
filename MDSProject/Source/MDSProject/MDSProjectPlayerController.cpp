@@ -13,6 +13,7 @@
 #include "Engine/LocalPlayer.h"
 #include "InputCoreTypes.h"
 #include "MDSProject.h"
+#include "UObject/ConstructorHelpers.h"
 #include "UI/MDSDebugOverlayWidget.h"
 
 AMDSProjectPlayerController::AMDSProjectPlayerController()
@@ -25,6 +26,13 @@ AMDSProjectPlayerController::AMDSProjectPlayerController()
 	DefaultMouseCursor = EMouseCursor::Default;
 	CachedDestination = FVector::ZeroVector;
 	FollowTime = 0.f;
+
+	static ConstructorHelpers::FClassFinder<UMDSDebugOverlayWidget> DebugOverlayWidgetClassFinder(
+		TEXT("/Game/MDS/UI/WBP_MDSDebugOverlay"));
+	if (DebugOverlayWidgetClassFinder.Succeeded())
+	{
+		DebugOverlayWidgetClass = DebugOverlayWidgetClassFinder.Class;
+	}
 }
 
 void AMDSProjectPlayerController::BeginPlay()
