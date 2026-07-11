@@ -109,6 +109,8 @@ Debug / runtime evidence:
 
 - `UMDSDebugStateSubsystem`
 - `Run_Smoke_DedicatedServer_WithClient.ps1`
+- `Run_Verify_WaveDisplayState.ps1`
+- `Docs/11_Runtime_Review_Evidence.md`
 - `UMDSGameplayProfileSubsystem`은 future profiling/reference 용도로 유지
 
 ## 주요 코드
@@ -171,6 +173,7 @@ MVP 검증 증거:
 ```text
 Docs/08_Profiling_Comparison.md
 Docs/10_Visible_Demo_Verification.md
+Docs/11_Runtime_Review_Evidence.md
 ```
 
 ## 문서
@@ -187,6 +190,7 @@ Docs/Interview_Summary.md
 Docs/AI_Harness.md
 Docs/08_Profiling_Comparison.md
 Docs/10_Visible_Demo_Verification.md
+Docs/11_Runtime_Review_Evidence.md
 ```
 
 ## 제외 범위

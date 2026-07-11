@@ -73,6 +73,10 @@ Evidence to collect:
 - negative test showing AnimNotify or client-only event cannot apply authoritative damage
 - Debug Overlay showing state as a snapshot, not gameplay truth
 
+Current evidence document:
+
+- `Docs/11_Runtime_Review_Evidence.md`
+
 ## Next Implementation Direction
 
 Recommended implementation order:

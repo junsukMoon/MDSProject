@@ -22,6 +22,7 @@
 - `Docs/07_Mass_Concept.md` - Mass 사용 개념
 - `Docs/08_Profiling_Comparison.md` - Actor vs Mass profiling 기록
 - `Docs/10_Visible_Demo_Verification.md` - visible demo 검증 기록
+- `Docs/11_Runtime_Review_Evidence.md` - runtime review evidence 기록
 - `Docs/Verification.md` - 검증 기준
 
 ## 개발 규칙
