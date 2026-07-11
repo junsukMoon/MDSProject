@@ -10,6 +10,7 @@
 class UNiagaraSystem;
 class UInputMappingContext;
 class UInputAction;
+class UMDSDebugOverlayWidget;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
@@ -62,6 +63,7 @@ public:
 	AMDSProjectPlayerController();
 
 protected:
+	virtual void BeginPlay() override;
 
 	/** Initialize input bindings */
 	virtual void SetupInputComponent() override;
@@ -72,7 +74,16 @@ protected:
 	void OnSetDestinationReleased();
 	void OnTouchTriggered();
 	void OnTouchReleased();
+	void ToggleDebugOverlay();
 
+private:
+	UMDSDebugOverlayWidget* GetOrCreateDebugOverlay();
+
+	UPROPERTY(EditDefaultsOnly, Category = "MDS|UI")
+	TSubclassOf<UMDSDebugOverlayWidget> DebugOverlayWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMDSDebugOverlayWidget> DebugOverlayWidget;
 };
 
 

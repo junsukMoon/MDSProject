@@ -1,29 +1,39 @@
-﻿# 문서 인덱스
+# MDSProject 문서 인덱스
 
-이 문서는 `MDSProject` 프로젝트의 문서 목록을 정리합니다.
+이 문서는 `MDSProject`의 주요 문서를 빠르게 찾기 위한 인덱스입니다.
 
-## 루트 문서
+## 프로젝트 개요
 
-- [AGENTS.md](AGENTS.md) - AI 코딩 에이전트가 따라야 하는 저장소 작업 규칙
-- [README.md](README.md) - 프로젝트 개요, MVP 범위, 문서 맵, 검증 원칙
+- `README.md` - 프로젝트 소개와 현재 상태
+- `CODE_SAMPLE_GUIDE.md` - 제출용 코드 샘플 안내
+- `Docs/00_Project_Goal.md` - 목표와 범위
+- `Docs/01_Requirements.md` - 요구사항
+- `Docs/02_Architecture.md` - 아키텍처 요약
 
-## 프로젝트 계획 문서
+## 작업 계획과 진행 기록
 
-- [Docs/00_Project_Goal.md](Docs/00_Project_Goal.md) - 프로젝트 목표, 포트폴리오 목적, 범위, 목표 완료일, 인터뷰 가치
-- [Docs/01_Requirements.md](Docs/01_Requirements.md) - MVP 기능 요구사항, 비기능 요구사항, 승인 기준, 검증 매핑
-- [Docs/02_Architecture.md](Docs/02_Architecture.md) - 상위 아키텍처, 주요 시스템, 책임, 데이터 흐름, 구현 순서
-- [Docs/03_MVP_Task_Breakdown.md](Docs/03_MVP_Task_Breakdown.md) - Codex 기반 구현을 위한 단계별 MVP 작업 분해
+- `Docs/03_MVP_Task_Breakdown.md` - MVP 작업 단계
+- `Docs/04_Git_Workflow.md` - Git 작업 방식
+- `Docs/05_Progress_Log.md` - 진행 로그
+- `Docs/06_AI_Task_Commands.md` - AI 작업 요청 예시
 
-## 워크플로우 문서
+## Mass / Profiling / 검증
 
-- [Docs/AI_Harness.md](Docs/AI_Harness.md) - AI-assisted development workflow와 승인 게이트
-- [Docs/Task_Template.md](Docs/Task_Template.md) - 재사용 가능한 작업 요청 템플릿
-- [Docs/Approval_Report_Template.md](Docs/Approval_Report_Template.md) - 재사용 가능한 승인 보고서 템플릿
+- `Docs/07_Mass_Concept.md` - Mass 사용 개념
+- `Docs/08_Profiling_Comparison.md` - Actor vs Mass profiling 기록
+- `Docs/10_Visible_Demo_Verification.md` - visible demo 검증 기록
+- `Docs/11_Runtime_Review_Evidence.md` - runtime review evidence 기록
+- `Docs/Verification.md` - 검증 기준
 
-## 엔지니어링 규칙
+## 개발 규칙
 
-- [Docs/Verification.md](Docs/Verification.md) - 빌드, 런타임, 네트워크, Mass, 디버그, 로그, 프로파일링 검증 기준
-- [Docs/Unreal_Rules.md](Docs/Unreal_Rules.md) - Unreal C++ 및 멀티플레이어 구현 규칙
-- [Docs/Mass_Rules.md](Docs/Mass_Rules.md) - Mass Entity / Mass AI 작업 규칙
+- `AGENTS.md` - Codex/AI 작업 규칙
+- `Docs/Coding_Standards.md` - C++ 코딩 규약
+- `Docs/Unreal_Rules.md` - Unreal C++ / multiplayer 규칙
+- `Docs/Mass_Rules.md` - Mass 작업 규칙
+- `Docs/AI_Harness.md` - AI-assisted workflow
 
+## 템플릿
 
+- `Docs/Task_Template.md` - 작업 요청 템플릿
+- `Docs/Approval_Report_Template.md` - 완료 보고 템플릿

@@ -1,202 +1,201 @@
 # MDSProject
 
-MDSProject는 UE5 기술 포트폴리오 프로젝트입니다. 서버 권위 기반의 멀티플레이어 디펜스 샌드박스를 통해 Replication, Mass Entity 기반 게임플레이 흐름, 런타임 디버그 출력, 프로파일링 기록, 승인 기반 AI-assisted 개발 워크플로우를 보여주는 것이 목적입니다.
+`MDSProject`는 UE5 기술 포트폴리오용 멀티플레이어 방어 샌드박스입니다.
 
-이 프로젝트는 완성형 게임이 아닙니다. 면접에서 설명 가능한 기술 데모에 초점을 맞춰 의도적으로 범위를 제한합니다.
+목표는 완성형 게임을 만드는 것이 아니라, 면접에서 설명 가능한 기술 데모를 만드는 것입니다.
 
-## Interview Demo
+핵심 주제:
 
-이 프로젝트의 첫 데모 목표는 dedicated server에서 Objective HP를 서버 권위로 변경하고, client가 replicated Objective HP를 같은 값으로 관찰하는 흐름을 보여주는 것입니다.
-
-주요 확인 포인트:
-
-- UE 5.8 source engine 기준 dedicated server binary build/cook/stage/runtime 검증
-- Server-owned Objective HP와 `ReplicatedUsing=OnRep_CurrentHealth` 기반 client 표시
-- Mass enemy spawn, movement, arrival detection, once-only objective damage
-- Runtime debug line: `NetMode`, `ObjectiveHP`, Mass count, Actor baseline count
-- Actor vs Mass 1000개 `MovementActive` phase-based profiling comparison
-- 승인 기반 AI-assisted workflow와 검증 로그 중심의 작업 기록
-
-현재 가장 짧은 설명:
-
-```text
-Dedicated server owns Objective HP. Mass entities damage the Objective on arrival. Clients observe the replicated HP. Actor and Mass baselines are profiled under the same MovementActive phase trigger for interview discussion, not final rendering performance claims.
-```
-
-## 현재 상태
-
-구현 및 검증 완료:
-
-- UE 5.8 source engine 업그레이드
-- Dedicated Server target binary 빌드
-- WindowsServer cook/stage
-- staged dedicated server runtime 검증
-- 서버 권위 기반 Objective HP Actor
-- Replicated Objective HP 상태
-- Mass Entity spawn-only 단계
-- Objective를 향한 Mass 이동
-- Mass 도착 감지
-- 유효한 도착 시 서버 측 Objective damage 적용
-- 런타임 debug state subsystem
-- Standalone, editor server-mode, dedicated server binary 검증 로그
-- 현재 Mass 시나리오에 대한 profiling comparison 문서
-- 도착 후 debug visualization 성능 문제 수정
-- Actor enemy baseline 구현 및 debug count 연동
-- Actor vs Mass 1000개 phase-based profiling comparison 문서화
-
-알려진 제한:
-
-- `-NullRHI` profiling 결과는 로컬 비교에는 유용하지만, 최종 viewport 또는 GPU 성능을 대표하지 않습니다.
-- 현재 프로젝트는 기술 포트폴리오용 샌드박스이며, full game loop나 production content는 의도적으로 범위 밖입니다.
-
-## 핵심 시나리오
-
-Mass 적들이 Top Down 맵에 생성되고, 공유 Objective를 향해 이동합니다.
-
-Mass Entity가 도착하면 서버가 도착을 기록하고 Objective damage를 한 번 적용합니다. Objective HP는 서버가 권위 있게 소유합니다. 런타임 debug output은 현재 NetMode, Objective HP, Mass spawn count, moved count, arrival count, damage count를 노출합니다.
-
-현재 16 entity 시나리오에서 검증한 최종 dedicated server 상태:
-
-```text
-MDS Debug | NetMode=DedicatedServer | ObjectiveHP=20/100 | Mass Spawned=16 Moved=0 Arrived=16 Damage=16
-```
-
-## 기술 초점
-
-- Dedicated Server readiness
+- Dedicated Server
 - Replication
 - Authority / Ownership
 - Objective gameplay
-- Mass Entity / Mass AI
-- Debug UI 및 로그
-- Profiling
+- Server-authoritative combat
+- Wave progression
+- Character Movement / Animation baseline
+- Debug output
+- Runtime Review / Verification Evidence
 - AI-assisted development workflow
+
+## Interview Demo
+
+이 프로젝트의 핵심 데모는 다음 흐름입니다.
+
+1. Dedicated server가 전투 판정, 적 HP, Objective HP, Wave 진행을 소유합니다.
+2. 플레이어는 CMC 기반 Skeletal Mesh 캐릭터로 Objective를 방어합니다.
+3. Attack Montage와 AnimNotify timing은 전투 연출과 타이밍 표시를 담당합니다.
+4. 실제 damage 적용은 서버가 검증하고 처리합니다.
+5. 클라이언트는 replicated state를 기반으로 UI, Hit Reaction, Death Animation을 갱신합니다.
+
+가장 짧은 설명:
+
+```text
+Dedicated server owns combat, enemy HP, Objective HP, and Wave progress. Clients observe replicated state and update UI and animation presentation. Character movement uses CMC, with a minimal Skeletal Mesh / AnimBP / Montage / AnimNotify baseline.
+```
+
+## MDS v2 Positioning
+
+MDS v2는 Dedicated Server 환경에서 동작하는 Objective Combat Demo입니다.
+
+서버 권한으로 전투 판정, 적 HP, Objective HP, Wave 진행을 처리하고, 클라이언트는 Replication된 상태를 기반으로 UI와 연출을 갱신하는 구조입니다.
+
+또한 캐릭터 구현 기본기를 보여주기 위해 CMC 기반 이동, Skeletal Mesh 캐릭터, AnimBP State Machine, Attack Montage, AnimNotify 타이밍, Hit Reaction, Death Animation을 최소 범위로 포함합니다.
+
+Mover, Motion Matching, Mutable, Mass Entity는 MVP에 직접 구현하지 않고 추후 확장 가능한 기술 항목으로 문서화합니다.
+
+## 현재 상태
+
+기존 구현 및 검증 완료 항목:
+
+- UE 5.8 source engine 기준 server/client target build
+- Dedicated Server target
+- WindowsServer cook/stage/runtime workflow
+- 서버 권한 기반 Objective Actor
+- replicated Objective HP
+- runtime debug state subsystem
+- visible two-client Objective HP verification
+- smoke verification script
+
+v2에서 재정의할 MVP 항목:
+
+- server-authoritative combat
+- enemy HP / Objective HP
+- Wave progression
+- replicated UI state
+- CMC-based player movement
+- Skeletal Mesh character
+- AnimBP State Machine
+- Attack Montage / AnimNotify timing
+- Hit Reaction / Death Animation
+
+기존 Mass 실험은 v2 MVP 필수 구현이 아니라 future extension/reference 항목으로 유지합니다.
+
+## 런타임 시나리오
+
+플레이어는 Dedicated Server 환경에서 Objective를 방어합니다.
+
+서버는 attack validation, enemy HP, Objective HP, Wave 진행을 처리합니다. 클라이언트는 복제된 결과를 기반으로 UI와 animation presentation을 갱신합니다.
+
+서버 최종 상태 예시:
+
+```text
+MDS Debug | NetMode=DedicatedServer | Wave=2 | ObjectiveHP=70/100 | EnemyAlive=3 | DamageApplied=12
+```
+
+클라이언트 관찰 상태 예시:
+
+```text
+MDS Debug | NetMode=Client | Wave=2 | ObjectiveHP=70/100 | EnemyAlive=3 | LocalAnim=Attack
+```
 
 ## 아키텍처 요약
 
-이 프로젝트는 server-authoritative gameplay를 기본 규칙으로 사용합니다.
+서버 권한 경계:
 
-- Objective 상태는 서버가 소유합니다.
-- Objective HP 변경은 서버 측 gameplay logic을 통해서만 적용됩니다.
-- Mass processor는 확장 가능한 적 시뮬레이션 단계를 점진적으로 처리합니다.
-- Arrival processing은 도착한 entity마다 damage를 한 번만 적용합니다.
-- Debug state는 전용 debug subsystem에서 수집하고 출력합니다.
+- `AMDSObjectiveActor::ApplyObjectiveDamage`
+- `CurrentHealth`는 `ReplicatedUsing=OnRep_CurrentHealth`
+- 클라이언트는 Objective HP를 직접 수정하지 않음
+- attack montage 또는 client-side AnimNotify는 authoritative damage를 직접 적용하지 않음
 
-Mass 작업은 검토 가능한 작은 단계로 나눠 진행했습니다.
+MDS v2 MVP 흐름:
 
-1. Build/module setup
-2. Spawn only
-3. Movement only
-4. Arrival detection
-5. Objective damage integration
-6. Debug output
-7. Profiling comparison
-8. UE 5.8 source dedicated server verification
+1. CMC 기반 player movement
+2. server-authoritative attack validation
+3. enemy HP / Objective HP update on server
+4. replicated state update
+5. UI / hit / death presentation update on clients
+
+Debug / runtime evidence:
+
+- `UMDSDebugStateSubsystem`
+- `Run_Smoke_DedicatedServer_WithClient.ps1`
+- `Run_Verify_WaveDisplayState.ps1`
+- `Docs/11_Runtime_Review_Evidence.md`
+- `UMDSGameplayProfileSubsystem`은 future profiling/reference 용도로 유지
+
+## 주요 코드
+
+```text
+MDSProject/Source/MDSProject/Objective
+MDSProject/Source/MDSProject/ActorAI
+MDSProject/Source/MDSProject/Debug
+MDSProject/Source/MDSProject/Profiling
+```
 
 ## Dedicated Server 검증
 
-UE 5.8 source engine 기준으로 실제 dedicated server binary를 빌드하고 staged runtime까지 검증했습니다.
+검증 스크립트:
 
-검증 흐름:
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Run_Smoke_DedicatedServer_WithClient.ps1
+```
 
-1. `MDSProjectServer Win64 Development` 빌드
-2. `WindowsServer` cook
-3. `Saved/StagedBuilds/WindowsServer` stage
-4. staged `MDSProjectServer.exe` 실행
-5. server log에서 map load, NetDriver listen, Objective/Mass final state 확인
+최근 검증 결과:
 
-UE 5.8 기본 cook은 `ZenStore`를 사용합니다. standalone staged server runtime 검증에는 loose cooked content가 필요했기 때문에 `-skipzenstore` cook을 사용했습니다.
+```text
+SMOKE RESULT: PASS
+```
 
-검증 로그:
+검증 내용:
 
-- Cook: `MDSProject/Saved/Logs/Phase10_Cook_WindowsServer_SkipZen.log`
-- Runtime: `MDSProject/Saved/Logs/Phase10_StagedDedicatedServer.log`
+- server binary 실행
+- UDP `7777` listen
+- staged client 접속
+- server final Objective/Mass state 확인
+- client replicated Objective HP 확인
 
-확인된 runtime 상태:
+## Runtime Review / Profiling Reference
 
-- `Premade AssetRegistry loaded`
-- `World NetMode = Dedicated Server`
-- `IpNetDriver listening on port 7777`
-- `ObjectiveHP=20/100`
-- `Mass Spawned=16`
-- `Moved=0`
-- `Arrived=16`
-- `Damage=16`
+v2 MVP의 핵심 검증 대상은 성능 수치가 아니라 Dedicated Server Objective Combat loop가 의도대로 동작하는지 보여주는 runtime evidence입니다.
 
-## 프로파일링 스냅샷
+MVP 검증 증거:
 
-Mass objective 시나리오는 `-NullRHI`와 benchmark mode로 측정했습니다.
+- Dedicated Server 실행 결과
+- server/client log review
+- Objective HP replication 확인
+- Wave state replication 확인
+- Enemy HP/death presentation 확인
+- Match HUD / Objective World UI / Enemy World UI 확인
+- Attack Montage / AnimNotify가 authoritative damage를 직접 만들지 않는 negative test
+- Debug Overlay가 gameplay truth가 아님을 확인
 
-| Scenario | Effective FPS | Average frame time |
-| --- | ---: | ---: |
-| Standalone Mass scenario, UE 5.6 installed build | `2571.43` | `0.39 ms` |
-| Editor server-mode Mass scenario, UE 5.6 installed build | `4500.00` | `0.22 ms` |
-| Staged dedicated server binary, UE 5.8 source build | `905.43` | `1.10 ms` |
+기존 Actor/Mass baseline 비교는 future extension/reference 자료로 유지합니다.
 
-도착 후 frame slowdown은 debug visualization에서 발견되었습니다. 원인은 entity가 도착한 뒤에도 매 프레임 debug sphere를 반복해서 그리는 것이었습니다. 수정 후 marker는 최초 도착 시 한 번만 그립니다.
+주의:
 
-| State | Effective FPS | Average frame time |
-| --- | ---: | ---: |
-| Before debug draw fix | `248.76` | `4.02 ms` |
-| After debug draw fix | `2163.46` | `0.46 ms` |
+- `-NullRHI` 결과는 로컬 CPU/gameplay 비교용입니다.
+- viewport/GPU 최종 성능 주장으로 해석하면 안 됩니다.
+- Unreal Insights trace는 smoke capture입니다.
+- Mass profiling 결과는 v2 MVP 필수 성능 주장으로 사용하지 않습니다.
 
-Actor vs Mass baseline은 UE 5.8에서 같은 `MovementActive` phase trigger와 1000개 count로 다시 측정했습니다.
+상세 내용:
 
-| Scenario | Avg FrameTime | Avg TickActors | Notes |
-| --- | ---: | ---: | --- |
-| Mass 1000 MovementActive | `0.4567 ms` | `0.0997 ms` | `-NoMDSMassDebugDraw` |
-| Actor 1000 MovementActive | `1.2473 ms` | `0.7907 ms` | `-NoMDSMassBaseline` |
+```text
+Docs/08_Profiling_Comparison.md
+Docs/10_Visible_Demo_Verification.md
+Docs/11_Runtime_Review_Evidence.md
+```
 
-이 수치는 local headless measurement로 설명해야 하며, production rendering benchmark나 GPU/viewport 성능 주장으로 해석하면 안 됩니다.
+## 문서
 
-## 검증 상태
+```text
+Docs/01_Scope_Constraints.md
+Docs/Character_Movement_Animation_Readiness.md
+Docs/Animation_MotionMatching_Notes.md
+Docs/Character_Customization_Notes.md
+Docs/Coding_Standards.md
+Docs/Unreal_Rules.md
+Docs/Verification.md
+Docs/Interview_Summary.md
+Docs/AI_Harness.md
+Docs/08_Profiling_Comparison.md
+Docs/10_Visible_Demo_Verification.md
+Docs/11_Runtime_Review_Evidence.md
+```
 
-검증 완료:
+## 제외 범위
 
-- Standalone Mass objective 시나리오가 기대한 최종 Objective HP에 도달합니다.
-- Editor server-mode 실행에서 `NetMode=DedicatedServer`를 보고합니다.
-- UE 5.8 source engine에서 dedicated server binary를 빌드했습니다.
-- `WindowsServer` cook/stage 후 staged dedicated server runtime이 실행됩니다.
-- Dedicated server binary가 `IpNetDriver listening on port 7777` 상태에 도달합니다.
-- Mass entity가 spawn, move, arrive하고, 도착 후 movement work가 중단됩니다.
-- Objective damage event count가 arrival count와 일치합니다.
-- Debug output이 기대한 runtime state를 노출합니다.
-- Profiling log에서 debug visualization 수정 후 도착 이후 frame time이 개선된 것을 확인했습니다.
-- Actor baseline과 Mass baseline을 같은 `MovementActive` phase trigger 조건으로 비교했습니다.
-- Visible viewport client 2개가 같은 replicated Objective HP `20/100`을 표시하는 것을 스크린샷과 2분 GIF로 확인했습니다.
-- Unreal Insights smoke trace를 캡처했습니다.
-
-## 문서 맵
-
-- `Docs/00_Project_Goal.md` - 프로젝트 목표, 범위, 목표일, 면접 가치
-- `Docs/01_Requirements.md` - MVP 요구사항 및 검증 매핑
-- `Docs/02_Architecture.md` - high-level architecture 및 system responsibility
-- `Docs/03_MVP_Task_Breakdown.md` - phased MVP task breakdown
-- `Docs/07_Mass_Concept.md` - Mass implementation concept notes
-- `Docs/08_Profiling_Comparison.md` - 현재 Mass profiling 결과 및 제한
-- `Docs/10_Visible_Demo_Verification.md` - visible client replication screenshot/GIF 및 Unreal Insights trace 기록
-- `Docs/AI_Harness.md` - AI-assisted development workflow
-- `Docs/Task_Template.md` - 재사용 가능한 task request template
-- `Docs/Approval_Report_Template.md` - 재사용 가능한 completion report template
-- `Docs/Verification.md` - verification standards
-- `Docs/Unreal_Rules.md` - Unreal C++ 및 multiplayer implementation rules
-- `Docs/Mass_Rules.md` - Mass Entity / Mass AI working rules
-
-## AI-assisted 워크플로우
-
-비 trivial 작업은 승인 기반 workflow를 따릅니다.
-
-1. 관련 파일 확인
-2. 현재 구조 요약
-3. 계획 제안
-4. 명시적 승인 대기
-5. 승인된 변경만 구현
-6. 결과 검증
-7. approval report 제공
-
-AI assistance는 통제된 가속 도구로 사용합니다. 목표, 범위, 아키텍처 결정, 최종 검증 판단은 사람이 소유합니다.
-
-## 명시적 비범위
+이 프로젝트는 기술 데모이므로 다음 시스템은 의도적으로 제외합니다.
 
 - Inventory
 - Quest system
@@ -209,3 +208,7 @@ AI assistance는 통제된 가속 도구로 사용합니다. 목표, 범위, 아
 - Complex animation system
 - Full GAS expansion
 - Full production-quality game content
+- Full Mover migration
+- Production Motion Matching implementation
+- Full Mutable character customization pipeline
+- Mass Entity as a required v2 MVP feature

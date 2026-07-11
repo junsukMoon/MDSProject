@@ -11,7 +11,7 @@
  *  Sets the default gameplay framework classes
  *  Check the Blueprint derived class for the set values
  */
-UCLASS(abstract)
+UCLASS()
 class AMDSProjectGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
@@ -20,6 +20,17 @@ public:
 
 	/** Constructor */
 	AMDSProjectGameMode();
+
+	void StartWave(int32 WaveIndex, int32 TotalEnemies);
+	void HandleEnemyDeathForWave();
+
+protected:
+	virtual void BeginPlay() override;
+
+private:
+	void InitializeWaveDisplayState();
+	void TryAutoStartWaveFromCommandLine();
+	void CompleteWaveIfCleared();
 };
 
 

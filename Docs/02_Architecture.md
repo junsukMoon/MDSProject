@@ -1,122 +1,192 @@
 # 아키텍처
 
-이 문서는 `MDSProject`의 high-level architecture와 system responsibility를 정의합니다.
+## 개요
 
-아키텍처는 의도적으로 작게 유지합니다. 목표는 full game framework가 아니라 ownership, replication, Mass Entity boundary, verification discipline을 명확하게 보여주는 것입니다.
+`MDSProject` v2의 핵심 구조는 Dedicated Server 기반 Objective Combat Demo입니다.
 
-## 핵심 원칙
+```text
+Player Attack -> Server Combat Validation -> Enemy HP / Objective HP -> Wave Progress -> Replicated UI / Animation Presentation
+```
 
-- 서버가 gameplay state의 source of truth입니다.
-- client는 replicated result를 관찰합니다.
-- Objective HP, damage, score, win/loss 같은 gameplay state는 client-owned가 되면 안 됩니다.
-- Mass simulation은 scalable enemy behavior를 보여주기 위한 도구입니다.
-- Debug output과 profiling은 설명과 검증을 돕는 보조 수단입니다.
+상세 구조 명세:
 
-## 주요 시스템
+```text
+Docs/MDS_v2_Structure_Spec.md
+```
+
+## 주요 모듈
 
 ### Objective
+
+위치:
+
+```text
+MDSProject/Source/MDSProject/Objective
+```
 
 책임:
 
 - Objective HP 소유
-- server-side damage application
-- replicated HP 노출
-- client-side `OnRep` 반응
+- server authority check
+- damage 적용
+- `CurrentHealth` replication
+- client `OnRep` 처리
+- Enemy HP 용도로 재사용하지 않음
 
-규칙:
+### Combat / Wave
 
-- Objective HP 변경은 서버에서만 발생합니다.
-- client는 HP를 직접 감소시키면 안 됩니다.
-- Objective state는 debug output과 logs로 확인 가능해야 합니다.
+위치:
 
-### MassAI
+```text
+MDSProject/Source/MDSProject
+```
 
-책임:
+설계 기준:
 
-- Mass entity spawn
-- Objective 방향 movement
-- arrival detection
-- server-side objective damage trigger
-- debug/profiling state 제공
-
-규칙:
-
-- Mass 작업은 spawn, movement, arrival, damage로 나누어 진행합니다.
-- Mass fragment/tag/processor는 작고 설명 가능해야 합니다.
-- Mass presentation은 gameplay authority가 아닙니다.
-
-### ActorAI Baseline
+```text
+Docs/Combat_Baseline_Design.md
+```
 
 책임:
 
-- Mass 비교용 최소 Actor enemy baseline 제공
-- Actor spawn / movement / arrival damage 흐름 제공
-- profiling comparison용 count와 tick behavior 제공
+- server-authoritative attack validation
+- enemy HP 변경
+- Objective damage 연결
+- `AMDSProjectGameMode`에서 Wave authority 소유
+- `AMDSProjectGameState`에서 replicated Wave display state 소유
+- replicated combat state를 UI와 animation presentation에 전달
 
-규칙:
+### Character / Animation
 
-- full AI, behavior tree, animation, combat system으로 확장하지 않습니다.
-- Mass와 비교 가능한 최소 baseline에 집중합니다.
+위치:
+
+```text
+MDSProject/Source/MDSProject
+MDSProject/Content/Characters
+```
+
+책임:
+
+- CharacterMovementComponent 기반 이동
+- Skeletal Mesh character 구성
+- AnimBP State Machine 기준 locomotion
+- Attack Montage playback
+- AnimNotify timing marker 처리
+- server-confirmed damage 이후 Hit Reaction 표시
+- replicated HP 기준 death 이후 Death Animation 표시
+
+### MassAI Future Extension
+
+위치:
+
+```text
+MDSProject/Source/MDSProject/MassAI
+```
+
+책임:
+
+- v2 MVP 필수 구현이 아닌 future extension/reference
+- Mass fragments/tags 정의
+- entity spawn/movement/arrival 실험
+- scalable AI-style simulation 비교
+
+### ActorAI
+
+위치:
+
+```text
+MDSProject/Source/MDSProject/ActorAI
+```
+
+책임:
+
+- v2 MVP enemy 또는 기존 Actor baseline 제공
+- server-authoritative combat target 역할
+- Mass future extension과 비교 가능한 reference 역할
+- v2 replicated enemy HP/death 구조는 별도 actor/component로 분리 가능
+- MVP death state는 별도 replicated `bIsDead`가 아니라 `CurrentHealth <= 0.0f`에서 파생
 
 ### Debug
 
+위치:
+
+```text
+MDSProject/Source/MDSProject/Debug
+```
+
 책임:
 
-- NetMode
-- Objective HP
-- Mass count
-- Actor baseline count
-- runtime verification에 필요한 상태 표시
+- runtime state 집계
+- NetMode, Role, Wave, Objective HP, enemy state, combat/animation state 출력
 
-규칙:
+### UI
 
-- Debug UI는 lightweight해야 합니다.
-- debug output은 gameplay correctness의 필수 조건이 되면 안 됩니다.
-- dedicated server logic은 viewport나 HUD에 의존하면 안 됩니다.
+위치:
+
+```text
+MDSProject/Source/MDSProject/UI
+```
+
+책임:
+
+- Match HUD는 `AMDSProjectGameState`의 replicated Wave state 표시
+- Objective World UI는 `AMDSObjectiveActor`의 replicated Objective HP 표시
+- Enemy World UI는 combat enemy actor의 replicated Enemy HP 표시
+- CommonUI 기반 debug overlay 골격 제공
+- `UMDSDebugStateSubsystem` snapshot을 UI 표시용 text로 변환
+- gameplay authority와 분리된 client presentation 경로 유지
+- Debug Overlay와 gameplay UI 책임 분리
+- Widget Blueprint presentation은 `Docs/UI_Widget_Blueprint_Guide.md` 절차를 따름
+
+### Level Content
+
+위치:
+
+```text
+MDSProject/Content
+```
+
+책임:
+
+- v2 Objective Combat Demo 검증 맵 제공
+- Objective를 맵 중앙에 배치
+- PlayerStart를 Objective 근처에 배치
+- North/South/East/West 4방향 enemy spawn area 제공
+- Objective 주변 combat space 제공
+- Match HUD, Objective World UI, Enemy World UI 검증 가능한 시야 제공
+
+기준 맵 후보:
+
+```text
+/Game/MDS/Maps/L_MDS_ObjectiveCombat
+```
+
+기존 `/Game/TopDown/Lvl_TopDown`은 prototype/reference verification map으로 유지합니다.
 
 ### Profiling
 
+위치:
+
+```text
+MDSProject/Source/MDSProject/Profiling
+```
+
 책임:
 
-- profiling scenario 실행 보조
-- CSV capture trigger
-- Actor/Mass phase-based comparison
-- performance notes 문서화
+- v2 MVP 필수 경로가 아닌 future extension/reference
+- phase-based CSV capture
+- `MovementActive` / `ArrivalsComplete` trigger
+- Actor vs Mass 비교 조건 제어
+- Runtime Review / Verification Evidence를 대체하지 않음
 
-규칙:
+## 서버 권한 경계
 
-- `-NullRHI` 결과는 local comparison으로만 설명합니다.
-- viewport/GPU 성능 주장으로 확대하지 않습니다.
-- 필요할 때만 deeper Unreal Insights analysis를 수행합니다.
+`AMDSObjectiveActor::ApplyObjectiveDamage`가 Objective HP 변경의 권한 경계입니다.
 
-## 네트워크 구조
+클라이언트는 Objective HP를 직접 변경하지 않습니다. 클라이언트는 replicated `CurrentHealth`를 관찰합니다.
 
-- 서버가 Objective HP를 소유합니다.
-- client는 action을 요청할 수 있지만 서버가 검증하고 적용합니다.
-- replicated state에는 명확한 source of truth가 있어야 합니다.
-- RPC는 ownership과 방향이 설명 가능해야 합니다.
-- `OnRep`는 client-side presentation/cache update에 사용하고 authoritative gameplay source가 되면 안 됩니다.
+## Dedicated Server
 
-## 코드 배치 원칙
+Dedicated server는 gameplay state를 소유하고 client presentation에 의존하지 않습니다.
 
-- Objective code는 `Objective` 영역에 둡니다.
-- Mass 관련 code는 `MassAI` 영역에 둡니다.
-- Actor baseline은 `ActorAI` 영역에 둡니다.
-- Debug state는 `Debug` 영역에 둡니다.
-- Profiling helper는 `Profiling` 영역에 둡니다.
-- player/controller 관련 확장은 기존 player/controller code와 가까운 곳에 둡니다.
-
-## 검증 원칙
-
-각 task는 다음 중 관련된 검증을 실제로 수행하고 보고해야 합니다.
-
-- build / compile
-- editor startup
-- PIE
-- dedicated server runtime
-- server/client logs
-- visible viewport evidence
-- profiling CSV
-- Unreal Insights trace
-
-실행하지 않은 검증은 성공했다고 기록하지 않습니다.
+검증은 server log, client log, smoke script로 수행합니다.
