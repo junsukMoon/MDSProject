@@ -21,6 +21,7 @@
 - profiling 기록
 - visible demo 검증 기록
 - runtime review evidence 기록
+- PR #33 merge 및 feature branch cleanup 완료
 
 구현:
 
@@ -65,7 +66,7 @@ WAVE VERIFY RESULT: PASS
 ## 현재 브랜치
 
 ```text
-mds-v2-objective-combat-demo
+main
 ```
 
 ## 다음 후보 작업
@@ -84,6 +85,7 @@ mds-v2-objective-combat-demo
 - Debug overlay와 `UMDSDebugStateSubsystem`은 관찰/검증 보조이며 gameplay truth source가 아닙니다.
 - CommonUI debug overlay runtime을 위해 `GameViewportClientClassName=/Script/CommonUI.CommonGameViewportClient` 설정을 사용합니다.
 - Mass와 profiling 자료는 MVP 필수 구현이 아니라 reference/future extension으로 유지합니다.
+- `mds-v2-objective-combat-demo` 브랜치는 PR #33으로 `main`에 merge된 뒤 로컬/원격에서 정리되었습니다.
 
 ## 주의사항
 
