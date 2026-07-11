@@ -105,4 +105,10 @@ main
 - Added C++ fallback text layout for `UMDSDebugOverlayWidget` so an otherwise empty debug overlay Widget Blueprint still has visible debug text when constructed.
 - Verified `Run_Verify_DebugOverlayWidget.ps1` result: `DEBUG OVERLAY VERIFY RESULT: PASS`.
 - Verified `Run_Verify_WaveDisplayState.ps1` result: `WAVE VERIFY RESULT: PASS`.
-- Viewport pixels, F1 input, and authored Widget Blueprint TextBlock layout remain manual follow-up checks.
+- Added `Run_Verify_DebugOverlayViewport.ps1` to build, configure `BP_TopDownController`, cook/stage, launch the staged client, toggle `F1`, capture a viewport screenshot, and scan runtime logs.
+- Reparented `BP_TopDownController` to `AMDSProjectPlayerController` so the TopDown map uses the project debug overlay runtime path.
+- Added C++ default TopDown input asset references on `AMDSProjectPlayerController` and configure-script defaults on `BP_TopDownController`.
+- Verified staged client viewport pixels with visible green `MDS Debug` overlay text in `SavedVerifyLogs/MDS_DebugOverlayViewport_Client_PrintWindow.png`.
+- Verified `Run_Verify_DebugOverlayViewport.ps1` result: `DEBUG OVERLAY VIEWPORT VERIFY RESULT: PASS`.
+- Known note: a generic `LogEnhancedInput: Warning: Called AddMappingContext with a null Mapping Context!` line remains from the existing TopDown Blueprint input path, but project-side missing input warnings are not emitted and the overlay viewport verification passes.
+- Authored Widget Blueprint TextBlock layout remains a future polish task; the C++ fallback layout is verified visible.
