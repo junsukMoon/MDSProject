@@ -1,10 +1,22 @@
 #include "UI/MDSDebugOverlayWidget.h"
 
+#include "Blueprint/WidgetTree.h"
 #include "Components/TextBlock.h"
+#include "Components/VerticalBox.h"
 #include "Debug/MDSDebugStateSubsystem.h"
 #include "Engine/World.h"
+#include "MDSProject.h"
+#include "Styling/SlateColor.h"
 
 #define LOCTEXT_NAMESPACE "MDSDebugOverlayWidget"
+
+void UMDSDebugOverlayWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	EnsureFallbackLayout();
+	RefreshFromWorld();
+}
 
 void UMDSDebugOverlayWidget::NativeOnActivated()
 {
@@ -134,6 +146,82 @@ FString UMDSDebugOverlayWidget::GetNetModeLabel() const
 	}
 }
 
+bool UMDSDebugOverlayWidget::HasBoundTextBlocks() const
+{
+	return NetModeTextBlock
+		|| ObjectiveHealthTextBlock
+		|| WaveSummaryTextBlock
+		|| MassSummaryTextBlock
+		|| ActorSummaryTextBlock;
+}
+
+void UMDSDebugOverlayWidget::EnsureFallbackLayout()
+{
+	if (HasBoundTextBlocks()
+		|| FallbackNetModeTextBlock
+		|| !WidgetTree)
+	{
+		return;
+	}
+
+	UVerticalBox* FallbackRoot = WidgetTree->ConstructWidget<UVerticalBox>(
+		UVerticalBox::StaticClass(),
+		TEXT("DebugOverlayFallbackRoot"));
+	if (!FallbackRoot)
+	{
+		return;
+	}
+
+	WidgetTree->RootWidget = FallbackRoot;
+	FallbackNetModeTextBlock = CreateFallbackTextBlock(
+		*FallbackRoot,
+		TEXT("FallbackNetModeTextBlock"),
+		LOCTEXT("FallbackNetMode", "NetMode: -"));
+	FallbackObjectiveHealthTextBlock = CreateFallbackTextBlock(
+		*FallbackRoot,
+		TEXT("FallbackObjectiveHealthTextBlock"),
+		LOCTEXT("FallbackObjectiveHealth", "Objective HP: -"));
+	FallbackWaveSummaryTextBlock = CreateFallbackTextBlock(
+		*FallbackRoot,
+		TEXT("FallbackWaveSummaryTextBlock"),
+		LOCTEXT("FallbackWave", "Wave: -"));
+	FallbackMassSummaryTextBlock = CreateFallbackTextBlock(
+		*FallbackRoot,
+		TEXT("FallbackMassSummaryTextBlock"),
+		LOCTEXT("FallbackMass", "Mass: -"));
+	FallbackActorSummaryTextBlock = CreateFallbackTextBlock(
+		*FallbackRoot,
+		TEXT("FallbackActorSummaryTextBlock"),
+		LOCTEXT("FallbackActor", "Actor: -"));
+
+	UE_LOG(LogMDSProject, Log, TEXT("Debug overlay fallback layout initialized on %s."), *GetNameSafe(this));
+}
+
+UTextBlock* UMDSDebugOverlayWidget::CreateFallbackTextBlock(
+	UVerticalBox& Parent,
+	const FName WidgetName,
+	const FText& InitialText)
+{
+	if (!WidgetTree)
+	{
+		return nullptr;
+	}
+
+	UTextBlock* TextBlock = WidgetTree->ConstructWidget<UTextBlock>(
+		UTextBlock::StaticClass(),
+		WidgetName);
+	if (!TextBlock)
+	{
+		return nullptr;
+	}
+
+	TextBlock->SetText(InitialText);
+	TextBlock->SetColorAndOpacity(FSlateColor(FLinearColor::White));
+	TextBlock->SetAutoWrapText(false);
+	Parent.AddChildToVerticalBox(TextBlock);
+	return TextBlock;
+}
+
 void UMDSDebugOverlayWidget::ClearRefreshTimer()
 {
 	if (UWorld* World = GetWorld())
@@ -148,25 +236,45 @@ void UMDSDebugOverlayWidget::UpdateBoundTextBlocks()
 	{
 		NetModeTextBlock->SetText(NetModeText);
 	}
+	if (FallbackNetModeTextBlock)
+	{
+		FallbackNetModeTextBlock->SetText(NetModeText);
+	}
 
 	if (ObjectiveHealthTextBlock)
 	{
 		ObjectiveHealthTextBlock->SetText(ObjectiveHealthText);
+	}
+	if (FallbackObjectiveHealthTextBlock)
+	{
+		FallbackObjectiveHealthTextBlock->SetText(ObjectiveHealthText);
 	}
 
 	if (WaveSummaryTextBlock)
 	{
 		WaveSummaryTextBlock->SetText(WaveSummaryText);
 	}
+	if (FallbackWaveSummaryTextBlock)
+	{
+		FallbackWaveSummaryTextBlock->SetText(WaveSummaryText);
+	}
 
 	if (MassSummaryTextBlock)
 	{
 		MassSummaryTextBlock->SetText(MassSummaryText);
 	}
+	if (FallbackMassSummaryTextBlock)
+	{
+		FallbackMassSummaryTextBlock->SetText(MassSummaryText);
+	}
 
 	if (ActorSummaryTextBlock)
 	{
 		ActorSummaryTextBlock->SetText(ActorSummaryText);
+	}
+	if (FallbackActorSummaryTextBlock)
+	{
+		FallbackActorSummaryTextBlock->SetText(ActorSummaryText);
 	}
 }
 

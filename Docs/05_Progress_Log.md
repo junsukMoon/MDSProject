@@ -102,4 +102,7 @@ main
 - Verified `WBP_MDSDebugOverlay` can be loaded, compiled, and saved by the editor script.
 - Verified runtime configuration resolves `WBP_MDSDebugOverlay_C`.
 - Verified standalone headless runtime reaches `MDS Debug | NetMode=Standalone` without a missing debug overlay class log, widget creation failure log, CommonUI viewport error, or fatal error.
-- Visual pixels, F1 input, and Widget Blueprint TextBlock layout remain manual follow-up checks.
+- Added C++ fallback text layout for `UMDSDebugOverlayWidget` so an otherwise empty debug overlay Widget Blueprint still has visible debug text when constructed.
+- Verified `Run_Verify_DebugOverlayWidget.ps1` result: `DEBUG OVERLAY VERIFY RESULT: PASS`.
+- Verified `Run_Verify_WaveDisplayState.ps1` result: `WAVE VERIFY RESULT: PASS`.
+- Viewport pixels, F1 input, and authored Widget Blueprint TextBlock layout remain manual follow-up checks.

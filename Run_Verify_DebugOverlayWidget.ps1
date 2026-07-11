@@ -24,7 +24,7 @@ function Select-DebugOverlayPatterns {
         return @()
     }
 
-    Select-String -Path $Path -Pattern "MDSDebugOverlayAsset|Debug overlay widget class configured|Debug overlay widget created|Debug overlay widget class is not configured|Debug overlay widget creation failed|Using CommonUI without a CommonGameViewportClient|MDS Debug \| NetMode=Standalone|Fatal" |
+    Select-String -Path $Path -Pattern "MDSDebugOverlayAsset|Debug overlay widget class configured|Debug overlay fallback layout initialized|Debug overlay widget created|Debug overlay widget class is not configured|Debug overlay widget creation failed|Using CommonUI without a CommonGameViewportClient|MDS Debug \| NetMode=Standalone|Fatal" |
         Select-Object -Last 120
 }
 
@@ -102,6 +102,7 @@ $AssetOk = $AssetText -match "MDSDebugOverlayAsset: (Loaded existing|Created) wi
     $AssetText -match "MDSDebugOverlayAsset: Compiled and saved widget blueprint" -and
     $AssetText -match "MDSDebugOverlayAsset: Done"
 $ConfiguredOk = $RuntimeText -match "Debug overlay widget class configured as"
+$FallbackLayoutOk = $RuntimeText -match "Debug overlay fallback layout initialized"
 $CreatedOk = $RuntimeText -match "Debug overlay widget created on"
 $StandaloneRuntimeOk = $RuntimeText -match "MDS Debug \| NetMode=Standalone"
 $MissingClass = $RuntimeText -match "Debug overlay widget class is not configured"
@@ -117,11 +118,12 @@ if ($AssetOk -and $ConfiguredOk -and $StandaloneRuntimeOk -and -not $MissingClas
 Write-Host "DEBUG OVERLAY VERIFY RESULT: INCOMPLETE"
 Write-Host "Widget asset compile/save found: $AssetOk"
 Write-Host "Widget class configured log found: $ConfiguredOk"
+Write-Host "Fallback layout log found: $FallbackLayoutOk"
 Write-Host "Runtime creation log found: $CreatedOk"
 Write-Host "Standalone runtime debug line found: $StandaloneRuntimeOk"
 Write-Host "Missing class log found: $MissingClass"
 Write-Host "Creation failure log found: $CreateFailed"
 Write-Host "CommonUI viewport error found: $CommonUiViewportError"
 Write-Host "Fatal error found: $FatalError"
-Write-Host "This script verifies configuration/runtime logs only; it does not verify visual pixels, F1 input, or TextBlock layout."
+Write-Host "This script verifies configuration/runtime logs only; headless runtime may not construct viewport widgets, so visual pixels, F1 input, and TextBlock layout still require PIE/manual verification."
 exit 2
