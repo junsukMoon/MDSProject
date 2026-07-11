@@ -79,7 +79,7 @@ protected:
 private:
 	UMDSDebugOverlayWidget* GetOrCreateDebugOverlay();
 
-	UPROPERTY(EditDefaultsOnly, Category = "MDS|UI")
+	UPROPERTY(EditDefaultsOnly, Category = "MDS|UI", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UMDSDebugOverlayWidget> DebugOverlayWidgetClass;
 
 	UPROPERTY(Transient)
