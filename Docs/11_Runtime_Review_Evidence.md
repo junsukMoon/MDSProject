@@ -127,6 +127,40 @@ Interpretation:
 - A standalone headless runtime reaches the debug state reporting path without a missing debug overlay class log, widget creation failure log, CommonUI viewport error, or fatal error.
 - This check verifies build/runtime configuration and fallback layout code compilation. It does not verify visual pixels or F1 input.
 
+## Debug Overlay Viewport Check
+
+- Date: 2026-07-12
+- Script: `Run_Verify_DebugOverlayViewport.ps1`
+- Logs:
+  - `SavedVerifyLogs/MDS_DebugOverlayControllerConfig.log`
+  - `SavedVerifyLogs/MDS_DebugOverlayViewport_Client.log`
+- Screenshot:
+  - `SavedVerifyLogs/MDS_DebugOverlayViewport_Client_PrintWindow.png`
+
+Result:
+
+```text
+DEBUG OVERLAY VIEWPORT VERIFY RESULT: PASS
+```
+
+Evidence:
+
+```text
+MDSOverlayControllerConfig: /Game/TopDown/Blueprints/BP_TopDownController already uses /Script/MDSProject.MDSProjectPlayerController
+Debug overlay widget class configured as WBP_MDSDebugOverlay_C.
+Debug overlay fallback layout initialized on WBP_MDSDebugOverlay_C
+Debug overlay widget created on BP_TopDownController_C using WBP_MDSDebugOverlay_C.
+MDS Debug | NetMode=Standalone | Wave=1 Active=false Remaining=0/0 | ObjectiveHP=20/100
+```
+
+Interpretation:
+
+- `BP_TopDownController` now derives from `AMDSProjectPlayerController`, so the debug overlay runtime path is active in the staged TopDown map.
+- The staged Win64 client creates the debug overlay widget, initializes the C++ fallback text layout, accepts the `F1` toggle path, and renders visible viewport pixels.
+- `PrintWindow` captured the staged client window with the green `MDS Debug` overlay text visible in the viewport.
+- The controller now has C++ default references for the TopDown input mapping context, click action, touch action, and cursor FX, and the configure script writes the same defaults to `BP_TopDownController`.
+- A generic `LogEnhancedInput: Warning: Called AddMappingContext with a null Mapping Context!` line still appears from the existing TopDown Blueprint input path. No project-side missing input warnings are emitted, and this warning is not treated as a debug overlay viewport failure.
+
 ## Verified
 
 - Dedicated Server starts and listens on port `7777`.
@@ -137,10 +171,11 @@ Interpretation:
 - Existing CommonUI viewport client configuration error is removed after re-stage.
 - Debug overlay Widget Blueprint asset compiles/saves and is resolved as `WBP_MDSDebugOverlay_C` in runtime configuration.
 - Debug overlay fallback layout code compiles and preserves existing standalone and dedicated server/client runtime verification paths.
+- Debug overlay viewport pixels are visible in a staged Win64 client after `F1`.
+- `BP_TopDownController` derives from `AMDSProjectPlayerController`, activating the project debug overlay path in the TopDown map.
 
 ## Not Verified In This Pass
 
-- Viewport visual confirmation for the debug overlay, including F1 toggle and actual pixels.
 - Authored Widget Blueprint TextBlock placement.
 - Match HUD visual layout.
 - Objective World UI visual layout.
@@ -153,8 +188,6 @@ These items require visual PIE/client checks, authored Widget Blueprint layout w
 
 ## Manual Follow-Up
 
-1. Run PIE or staged client with a viewport and toggle the debug overlay with `F1`.
-2. Confirm the fallback text layout is visible when the Widget Blueprint has no authored TextBlocks.
-3. Add authored Widget Blueprint TextBlocks if a custom layout is needed.
-4. Confirm displayed values match replicated GameState, ObjectiveActor, and debug snapshot sources.
-5. Capture screenshots or short video for Match HUD, Objective World UI, and Enemy World UI.
+1. Add authored Widget Blueprint TextBlocks if a custom layout is needed.
+2. Confirm displayed values match replicated GameState, ObjectiveActor, and debug snapshot sources during dedicated server/client play.
+3. Capture screenshots or short video for Match HUD, Objective World UI, and Enemy World UI.

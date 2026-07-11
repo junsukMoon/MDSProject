@@ -10,11 +10,21 @@
 #include "EnhancedInputComponent.h"
 #include "InputActionValue.h"
 #include "EnhancedInputSubsystems.h"
+#include "InputAction.h"
+#include "InputMappingContext.h"
 #include "Engine/LocalPlayer.h"
 #include "InputCoreTypes.h"
 #include "MDSProject.h"
 #include "UObject/ConstructorHelpers.h"
 #include "UI/MDSDebugOverlayWidget.h"
+
+namespace
+{
+const TCHAR* CursorSystemPath = TEXT("/Game/TopDown/Cursor/FX_Cursor_Success.FX_Cursor_Success");
+const TCHAR* DefaultMappingContextPath = TEXT("/Game/TopDown/Input/IMC_Default.IMC_Default");
+const TCHAR* ClickActionPath = TEXT("/Game/TopDown/Input/Actions/IA_SetDestination_Click.IA_SetDestination_Click");
+const TCHAR* TouchActionPath = TEXT("/Game/TopDown/Input/Actions/IA_SetDestination_Touch.IA_SetDestination_Touch");
+}
 
 AMDSProjectPlayerController::AMDSProjectPlayerController()
 {
@@ -26,6 +36,31 @@ AMDSProjectPlayerController::AMDSProjectPlayerController()
 	DefaultMouseCursor = EMouseCursor::Default;
 	CachedDestination = FVector::ZeroVector;
 	FollowTime = 0.f;
+	ShortPressThreshold = 0.3f;
+
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> CursorSystemFinder(CursorSystemPath);
+	if (CursorSystemFinder.Succeeded())
+	{
+		FXCursor = CursorSystemFinder.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UInputMappingContext> DefaultMappingContextFinder(DefaultMappingContextPath);
+	if (DefaultMappingContextFinder.Succeeded())
+	{
+		DefaultMappingContext = DefaultMappingContextFinder.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> ClickActionFinder(ClickActionPath);
+	if (ClickActionFinder.Succeeded())
+	{
+		SetDestinationClickAction = ClickActionFinder.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> TouchActionFinder(TouchActionPath);
+	if (TouchActionFinder.Succeeded())
+	{
+		SetDestinationTouchAction = TouchActionFinder.Object;
+	}
 
 	static ConstructorHelpers::FClassFinder<UMDSDebugOverlayWidget> DebugOverlayWidgetClassFinder(
 		TEXT("/Game/MDS/UI/WBP_MDSDebugOverlay"));
@@ -55,26 +90,67 @@ void AMDSProjectPlayerController::SetupInputComponent()
 	// Only set up input on local player controllers
 	if (IsLocalPlayerController())
 	{
+		if (!DefaultMappingContext)
+		{
+			DefaultMappingContext = LoadObject<UInputMappingContext>(nullptr, DefaultMappingContextPath);
+		}
+
+		if (!SetDestinationClickAction)
+		{
+			SetDestinationClickAction = LoadObject<UInputAction>(nullptr, ClickActionPath);
+		}
+
+		if (!SetDestinationTouchAction)
+		{
+			SetDestinationTouchAction = LoadObject<UInputAction>(nullptr, TouchActionPath);
+		}
+
+		if (!FXCursor)
+		{
+			FXCursor = LoadObject<UNiagaraSystem>(nullptr, CursorSystemPath);
+		}
+
 		// Add Input Mapping Context
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 		{
-			Subsystem->AddMappingContext(DefaultMappingContext, 0);
+			if (DefaultMappingContext)
+			{
+				Subsystem->AddMappingContext(DefaultMappingContext, 0);
+			}
+			else
+			{
+				UE_LOG(LogMDSProject, Warning, TEXT("Default input mapping context is not configured on %s."), *GetNameSafe(this));
+			}
 		}
 
 		// Set up action bindings
 		if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent))
 		{
-			// Setup mouse input events
-			EnhancedInputComponent->BindAction(SetDestinationClickAction, ETriggerEvent::Started, this, &AMDSProjectPlayerController::OnInputStarted);
-			EnhancedInputComponent->BindAction(SetDestinationClickAction, ETriggerEvent::Triggered, this, &AMDSProjectPlayerController::OnSetDestinationTriggered);
-			EnhancedInputComponent->BindAction(SetDestinationClickAction, ETriggerEvent::Completed, this, &AMDSProjectPlayerController::OnSetDestinationReleased);
-			EnhancedInputComponent->BindAction(SetDestinationClickAction, ETriggerEvent::Canceled, this, &AMDSProjectPlayerController::OnSetDestinationReleased);
+			if (SetDestinationClickAction)
+			{
+				// Setup mouse input events
+				EnhancedInputComponent->BindAction(SetDestinationClickAction, ETriggerEvent::Started, this, &AMDSProjectPlayerController::OnInputStarted);
+				EnhancedInputComponent->BindAction(SetDestinationClickAction, ETriggerEvent::Triggered, this, &AMDSProjectPlayerController::OnSetDestinationTriggered);
+				EnhancedInputComponent->BindAction(SetDestinationClickAction, ETriggerEvent::Completed, this, &AMDSProjectPlayerController::OnSetDestinationReleased);
+				EnhancedInputComponent->BindAction(SetDestinationClickAction, ETriggerEvent::Canceled, this, &AMDSProjectPlayerController::OnSetDestinationReleased);
+			}
+			else
+			{
+				UE_LOG(LogMDSProject, Warning, TEXT("Click input action is not configured on %s."), *GetNameSafe(this));
+			}
 
-			// Setup touch input events
-			EnhancedInputComponent->BindAction(SetDestinationTouchAction, ETriggerEvent::Started, this, &AMDSProjectPlayerController::OnInputStarted);
-			EnhancedInputComponent->BindAction(SetDestinationTouchAction, ETriggerEvent::Triggered, this, &AMDSProjectPlayerController::OnTouchTriggered);
-			EnhancedInputComponent->BindAction(SetDestinationTouchAction, ETriggerEvent::Completed, this, &AMDSProjectPlayerController::OnTouchReleased);
-			EnhancedInputComponent->BindAction(SetDestinationTouchAction, ETriggerEvent::Canceled, this, &AMDSProjectPlayerController::OnTouchReleased);
+			if (SetDestinationTouchAction)
+			{
+				// Setup touch input events
+				EnhancedInputComponent->BindAction(SetDestinationTouchAction, ETriggerEvent::Started, this, &AMDSProjectPlayerController::OnInputStarted);
+				EnhancedInputComponent->BindAction(SetDestinationTouchAction, ETriggerEvent::Triggered, this, &AMDSProjectPlayerController::OnTouchTriggered);
+				EnhancedInputComponent->BindAction(SetDestinationTouchAction, ETriggerEvent::Completed, this, &AMDSProjectPlayerController::OnTouchReleased);
+				EnhancedInputComponent->BindAction(SetDestinationTouchAction, ETriggerEvent::Canceled, this, &AMDSProjectPlayerController::OnTouchReleased);
+			}
+			else
+			{
+				UE_LOG(LogMDSProject, Warning, TEXT("Touch input action is not configured on %s."), *GetNameSafe(this));
+			}
 		}
 		else
 		{
