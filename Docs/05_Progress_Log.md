@@ -93,3 +93,13 @@ main
 - 프로젝트는 완성형 게임이 아니라 기술 샌드박스입니다.
 - visible demo는 replicated Objective HP 검증에 초점을 둡니다.
 - 최신 runtime review evidence는 `Docs/11_Runtime_Review_Evidence.md`에 정리되어 있습니다.
+
+## Recent Debug Overlay Verification
+
+- Date: 2026-07-12
+- Branch/PR scope: debug overlay runtime configuration verification
+- Added `Run_Verify_DebugOverlayWidget.ps1`.
+- Verified `WBP_MDSDebugOverlay` can be loaded, compiled, and saved by the editor script.
+- Verified runtime configuration resolves `WBP_MDSDebugOverlay_C`.
+- Verified standalone headless runtime reaches `MDS Debug | NetMode=Standalone` without a missing debug overlay class log, widget creation failure log, CommonUI viewport error, or fatal error.
+- Visual pixels, F1 input, and Widget Blueprint TextBlock layout remain manual follow-up checks.

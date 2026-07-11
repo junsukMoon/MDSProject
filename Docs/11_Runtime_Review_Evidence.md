@@ -95,6 +95,37 @@ GameViewportClientClassName=/Script/CommonUI.CommonGameViewportClient
 
 Remaining client log entries such as missing `aqProf.dll`, `VtuneApi.dll`, and `WinPixGpuCapturer.dll` are environment/tooling load messages observed during headless runtime and are not treated as gameplay replication failures.
 
+## Debug Overlay Widget Check
+
+- Date: 2026-07-12
+- Script: `Run_Verify_DebugOverlayWidget.ps1`
+- Logs:
+  - `SavedVerifyLogs/MDS_DebugOverlayAsset.log`
+  - `SavedVerifyLogs/MDS_DebugOverlayRuntime.log`
+
+Result:
+
+```text
+DEBUG OVERLAY VERIFY RESULT: PASS
+```
+
+Evidence:
+
+```text
+MDSDebugOverlayAsset: Loaded existing widget blueprint /Game/MDS/UI/WBP_MDSDebugOverlay
+MDSDebugOverlayAsset: Compiled and saved widget blueprint
+MDSDebugOverlayAsset: Done
+Debug overlay widget class configured as WBP_MDSDebugOverlay_C.
+MDS Debug | NetMode=Standalone | Wave=1 Active=false Remaining=0/0 | ObjectiveHP=20/100
+```
+
+Interpretation:
+
+- The debug overlay Widget Blueprint asset exists and can be compiled/saved by the editor script.
+- `AMDSProjectPlayerController` resolves `WBP_MDSDebugOverlay_C` as its default debug overlay widget class.
+- A standalone headless runtime reaches the debug state reporting path without a missing debug overlay class log, widget creation failure log, CommonUI viewport error, or fatal error.
+- This check does not verify visual pixels, F1 input, or Widget Blueprint TextBlock layout.
+
 ## Verified
 
 - Dedicated Server starts and listens on port `7777`.
@@ -103,10 +134,11 @@ Remaining client log entries such as missing `aqProf.dll`, `VtuneApi.dll`, and `
 - Client observes replicated Wave display state.
 - Client observes replicated Objective HP.
 - Existing CommonUI viewport client configuration error is removed after re-stage.
+- Debug overlay Widget Blueprint asset compiles/saves and is resolved as `WBP_MDSDebugOverlay_C` in runtime configuration.
 
 ## Not Verified In This Pass
 
-- Widget Blueprint visual overlay layout.
+- Widget Blueprint visual overlay layout, including F1 toggle and TextBlock placement.
 - Match HUD visual layout.
 - Objective World UI visual layout.
 - Enemy World UI visual layout.

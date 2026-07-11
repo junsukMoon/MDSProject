@@ -17,6 +17,7 @@ Saved/
 
 # Build artifacts and logs
 *.log
+SavedVerifyLogs/
 *.obj
 *.pdb
 *.ilk
