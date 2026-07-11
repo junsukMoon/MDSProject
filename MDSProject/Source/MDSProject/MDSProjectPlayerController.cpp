@@ -32,6 +32,8 @@ AMDSProjectPlayerController::AMDSProjectPlayerController()
 	if (DebugOverlayWidgetClassFinder.Succeeded())
 	{
 		DebugOverlayWidgetClass = DebugOverlayWidgetClassFinder.Class;
+		UE_LOG(LogMDSProject, Log, TEXT("Debug overlay widget class configured as %s."),
+			*GetNameSafe(DebugOverlayWidgetClass));
 	}
 }
 
@@ -188,6 +190,15 @@ UMDSDebugOverlayWidget* AMDSProjectPlayerController::GetOrCreateDebugOverlay()
 	{
 		DebugOverlayWidget->AddToViewport(10);
 		DebugOverlayWidget->SetVisibility(ESlateVisibility::Collapsed);
+		UE_LOG(LogMDSProject, Log, TEXT("Debug overlay widget created on %s using %s."),
+			*GetNameSafe(this),
+			*GetNameSafe(DebugOverlayWidgetClass));
+	}
+	else
+	{
+		UE_LOG(LogMDSProject, Warning, TEXT("Debug overlay widget creation failed on %s using %s."),
+			*GetNameSafe(this),
+			*GetNameSafe(DebugOverlayWidgetClass));
 	}
 
 	return DebugOverlayWidget;
