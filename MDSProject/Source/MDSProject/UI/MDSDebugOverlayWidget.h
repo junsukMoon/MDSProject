@@ -6,6 +6,7 @@
 #include "MDSDebugOverlayWidget.generated.h"
 
 class UTextBlock;
+class UVerticalBox;
 
 UCLASS(Abstract, BlueprintType, Blueprintable)
 class MDSPROJECT_API UMDSDebugOverlayWidget : public UCommonActivatableWidget
@@ -32,6 +33,7 @@ public:
 	FText GetActorSummaryText() const;
 
 protected:
+	virtual void NativeConstruct() override;
 	virtual void NativeOnActivated() override;
 	virtual void NativeOnDeactivated() override;
 	virtual void NativeDestruct() override;
@@ -53,6 +55,9 @@ protected:
 
 private:
 	FString GetNetModeLabel() const;
+	bool HasBoundTextBlocks() const;
+	void EnsureFallbackLayout();
+	UTextBlock* CreateFallbackTextBlock(UVerticalBox& Parent, const FName WidgetName, const FText& InitialText);
 	void ClearRefreshTimer();
 	void UpdateBoundTextBlocks();
 
@@ -72,4 +77,19 @@ private:
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "MDS|Debug", meta = (AllowPrivateAccess = "true"))
 	FText ActorSummaryText;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> FallbackNetModeTextBlock;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> FallbackObjectiveHealthTextBlock;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> FallbackWaveSummaryTextBlock;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> FallbackMassSummaryTextBlock;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> FallbackActorSummaryTextBlock;
 };

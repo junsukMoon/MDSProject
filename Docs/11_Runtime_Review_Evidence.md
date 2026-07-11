@@ -123,8 +123,9 @@ Interpretation:
 
 - The debug overlay Widget Blueprint asset exists and can be compiled/saved by the editor script.
 - `AMDSProjectPlayerController` resolves `WBP_MDSDebugOverlay_C` as its default debug overlay widget class.
+- `UMDSDebugOverlayWidget` now builds a C++ fallback text layout when a Widget Blueprint has no bound debug TextBlocks.
 - A standalone headless runtime reaches the debug state reporting path without a missing debug overlay class log, widget creation failure log, CommonUI viewport error, or fatal error.
-- This check does not verify visual pixels, F1 input, or Widget Blueprint TextBlock layout.
+- This check verifies build/runtime configuration and fallback layout code compilation. It does not verify visual pixels or F1 input.
 
 ## Verified
 
@@ -135,10 +136,12 @@ Interpretation:
 - Client observes replicated Objective HP.
 - Existing CommonUI viewport client configuration error is removed after re-stage.
 - Debug overlay Widget Blueprint asset compiles/saves and is resolved as `WBP_MDSDebugOverlay_C` in runtime configuration.
+- Debug overlay fallback layout code compiles and preserves existing standalone and dedicated server/client runtime verification paths.
 
 ## Not Verified In This Pass
 
-- Widget Blueprint visual overlay layout, including F1 toggle and TextBlock placement.
+- Viewport visual confirmation for the debug overlay, including F1 toggle and actual pixels.
+- Authored Widget Blueprint TextBlock placement.
 - Match HUD visual layout.
 - Objective World UI visual layout.
 - Enemy World UI visual layout.
@@ -146,12 +149,12 @@ Interpretation:
 - Attack Montage / AnimNotify negative test.
 - Hit Reaction and Death Animation presentation.
 
-These items require Widget Blueprint assets, visual PIE/client checks, or animation-specific runtime scenarios.
+These items require visual PIE/client checks, authored Widget Blueprint layout work, or animation-specific runtime scenarios.
 
 ## Manual Follow-Up
 
-1. Create Widget Blueprint assets for the debug overlay and gameplay UI surfaces.
-2. Assign the debug overlay Widget Blueprint to `DebugOverlayWidgetClass`.
-3. Run staged client or PIE and toggle the overlay with `F1`.
+1. Run PIE or staged client with a viewport and toggle the debug overlay with `F1`.
+2. Confirm the fallback text layout is visible when the Widget Blueprint has no authored TextBlocks.
+3. Add authored Widget Blueprint TextBlocks if a custom layout is needed.
 4. Confirm displayed values match replicated GameState, ObjectiveActor, and debug snapshot sources.
 5. Capture screenshots or short video for Match HUD, Objective World UI, and Enemy World UI.
