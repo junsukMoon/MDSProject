@@ -1,6 +1,8 @@
 #include "Objective/MDSObjectiveActor.h"
 
+#include "Components/WidgetComponent.h"
 #include "Debug/MDSDebugStateSubsystem.h"
+#include "UI/MDSObjectiveWorldWidget.h"
 #include "Net/UnrealNetwork.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMDSObjective, Log, All);
@@ -13,6 +15,14 @@ AMDSObjectiveActor::AMDSObjectiveActor()
 
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	SetRootComponent(SceneRoot);
+
+	ObjectiveWorldWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("ObjectiveWorldWidget"));
+	ObjectiveWorldWidgetComponent->SetupAttachment(SceneRoot);
+	ObjectiveWorldWidgetComponent->SetWidgetClass(UMDSObjectiveWorldWidget::StaticClass());
+	ObjectiveWorldWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
+	ObjectiveWorldWidgetComponent->SetDrawAtDesiredSize(true);
+	ObjectiveWorldWidgetComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 160.0f));
+	ObjectiveWorldWidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void AMDSObjectiveActor::BeginPlay()
@@ -31,6 +41,28 @@ void AMDSObjectiveActor::BeginPlay()
 		}
 
 		UE_LOG(LogMDSObjective, Log, TEXT("Objective initialized on server with %.1f / %.1f HP at %s."), CurrentHealth, MaxHealth, *GetActorLocation().ToCompactString());
+	}
+
+	if (ObjectiveWorldWidgetComponent)
+	{
+		if (GetNetMode() == NM_DedicatedServer)
+		{
+			ObjectiveWorldWidgetComponent->SetVisibility(false);
+		}
+		else if (UMDSObjectiveWorldWidget* ObjectiveWidget = Cast<UMDSObjectiveWorldWidget>(ObjectiveWorldWidgetComponent->GetUserWidgetObject()))
+		{
+			ObjectiveWidget->SetObjectiveActor(this);
+			UE_LOG(LogMDSObjective, Log, TEXT("Objective World UI widget initialized on %s."), *GetNameSafe(this));
+		}
+		else
+		{
+			ObjectiveWorldWidgetComponent->InitWidget();
+			if (UMDSObjectiveWorldWidget* InitializedObjectiveWidget = Cast<UMDSObjectiveWorldWidget>(ObjectiveWorldWidgetComponent->GetUserWidgetObject()))
+			{
+				InitializedObjectiveWidget->SetObjectiveActor(this);
+				UE_LOG(LogMDSObjective, Log, TEXT("Objective World UI widget initialized on %s."), *GetNameSafe(this));
+			}
+		}
 	}
 }
 
@@ -79,4 +111,12 @@ void AMDSObjectiveActor::OnRep_CurrentHealth()
 	}
 
 	UE_LOG(LogMDSObjective, Log, TEXT("Objective HP replicated on client: %.1f / %.1f."), CurrentHealth, MaxHealth);
+
+	if (ObjectiveWorldWidgetComponent)
+	{
+		if (UMDSObjectiveWorldWidget* ObjectiveWidget = Cast<UMDSObjectiveWorldWidget>(ObjectiveWorldWidgetComponent->GetUserWidgetObject()))
+		{
+			ObjectiveWidget->RefreshFromObjective();
+		}
+	}
 }

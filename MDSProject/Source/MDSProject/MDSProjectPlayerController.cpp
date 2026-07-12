@@ -17,6 +17,7 @@
 #include "MDSProject.h"
 #include "UObject/ConstructorHelpers.h"
 #include "UI/MDSDebugOverlayWidget.h"
+#include "UI/MDSMatchHUDWidget.h"
 
 namespace
 {
@@ -78,6 +79,7 @@ void AMDSProjectPlayerController::BeginPlay()
 
 	if (IsLocalPlayerController())
 	{
+		GetOrCreateMatchHUD();
 		GetOrCreateDebugOverlay();
 	}
 }
@@ -278,4 +280,30 @@ UMDSDebugOverlayWidget* AMDSProjectPlayerController::GetOrCreateDebugOverlay()
 	}
 
 	return DebugOverlayWidget;
+}
+
+UMDSMatchHUDWidget* AMDSProjectPlayerController::GetOrCreateMatchHUD()
+{
+	if (!IsLocalPlayerController())
+	{
+		return nullptr;
+	}
+
+	if (MatchHUDWidget)
+	{
+		return MatchHUDWidget;
+	}
+
+	MatchHUDWidget = CreateWidget<UMDSMatchHUDWidget>(this, UMDSMatchHUDWidget::StaticClass());
+	if (MatchHUDWidget)
+	{
+		MatchHUDWidget->AddToViewport(5);
+		UE_LOG(LogMDSProject, Log, TEXT("MDS Match HUD widget created on %s."), *GetNameSafe(this));
+	}
+	else
+	{
+		UE_LOG(LogMDSProject, Warning, TEXT("MDS Match HUD widget creation failed on %s."), *GetNameSafe(this));
+	}
+
+	return MatchHUDWidget;
 }

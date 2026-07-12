@@ -11,6 +11,7 @@ class UNiagaraSystem;
 class UInputMappingContext;
 class UInputAction;
 class UMDSDebugOverlayWidget;
+class UMDSMatchHUDWidget;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
@@ -18,7 +19,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
  *  Player controller for a top-down perspective game.
  *  Implements point and click based controls
  */
-UCLASS(abstract)
+UCLASS()
 class AMDSProjectPlayerController : public APlayerController
 {
 	GENERATED_BODY()
@@ -78,12 +79,16 @@ protected:
 
 private:
 	UMDSDebugOverlayWidget* GetOrCreateDebugOverlay();
+	UMDSMatchHUDWidget* GetOrCreateMatchHUD();
 
 	UPROPERTY(EditDefaultsOnly, Category = "MDS|UI", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UMDSDebugOverlayWidget> DebugOverlayWidgetClass;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMDSDebugOverlayWidget> DebugOverlayWidget;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMDSMatchHUDWidget> MatchHUDWidget;
 };
 
 

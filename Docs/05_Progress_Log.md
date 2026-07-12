@@ -112,3 +112,17 @@ main
 - Verified `Run_Verify_DebugOverlayViewport.ps1` result: `DEBUG OVERLAY VIEWPORT VERIFY RESULT: PASS`.
 - Known note: a generic `LogEnhancedInput: Warning: Called AddMappingContext with a null Mapping Context!` line remains from the existing TopDown Blueprint input path, but project-side missing input warnings are not emitted and the overlay viewport verification passes.
 - Authored Widget Blueprint TextBlock layout remains a future polish task; the C++ fallback layout is verified visible.
+
+## Recent Replicated UI Baseline
+
+- Date: 2026-07-12
+- Branch/PR scope: Match HUD / Objective World UI / Enemy World UI replicated UI baseline
+- Added `UMDSMatchHUDWidget`, `UMDSObjectiveWorldWidget`, and `UMDSEnemyWorldWidget`.
+- Match HUD reads `AMDSProjectGameState` Wave state directly.
+- Objective World UI reads `AMDSObjectiveActor` replicated HP directly.
+- Enemy World UI reads each `AMDSCombatEnemyActor` replicated HP directly and supports multiple spawned combat enemies.
+- Added `Run_Verify_ReplicatedUIBaseline.ps1` to build client/server targets, cook/stage, launch dedicated server plus windowed client, enable actor enemy baseline, and scan replicated UI source logs.
+- Changed `AMDSProjectGameMode` to use `AMDSProjectPlayerController` directly, removing the staged runtime dependency on loading `BP_TopDownController` as the controller class.
+- Verified `Run_Verify_ReplicatedUIBaseline.ps1` result: `REPLICATED UI BASELINE VERIFY RESULT: PASS`.
+- Verified `Run_Verify_WaveDisplayState.ps1` result: `WAVE VERIFY RESULT: PASS`.
+- Verified `Run_Verify_DebugOverlayWidget.ps1` result: `DEBUG OVERLAY VERIFY RESULT: PASS`.

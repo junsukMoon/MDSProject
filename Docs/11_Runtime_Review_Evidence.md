@@ -161,6 +161,38 @@ Interpretation:
 - The controller now has C++ default references for the TopDown input mapping context, click action, touch action, and cursor FX, and the configure script writes the same defaults to `BP_TopDownController`.
 - A generic `LogEnhancedInput: Warning: Called AddMappingContext with a null Mapping Context!` line still appears from the existing TopDown Blueprint input path. No project-side missing input warnings are emitted, and this warning is not treated as a debug overlay viewport failure.
 
+## Replicated UI Baseline Check
+
+- Date: 2026-07-12
+- Script: `Run_Verify_ReplicatedUIBaseline.ps1`
+- Logs:
+  - `SavedVerifyLogs/MDS_ReplicatedUI_Server.log`
+  - `SavedVerifyLogs/MDS_ReplicatedUI_Client.log`
+
+Result:
+
+```text
+REPLICATED UI BASELINE VERIFY RESULT: PASS
+```
+
+Evidence:
+
+```text
+Combat enemy wave spawn created 4/4 enemies around objective MDS_ActorObjectiveProbe
+MDS Match HUD read GameState wave state: Wave=1 Remaining=0 Total=0 Active=false.
+MDS Objective World UI read ObjectiveActor health: 20.0 / 100.0
+MDS Enemy World UI read CombatEnemy health: 100.0 / 100.0
+Objective HP replicated on client: 20.0 / 100.0.
+```
+
+Interpretation:
+
+- Match HUD reads replicated Wave display state from `AMDSProjectGameState`.
+- Objective World UI reads replicated Objective HP from each `AMDSObjectiveActor`.
+- Enemy World UI reads replicated Enemy HP from each `AMDSCombatEnemyActor`; the verification used four combat enemies to avoid a single-target-only path.
+- These UI widgets only observe state and do not mutate HP, damage, Wave, or combat state.
+- `AMDSProjectGameMode` now uses `AMDSProjectPlayerController` directly, removing the staged client dependency on loading `BP_TopDownController` during GameMode CDO construction.
+
 ## Verified
 
 - Dedicated Server starts and listens on port `7777`.
@@ -173,13 +205,14 @@ Interpretation:
 - Debug overlay fallback layout code compiles and preserves existing standalone and dedicated server/client runtime verification paths.
 - Debug overlay viewport pixels are visible in a staged Win64 client after `F1`.
 - `BP_TopDownController` derives from `AMDSProjectPlayerController`, activating the project debug overlay path in the TopDown map.
+- Match HUD, Objective World UI, and Enemy World UI baseline widgets read replicated gameplay sources on a staged dedicated server/client run.
 
 ## Not Verified In This Pass
 
 - Authored Widget Blueprint TextBlock placement.
-- Match HUD visual layout.
-- Objective World UI visual layout.
-- Enemy World UI visual layout.
+- Authored Match HUD visual layout.
+- Authored Objective World UI visual layout.
+- Authored Enemy World UI visual layout.
 - Enemy HP/death presentation.
 - Attack Montage / AnimNotify negative test.
 - Hit Reaction and Death Animation presentation.

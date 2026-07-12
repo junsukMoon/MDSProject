@@ -5,6 +5,7 @@
 #include "MDSObjectiveActor.generated.h"
 
 class USceneComponent;
+class UWidgetComponent;
 
 UCLASS()
 class MDSPROJECT_API AMDSObjectiveActor : public AActor
@@ -30,6 +31,9 @@ protected:
 private:
 	UPROPERTY(VisibleDefaultsOnly, Category = "Objective")
 	TObjectPtr<USceneComponent> SceneRoot;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Objective|UI")
+	TObjectPtr<UWidgetComponent> ObjectiveWorldWidgetComponent;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Objective", meta = (ClampMin = "1.0"))
 	float MaxHealth = 100.0f;

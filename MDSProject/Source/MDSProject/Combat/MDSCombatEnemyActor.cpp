@@ -1,9 +1,11 @@
 #include "Combat/MDSCombatEnemyActor.h"
 
 #include "Components/SceneComponent.h"
+#include "Components/WidgetComponent.h"
 #include "MDSProjectGameMode.h"
 #include "Net/UnrealNetwork.h"
 #include "Objective/MDSObjectiveActor.h"
+#include "UI/MDSEnemyWorldWidget.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMDSCombatEnemy, Log, All);
 
@@ -16,6 +18,14 @@ AMDSCombatEnemyActor::AMDSCombatEnemyActor()
 
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	SetRootComponent(SceneRoot);
+
+	EnemyWorldWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("EnemyWorldWidget"));
+	EnemyWorldWidgetComponent->SetupAttachment(SceneRoot);
+	EnemyWorldWidgetComponent->SetWidgetClass(UMDSEnemyWorldWidget::StaticClass());
+	EnemyWorldWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
+	EnemyWorldWidgetComponent->SetDrawAtDesiredSize(true);
+	EnemyWorldWidgetComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 120.0f));
+	EnemyWorldWidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void AMDSCombatEnemyActor::BeginPlay()
@@ -32,6 +42,28 @@ void AMDSCombatEnemyActor::BeginPlay()
 			CurrentHealth,
 			MaxHealth,
 			*GetActorLocation().ToCompactString());
+	}
+
+	if (EnemyWorldWidgetComponent)
+	{
+		if (GetNetMode() == NM_DedicatedServer)
+		{
+			EnemyWorldWidgetComponent->SetVisibility(false);
+		}
+		else if (UMDSEnemyWorldWidget* EnemyWidget = Cast<UMDSEnemyWorldWidget>(EnemyWorldWidgetComponent->GetUserWidgetObject()))
+		{
+			EnemyWidget->SetEnemyActor(this);
+			UE_LOG(LogMDSCombatEnemy, Log, TEXT("Enemy World UI widget initialized on %s."), *GetNameSafe(this));
+		}
+		else
+		{
+			EnemyWorldWidgetComponent->InitWidget();
+			if (UMDSEnemyWorldWidget* InitializedEnemyWidget = Cast<UMDSEnemyWorldWidget>(EnemyWorldWidgetComponent->GetUserWidgetObject()))
+			{
+				InitializedEnemyWidget->SetEnemyActor(this);
+				UE_LOG(LogMDSCombatEnemy, Log, TEXT("Enemy World UI widget initialized on %s."), *GetNameSafe(this));
+			}
+		}
 	}
 }
 
@@ -136,6 +168,14 @@ void AMDSCombatEnemyActor::OnRep_CurrentHealth()
 		CurrentHealth,
 		MaxHealth,
 		IsDead() ? TEXT("true") : TEXT("false"));
+
+	if (EnemyWorldWidgetComponent)
+	{
+		if (UMDSEnemyWorldWidget* EnemyWidget = Cast<UMDSEnemyWorldWidget>(EnemyWorldWidgetComponent->GetUserWidgetObject()))
+		{
+			EnemyWidget->RefreshFromEnemy();
+		}
+	}
 }
 
 void AMDSCombatEnemyActor::HandleDeathOnce(const FName DamageSource)
