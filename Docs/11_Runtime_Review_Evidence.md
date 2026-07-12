@@ -193,6 +193,45 @@ Interpretation:
 - These UI widgets only observe state and do not mutate HP, damage, Wave, or combat state.
 - `AMDSProjectGameMode` now uses `AMDSProjectPlayerController` directly, removing the staged client dependency on loading `BP_TopDownController` during GameMode CDO construction.
 
+## Replicated UI Viewport Check
+
+- Date: 2026-07-13
+- Script: `Run_Verify_ReplicatedUIViewport.ps1`
+- Logs:
+  - `SavedVerifyLogs/MDS_ReplicatedUIViewport_Server.log`
+  - `SavedVerifyLogs/MDS_ReplicatedUIViewport_Client.log`
+- Screenshot:
+  - `SavedVerifyLogs/MDS_ReplicatedUIViewport_Client_PrintWindow.png`
+
+Result:
+
+```text
+REPLICATED UI VIEWPORT VERIFY RESULT: INCOMPLETE
+```
+
+Evidence:
+
+```text
+Combat enemy wave spawn created 4/4 enemies around objective MDS_ActorObjectiveProbe
+MDS Match HUD read GameState wave state: Wave=1 Remaining=0 Total=0 Active=false.
+MDS Match HUD widget created on MDSProjectPlayerController
+MDS Objective World UI read ObjectiveActor health: 20.0 / 100.0
+MDS Enemy World UI read CombatEnemy health: 100.0 / 100.0
+Objective HP replicated on client: 80.0 / 100.0.
+Screenshot has visible pixels: False
+```
+
+Interpretation:
+
+- `MDSProjectEditor`, `MDSProject`, and `MDSProjectServer` Development builds succeeded.
+- Win64 client/server cook and stage succeeded.
+- The staged dedicated server spawned four combat enemies for the actor baseline source.
+- The staged client created the Match HUD and initialized Objective/Enemy world UI widgets.
+- The staged client read replicated Wave, Objective HP, and Enemy HP sources.
+- The viewport verification script now rejects title-bar-only captures and requires visible pixels in the client content area.
+- Latest staged client content capture is still black, so Match HUD / Objective World UI / Enemy World UI visual pixels are not verified in this pass.
+- Fallback UI text now uses explicit white text with a black shadow, and Match HUD uses an explicit top-left viewport position/size to support the next visual verification pass.
+
 ## Verified
 
 - Dedicated Server starts and listens on port `7777`.
@@ -206,6 +245,7 @@ Interpretation:
 - Debug overlay viewport pixels are visible in a staged Win64 client after `F1`.
 - `BP_TopDownController` derives from `AMDSProjectPlayerController`, activating the project debug overlay path in the TopDown map.
 - Match HUD, Objective World UI, and Enemy World UI baseline widgets read replicated gameplay sources on a staged dedicated server/client run.
+- Replicated UI viewport verification now fails closed when the client content screenshot is visually blank.
 
 ## Not Verified In This Pass
 
@@ -213,6 +253,7 @@ Interpretation:
 - Authored Match HUD visual layout.
 - Authored Objective World UI visual layout.
 - Authored Enemy World UI visual layout.
+- Replicated UI viewport content pixels for Match HUD, Objective World UI, and Enemy World UI.
 - Enemy HP/death presentation.
 - Attack Montage / AnimNotify negative test.
 - Hit Reaction and Death Animation presentation.
@@ -223,4 +264,4 @@ These items require visual PIE/client checks, authored Widget Blueprint layout w
 
 1. Add authored Widget Blueprint TextBlocks if a custom layout is needed.
 2. Confirm displayed values match replicated GameState, ObjectiveActor, and debug snapshot sources during dedicated server/client play.
-3. Capture screenshots or short video for Match HUD, Objective World UI, and Enemy World UI.
+3. Resolve the black staged-client content capture and capture screenshots or short video for Match HUD, Objective World UI, and Enemy World UI.

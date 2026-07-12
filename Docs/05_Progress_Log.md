@@ -126,3 +126,17 @@ main
 - Verified `Run_Verify_ReplicatedUIBaseline.ps1` result: `REPLICATED UI BASELINE VERIFY RESULT: PASS`.
 - Verified `Run_Verify_WaveDisplayState.ps1` result: `WAVE VERIFY RESULT: PASS`.
 - Verified `Run_Verify_DebugOverlayWidget.ps1` result: `DEBUG OVERLAY VERIFY RESULT: PASS`.
+
+## Recent Replicated UI Viewport Verification
+
+- Date: 2026-07-13
+- Branch/PR scope: stricter staged viewport evidence for replicated UI baseline
+- Added `Run_Verify_ReplicatedUIViewport.ps1` to build client/server/editor targets, cook/stage Win64 client and server, launch a dedicated server plus visible client, capture the client window, and scan replicated UI logs.
+- The script now rejects title-bar-only or blank captures by checking visible pixels inside the client content area.
+- Added explicit white fallback text with black shadow for Match HUD, Objective World UI, and Enemy World UI fallback widgets.
+- Added explicit Match HUD viewport position and size so the fallback HUD is not dependent on implicit placement.
+- Verified `MDSProjectEditor`, `MDSProject`, and `MDSProjectServer` Development builds succeeded.
+- Verified Win64 client/server cook and stage succeeded.
+- Verified runtime logs show Match HUD, Objective World UI, and Enemy World UI reading replicated GameState/Object/Enemy HP sources.
+- Latest strict result: `REPLICATED UI VIEWPORT VERIFY RESULT: INCOMPLETE`.
+- Reason: the staged client content-area screenshot remains black, so visual pixels for Match HUD / Objective World UI / Enemy World UI are not yet verified.

@@ -298,6 +298,10 @@ UMDSMatchHUDWidget* AMDSProjectPlayerController::GetOrCreateMatchHUD()
 	if (MatchHUDWidget)
 	{
 		MatchHUDWidget->AddToViewport(5);
+		MatchHUDWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+		MatchHUDWidget->SetAlignmentInViewport(FVector2D(0.0f, 0.0f));
+		MatchHUDWidget->SetPositionInViewport(FVector2D(24.0f, 24.0f), false);
+		MatchHUDWidget->SetDesiredSizeInViewport(FVector2D(320.0f, 80.0f));
 		UE_LOG(LogMDSProject, Log, TEXT("MDS Match HUD widget created on %s."), *GetNameSafe(this));
 	}
 	else
