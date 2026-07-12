@@ -79,6 +79,9 @@ void UMDSEnemyWorldWidget::EnsureFallbackLayout()
 	}
 
 	FallbackEnemyHealthTextBlock->SetText(LOCTEXT("FallbackEnemyHealth", "Enemy HP: -"));
+	FallbackEnemyHealthTextBlock->SetColorAndOpacity(FSlateColor(FLinearColor::White));
+	FallbackEnemyHealthTextBlock->SetShadowOffset(FVector2D(1.0f, 1.0f));
+	FallbackEnemyHealthTextBlock->SetShadowColorAndOpacity(FLinearColor::Black);
 	WidgetTree->RootWidget = FallbackEnemyHealthTextBlock;
 
 	UE_LOG(LogMDSProject, Log, TEXT("MDS Enemy World UI fallback layout initialized on %s."), *GetNameSafe(this));

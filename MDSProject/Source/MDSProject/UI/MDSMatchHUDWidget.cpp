@@ -100,6 +100,9 @@ UTextBlock* UMDSMatchHUDWidget::CreateFallbackTextBlock(UVerticalBox& Parent, co
 	}
 
 	TextBlock->SetText(InitialText);
+	TextBlock->SetColorAndOpacity(FSlateColor(FLinearColor::White));
+	TextBlock->SetShadowOffset(FVector2D(1.0f, 1.0f));
+	TextBlock->SetShadowColorAndOpacity(FLinearColor::Black);
 	Parent.AddChildToVerticalBox(TextBlock);
 	return TextBlock;
 }

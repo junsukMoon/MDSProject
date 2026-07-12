@@ -79,6 +79,9 @@ void UMDSObjectiveWorldWidget::EnsureFallbackLayout()
 	}
 
 	FallbackObjectiveHealthTextBlock->SetText(LOCTEXT("FallbackObjectiveHealth", "Objective HP: -"));
+	FallbackObjectiveHealthTextBlock->SetColorAndOpacity(FSlateColor(FLinearColor::White));
+	FallbackObjectiveHealthTextBlock->SetShadowOffset(FVector2D(1.0f, 1.0f));
+	FallbackObjectiveHealthTextBlock->SetShadowColorAndOpacity(FLinearColor::Black);
 	WidgetTree->RootWidget = FallbackObjectiveHealthTextBlock;
 
 	UE_LOG(LogMDSProject, Log, TEXT("MDS Objective World UI fallback layout initialized on %s."), *GetNameSafe(this));
