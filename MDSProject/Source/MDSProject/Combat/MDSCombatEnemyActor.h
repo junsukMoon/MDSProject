@@ -6,6 +6,7 @@
 
 class AMDSObjectiveActor;
 class USceneComponent;
+class UWidgetComponent;
 
 UCLASS()
 class MDSPROJECT_API AMDSCombatEnemyActor : public AActor
@@ -37,6 +38,9 @@ private:
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Combat Enemy")
 	TObjectPtr<USceneComponent> SceneRoot;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Combat Enemy|UI")
+	TObjectPtr<UWidgetComponent> EnemyWorldWidgetComponent;
 
 	UPROPERTY()
 	TObjectPtr<AMDSObjectiveActor> ObjectiveActor;

@@ -3,9 +3,9 @@
 #include "MDSProjectGameMode.h"
 
 #include "ActorAI/MDSActorEnemySpawnSubsystem.h"
+#include "MDSProjectPlayerController.h"
 #include "MDSProjectGameState.h"
 #include "GameFramework/Pawn.h"
-#include "GameFramework/PlayerController.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
 #include "TimerManager.h"
@@ -23,11 +23,7 @@ AMDSProjectGameMode::AMDSProjectGameMode()
 		DefaultPawnClass = PlayerPawnBPClass.Class;
 	}
 
-	static ConstructorHelpers::FClassFinder<APlayerController> PlayerControllerBPClass(TEXT("/Game/TopDown/Blueprints/BP_TopDownController"));
-	if (PlayerControllerBPClass.Class)
-	{
-		PlayerControllerClass = PlayerControllerBPClass.Class;
-	}
+	PlayerControllerClass = AMDSProjectPlayerController::StaticClass();
 }
 
 void AMDSProjectGameMode::BeginPlay()
