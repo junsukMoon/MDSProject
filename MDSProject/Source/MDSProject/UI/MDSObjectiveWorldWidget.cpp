@@ -8,6 +8,12 @@
 
 #define LOCTEXT_NAMESPACE "MDSObjectiveWorldWidget"
 
+TSharedRef<SWidget> UMDSObjectiveWorldWidget::RebuildWidget()
+{
+	EnsureFallbackLayout();
+	return Super::RebuildWidget();
+}
+
 void UMDSObjectiveWorldWidget::SetObjectiveActor(AMDSObjectiveActor* InObjectiveActor)
 {
 	ObjectiveActor = InObjectiveActor;
@@ -65,7 +71,7 @@ void UMDSObjectiveWorldWidget::RefreshFromObjective()
 
 void UMDSObjectiveWorldWidget::EnsureFallbackLayout()
 {
-	if (ObjectiveHealthTextBlock || FallbackObjectiveHealthTextBlock || !WidgetTree)
+	if (ObjectiveHealthTextBlock || FallbackObjectiveHealthTextBlock || !WidgetTree || WidgetTree->RootWidget)
 	{
 		return;
 	}

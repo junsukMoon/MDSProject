@@ -20,6 +20,7 @@ public:
 	void RefreshFromObjective();
 
 protected:
+	virtual TSharedRef<SWidget> RebuildWidget() override;
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 

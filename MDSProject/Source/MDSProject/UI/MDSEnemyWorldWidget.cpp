@@ -8,6 +8,12 @@
 
 #define LOCTEXT_NAMESPACE "MDSEnemyWorldWidget"
 
+TSharedRef<SWidget> UMDSEnemyWorldWidget::RebuildWidget()
+{
+	EnsureFallbackLayout();
+	return Super::RebuildWidget();
+}
+
 void UMDSEnemyWorldWidget::SetEnemyActor(AMDSCombatEnemyActor* InEnemyActor)
 {
 	EnemyActor = InEnemyActor;
@@ -65,7 +71,7 @@ void UMDSEnemyWorldWidget::RefreshFromEnemy()
 
 void UMDSEnemyWorldWidget::EnsureFallbackLayout()
 {
-	if (EnemyHealthTextBlock || FallbackEnemyHealthTextBlock || !WidgetTree)
+	if (EnemyHealthTextBlock || FallbackEnemyHealthTextBlock || !WidgetTree || WidgetTree->RootWidget)
 	{
 		return;
 	}

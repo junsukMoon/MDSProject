@@ -19,6 +19,7 @@ $LogDir = Join-Path $Root "SavedVerifyLogs"
 $ServerLog = Join-Path $LogDir "MDS_ReplicatedUIViewport_Server.log"
 $ClientLog = Join-Path $LogDir "MDS_ReplicatedUIViewport_Client.log"
 $ScreenshotPath = Join-Path $LogDir "MDS_ReplicatedUIViewport_Client_PrintWindow.png"
+$EngineScreenshotPath = Join-Path $LogDir "MDS_ReplicatedUIViewport_Client_EngineShot.png"
 
 function Stop-IfRunning {
     param([System.Diagnostics.Process]$Process)
@@ -35,7 +36,7 @@ function Select-ReplicatedUIPatterns {
         return @()
     }
 
-    Select-String -Path $Path -Pattern "MDS Match HUD|MDS Objective World UI|MDS Enemy World UI|Objective World UI widget initialized|Enemy World UI widget initialized|Combat enemy wave spawn created|Objective HP replicated on client|MDS Debug \| NetMode=Client|Using CommonUI without a CommonGameViewportClient|Fatal|LogWindows: Error" |
+    Select-String -Path $Path -Pattern "MDS Match HUD|MDS Objective World UI|MDS Enemy World UI|Objective World UI widget initialized|Enemy World UI widget initialized|Combat enemy wave spawn created|Objective HP replicated on client|MDS Debug \| NetMode=Client|MDS replicated UI viewport screenshot requested|Using CommonUI without a CommonGameViewportClient|Fatal|LogWindows: Error" |
         Select-Object -Last 180
 }
 
@@ -103,21 +104,6 @@ public static class MDSReplicatedUIWin32Capture
     $Bitmap.Dispose()
     Write-Host "PrintWindow captured: $Captured"
     Write-Host "Screenshot: $Path"
-
-    if (-not (Test-ScreenshotHasVisiblePixels -Path $Path)) {
-        Write-Host "PrintWindow screenshot appears blank; retrying with CopyFromScreen."
-        $ScreenBitmap = New-Object System.Drawing.Bitmap $Width, $Height
-        $ScreenGraphics = [System.Drawing.Graphics]::FromImage($ScreenBitmap)
-        try {
-            $ScreenGraphics.CopyFromScreen($Rect.Left, $Rect.Top, 0, 0, $ScreenBitmap.Size)
-        }
-        finally {
-            $ScreenGraphics.Dispose()
-        }
-        $ScreenBitmap.Save($Path, [System.Drawing.Imaging.ImageFormat]::Png)
-        $ScreenBitmap.Dispose()
-        Write-Host "CopyFromScreen screenshot: $Path"
-    }
 }
 
 function Test-ScreenshotHasVisiblePixels {
@@ -174,6 +160,7 @@ New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 Remove-Item -LiteralPath $ServerLog -Force -ErrorAction SilentlyContinue
 Remove-Item -LiteralPath $ClientLog -Force -ErrorAction SilentlyContinue
 Remove-Item -LiteralPath $ScreenshotPath -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath $EngineScreenshotPath -Force -ErrorAction SilentlyContinue
 
 Write-Host "Building MDSProjectEditor Win64 Development..."
 & $BuildBat MDSProjectEditor Win64 Development $ProjectFile -WaitMutex -NoHotReloadFromIDE
@@ -239,7 +226,7 @@ try {
     Write-Host "Launching visible client:"
     Write-Host "  $ClientExe"
     $ClientProcess = Start-Process -FilePath $ClientExe `
-        -ArgumentList @("127.0.0.1:$Port", "-windowed", "-ResX=1280", "-ResY=720", "-nosound", "-NoSplash", "-stdout", "-FullStdOutLogOutput", "-forcelogflush") `
+        -ArgumentList @("127.0.0.1:$Port", "-windowed", "-ResX=1280", "-ResY=720", "-nosound", "-NoSplash", "-stdout", "-FullStdOutLogOutput", "-forcelogflush", "-MDSReplicatedUIViewportShot", "-MDSReplicatedUIViewportShotPath=`"$EngineScreenshotPath`"") `
         -WorkingDirectory $ClientDir `
         -RedirectStandardOutput $ClientLog `
         -PassThru
@@ -271,6 +258,8 @@ $ServerText = if (Test-Path -LiteralPath $ServerLog) { Get-Content -LiteralPath 
 $ClientText = if (Test-Path -LiteralPath $ClientLog) { Get-Content -LiteralPath $ClientLog -Raw -ErrorAction SilentlyContinue } else { "" }
 $ScreenshotOk = (Test-Path -LiteralPath $ScreenshotPath) -and ((Get-Item -LiteralPath $ScreenshotPath).Length -gt 0)
 $ScreenshotVisibleOk = Test-ScreenshotHasVisiblePixels -Path $ScreenshotPath
+$EngineScreenshotOk = (Test-Path -LiteralPath $EngineScreenshotPath) -and ((Get-Item -LiteralPath $EngineScreenshotPath).Length -gt 0)
+$EngineScreenshotVisibleOk = Test-ScreenshotHasVisiblePixels -Path $EngineScreenshotPath
 
 $ActorSpawnOk = $ServerText -match "Combat enemy wave spawn created $ActorEnemyCount/$ActorEnemyCount enemies"
 $MatchHudOk = $ClientText -match "MDS Match HUD read GameState wave state"
@@ -278,10 +267,11 @@ $ObjectiveWorldOk = $ClientText -match "MDS Objective World UI read ObjectiveAct
 $EnemyWorldOk = $ClientText -match "MDS Enemy World UI read CombatEnemy health"
 $ObjectiveReplicationOk = $ClientText -match "Objective HP replicated on client|MDS Debug \| NetMode=Client .*ObjectiveHP="
 $ClientConnectionOk = $ServerText -match "Join succeeded|Login request"
+$EngineScreenshotRequestedOk = $ClientText -match "MDS replicated UI viewport screenshot requested"
 $CommonUiViewportError = $ClientText -match "Using CommonUI without a CommonGameViewportClient"
 $FatalError = ($ServerText -match "Fatal error|LogWindows: Error:") -or ($ClientText -match "Fatal error|LogWindows: Error:")
 
-if ($ActorSpawnOk -and $MatchHudOk -and $ObjectiveWorldOk -and $EnemyWorldOk -and $ObjectiveReplicationOk -and $ClientConnectionOk -and $ScreenshotOk -and $ScreenshotVisibleOk -and -not $CommonUiViewportError -and -not $FatalError) {
+if ($ActorSpawnOk -and $MatchHudOk -and $ObjectiveWorldOk -and $EnemyWorldOk -and $ObjectiveReplicationOk -and $ClientConnectionOk -and $EngineScreenshotRequestedOk -and $EngineScreenshotOk -and $EngineScreenshotVisibleOk -and -not $CommonUiViewportError -and -not $FatalError) {
     Write-Host "REPLICATED UI VIEWPORT VERIFY RESULT: PASS"
     exit 0
 }
@@ -295,6 +285,9 @@ Write-Host "Objective replication observed: $ObjectiveReplicationOk"
 Write-Host "Client connection observed: $ClientConnectionOk"
 Write-Host "Screenshot captured: $ScreenshotOk"
 Write-Host "Screenshot has visible pixels: $ScreenshotVisibleOk"
+Write-Host "Engine screenshot requested: $EngineScreenshotRequestedOk"
+Write-Host "Engine screenshot captured: $EngineScreenshotOk"
+Write-Host "Engine screenshot has visible pixels: $EngineScreenshotVisibleOk"
 Write-Host "CommonUI viewport error found: $CommonUiViewportError"
 Write-Host "Fatal error found: $FatalError"
 exit 2
