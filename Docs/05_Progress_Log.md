@@ -138,5 +138,7 @@ main
 - Verified `MDSProjectEditor`, `MDSProject`, and `MDSProjectServer` Development builds succeeded.
 - Verified Win64 client/server cook and stage succeeded.
 - Verified runtime logs show Match HUD, Objective World UI, and Enemy World UI reading replicated GameState/Object/Enemy HP sources.
-- Latest strict result: `REPLICATED UI VIEWPORT VERIFY RESULT: INCOMPLETE`.
-- Reason: the staged client content-area screenshot remains black, so visual pixels for Match HUD / Objective World UI / Enemy World UI are not yet verified.
+- Fixed C++ fallback UI root creation by moving fallback setup into `RebuildWidget` for Match HUD, Objective World UI, and Enemy World UI.
+- Added a verification-only staged client engine screenshot request via `-MDSReplicatedUIViewportShot`.
+- Verified `SavedVerifyLogs/MDS_ReplicatedUIViewport_Client_EngineShot.png` shows Match HUD fallback text plus Objective World UI and Enemy World UI fallback text.
+- Latest strict result: `REPLICATED UI VIEWPORT VERIFY RESULT: PASS`.

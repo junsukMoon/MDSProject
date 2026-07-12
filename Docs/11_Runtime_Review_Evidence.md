@@ -202,11 +202,12 @@ Interpretation:
   - `SavedVerifyLogs/MDS_ReplicatedUIViewport_Client.log`
 - Screenshot:
   - `SavedVerifyLogs/MDS_ReplicatedUIViewport_Client_PrintWindow.png`
+  - `SavedVerifyLogs/MDS_ReplicatedUIViewport_Client_EngineShot.png`
 
 Result:
 
 ```text
-REPLICATED UI VIEWPORT VERIFY RESULT: INCOMPLETE
+REPLICATED UI VIEWPORT VERIFY RESULT: PASS
 ```
 
 Evidence:
@@ -218,7 +219,8 @@ MDS Match HUD widget created on MDSProjectPlayerController
 MDS Objective World UI read ObjectiveActor health: 20.0 / 100.0
 MDS Enemy World UI read CombatEnemy health: 100.0 / 100.0
 Objective HP replicated on client: 80.0 / 100.0.
-Screenshot has visible pixels: False
+MDS replicated UI viewport screenshot requested: .../SavedVerifyLogs/MDS_ReplicatedUIViewport_Client_EngineShot.png
+Engine screenshot has visible pixels: True
 ```
 
 Interpretation:
@@ -228,9 +230,9 @@ Interpretation:
 - The staged dedicated server spawned four combat enemies for the actor baseline source.
 - The staged client created the Match HUD and initialized Objective/Enemy world UI widgets.
 - The staged client read replicated Wave, Objective HP, and Enemy HP sources.
-- The viewport verification script now rejects title-bar-only captures and requires visible pixels in the client content area.
-- Latest staged client content capture is still black, so Match HUD / Objective World UI / Enemy World UI visual pixels are not verified in this pass.
-- Fallback UI text now uses explicit white text with a black shadow, and Match HUD uses an explicit top-left viewport position/size to support the next visual verification pass.
+- The viewport verification script now requests an engine screenshot from the staged client and requires visible pixels from that screenshot.
+- `MDS_ReplicatedUIViewport_Client_EngineShot.png` shows the Match HUD fallback text plus Objective World UI and Enemy World UI fallback text in the connected staged client.
+- Fallback UI root widgets are now created during `RebuildWidget`, before Slate builds the widget tree, so the C++ fallback UI is actually rendered.
 
 ## Verified
 
@@ -246,6 +248,7 @@ Interpretation:
 - `BP_TopDownController` derives from `AMDSProjectPlayerController`, activating the project debug overlay path in the TopDown map.
 - Match HUD, Objective World UI, and Enemy World UI baseline widgets read replicated gameplay sources on a staged dedicated server/client run.
 - Replicated UI viewport verification now fails closed when the client content screenshot is visually blank.
+- Replicated UI viewport pixels are visible in an engine-captured staged client screenshot.
 
 ## Not Verified In This Pass
 
@@ -253,7 +256,6 @@ Interpretation:
 - Authored Match HUD visual layout.
 - Authored Objective World UI visual layout.
 - Authored Enemy World UI visual layout.
-- Replicated UI viewport content pixels for Match HUD, Objective World UI, and Enemy World UI.
 - Enemy HP/death presentation.
 - Attack Montage / AnimNotify negative test.
 - Hit Reaction and Death Animation presentation.
@@ -264,4 +266,4 @@ These items require visual PIE/client checks, authored Widget Blueprint layout w
 
 1. Add authored Widget Blueprint TextBlocks if a custom layout is needed.
 2. Confirm displayed values match replicated GameState, ObjectiveActor, and debug snapshot sources during dedicated server/client play.
-3. Resolve the black staged-client content capture and capture screenshots or short video for Match HUD, Objective World UI, and Enemy World UI.
+3. Use `MDS_ReplicatedUIViewport_Client_EngineShot.png` as the current replicated UI viewport screenshot evidence; authored UI polish can replace the fallback layout later.

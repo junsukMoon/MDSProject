@@ -80,6 +80,7 @@ protected:
 private:
 	UMDSDebugOverlayWidget* GetOrCreateDebugOverlay();
 	UMDSMatchHUDWidget* GetOrCreateMatchHUD();
+	void RequestReplicatedUIViewportScreenshot();
 
 	UPROPERTY(EditDefaultsOnly, Category = "MDS|UI", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UMDSDebugOverlayWidget> DebugOverlayWidgetClass;
@@ -89,6 +90,8 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMDSMatchHUDWidget> MatchHUDWidget;
+
+	FTimerHandle ReplicatedUIViewportScreenshotTimerHandle;
 };
 
 

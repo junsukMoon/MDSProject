@@ -9,6 +9,12 @@
 
 #define LOCTEXT_NAMESPACE "MDSMatchHUDWidget"
 
+TSharedRef<SWidget> UMDSMatchHUDWidget::RebuildWidget()
+{
+	EnsureFallbackLayout();
+	return Super::RebuildWidget();
+}
+
 void UMDSMatchHUDWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -68,7 +74,7 @@ void UMDSMatchHUDWidget::RefreshFromGameState()
 
 void UMDSMatchHUDWidget::EnsureFallbackLayout()
 {
-	if ((WaveTextBlock && EnemiesTextBlock) || FallbackWaveTextBlock || !WidgetTree)
+	if ((WaveTextBlock && EnemiesTextBlock) || FallbackWaveTextBlock || !WidgetTree || WidgetTree->RootWidget)
 	{
 		return;
 	}

@@ -15,9 +15,14 @@
 #include "Engine/LocalPlayer.h"
 #include "InputCoreTypes.h"
 #include "MDSProject.h"
+#include "HAL/FileManager.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Misc/Parse.h"
 #include "UObject/ConstructorHelpers.h"
 #include "UI/MDSDebugOverlayWidget.h"
 #include "UI/MDSMatchHUDWidget.h"
+#include "UnrealClient.h"
 
 namespace
 {
@@ -81,6 +86,16 @@ void AMDSProjectPlayerController::BeginPlay()
 	{
 		GetOrCreateMatchHUD();
 		GetOrCreateDebugOverlay();
+
+		if (FParse::Param(FCommandLine::Get(), TEXT("MDSReplicatedUIViewportShot")))
+		{
+			GetWorldTimerManager().SetTimer(
+				ReplicatedUIViewportScreenshotTimerHandle,
+				this,
+				&AMDSProjectPlayerController::RequestReplicatedUIViewportScreenshot,
+				6.0f,
+				false);
+		}
 	}
 }
 
@@ -297,7 +312,7 @@ UMDSMatchHUDWidget* AMDSProjectPlayerController::GetOrCreateMatchHUD()
 	MatchHUDWidget = CreateWidget<UMDSMatchHUDWidget>(this, UMDSMatchHUDWidget::StaticClass());
 	if (MatchHUDWidget)
 	{
-		MatchHUDWidget->AddToViewport(5);
+		MatchHUDWidget->AddToPlayerScreen(5);
 		MatchHUDWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 		MatchHUDWidget->SetAlignmentInViewport(FVector2D(0.0f, 0.0f));
 		MatchHUDWidget->SetPositionInViewport(FVector2D(24.0f, 24.0f), false);
@@ -310,4 +325,25 @@ UMDSMatchHUDWidget* AMDSProjectPlayerController::GetOrCreateMatchHUD()
 	}
 
 	return MatchHUDWidget;
+}
+
+void AMDSProjectPlayerController::RequestReplicatedUIViewportScreenshot()
+{
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+
+	FString ScreenshotPath;
+	if (!FParse::Value(FCommandLine::Get(), TEXT("-MDSReplicatedUIViewportShotPath="), ScreenshotPath))
+	{
+		const FString ScreenshotDirectory = FPaths::Combine(FPaths::ProjectDir(), TEXT(".."), TEXT("SavedVerifyLogs"));
+		ScreenshotPath = FPaths::Combine(ScreenshotDirectory, TEXT("MDS_ReplicatedUIViewport_Client_EngineShot.png"));
+	}
+
+	ScreenshotPath = FPaths::ConvertRelativePathToFull(ScreenshotPath);
+	IFileManager::Get().MakeDirectory(*FPaths::GetPath(ScreenshotPath), true);
+	FScreenshotRequest::RequestScreenshot(ScreenshotPath, true, false);
+
+	UE_LOG(LogMDSProject, Log, TEXT("MDS replicated UI viewport screenshot requested: %s"), *ScreenshotPath);
 }

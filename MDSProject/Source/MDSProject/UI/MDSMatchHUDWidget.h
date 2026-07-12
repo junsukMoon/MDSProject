@@ -24,6 +24,7 @@ public:
 	FText GetEnemiesText() const { return EnemiesText; }
 
 protected:
+	virtual TSharedRef<SWidget> RebuildWidget() override;
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 
