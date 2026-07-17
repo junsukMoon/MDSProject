@@ -3,7 +3,8 @@ param(
     [int]$ServerWaitSeconds = 15,
     [int]$ClientWarmupSeconds = 10,
     [int]$ClientWaitSeconds = 20,
-    [int]$ActorEnemyCount = 4
+    [int]$ActorEnemyCount = 4,
+    [int]$ActorEnemyMoveSpeed = 30
 )
 
 $ErrorActionPreference = "Stop"
@@ -41,7 +42,7 @@ function Select-ReplicatedUIPatterns {
         return @()
     }
 
-    Select-String -Path $Path -Pattern "MDSGameplayUIAsset|MDS Match HUD|WBP_MDSMatchHUD|MDS Objective World UI|WBP_MDSObjectiveWorldUI|MDS Enemy World UI|WBP_MDSEnemyWorldUI|Objective World UI widget initialized|Enemy World UI widget initialized|Combat enemy wave spawn created|Objective HP replicated on client|MDS Debug \| NetMode=Client|MDS replicated UI viewport screenshot requested|Using CommonUI without a CommonGameViewportClient|Fatal|LogWindows: Error" |
+    Select-String -Path $Path -Pattern "MDSGameplayUIAsset|MDS Match HUD|WBP_MDSMatchHUD|MDS Objective World UI|WBP_MDSObjectiveWorldUI|MDS Enemy World UI|WBP_MDSEnemyWorldUI|Objective World UI widget initialized|Enemy World UI widget initialized|ObjectiveWorldUITrack|EnemyWorldUITrack|Combat enemy wave spawn created|Objective HP replicated on client|MDS Debug \| NetMode=Client|MDS replicated UI viewport screenshot requested|Using CommonUI without a CommonGameViewportClient|Fatal|LogWindows: Error" |
         Select-Object -Last 180
 }
 
@@ -236,7 +237,7 @@ try {
     Write-Host "Launching server with actor baseline UI source:"
     Write-Host "  $ServerExe"
     $ServerProcess = Start-Process -FilePath $ServerExe `
-        -ArgumentList @("/Game/TopDown/Lvl_TopDown", "-NullRHI", "-unattended", "-stdout", "-FullStdOutLogOutput", "-forcelogflush", "-MDSActorBaseline", "MDSActorBaselineCount=$ActorEnemyCount", "-port=$Port") `
+        -ArgumentList @("/Game/TopDown/Lvl_TopDown", "-NullRHI", "-unattended", "-stdout", "-FullStdOutLogOutput", "-forcelogflush", "-MDSActorBaseline", "MDSActorBaselineCount=$ActorEnemyCount", "MDSActorBaselineMoveSpeed=$ActorEnemyMoveSpeed", "-port=$Port") `
         -WorkingDirectory $ServerDir `
         -RedirectStandardOutput $ServerLog `
         -PassThru `
@@ -247,7 +248,7 @@ try {
     Write-Host "Launching visible client:"
     Write-Host "  $ClientExe"
     $ClientProcess = Start-Process -FilePath $ClientExe `
-        -ArgumentList @("127.0.0.1:$Port", "-windowed", "-ResX=1280", "-ResY=720", "-nosound", "-NoSplash", "-stdout", "-FullStdOutLogOutput", "-forcelogflush", "-MDSReplicatedUIViewportShot", "-MDSReplicatedUIViewportShotPath=`"$EngineScreenshotPath`"") `
+        -ArgumentList @("127.0.0.1:$Port", "-windowed", "-ResX=1280", "-ResY=720", "-nosound", "-NoSplash", "-stdout", "-FullStdOutLogOutput", "-forcelogflush", "-MDSWorldUITrackingLog", "-MDSReplicatedUIViewportShot", "-MDSReplicatedUIViewportShotPath=`"$EngineScreenshotPath`"") `
         -WorkingDirectory $ClientDir `
         -RedirectStandardOutput $ClientLog `
         -PassThru
@@ -298,13 +299,15 @@ $ObjectiveWorldOk = $ClientText -match "MDS Objective World UI read ObjectiveAct
 $ObjectiveWorldClassOk = $ClientText -match "Objective World UI widget initialized .* using .*WBP_MDSObjectiveWorldUI"
 $EnemyWorldOk = $ClientText -match "MDS Enemy World UI read CombatEnemy health"
 $EnemyWorldClassOk = $ClientText -match "Enemy World UI widget initialized .* using .*WBP_MDSEnemyWorldUI"
+$ObjectiveTrackOk = $ClientText -match "ObjectiveWorldUITrack Actor=.* WidgetWorld=.* Screen=.* Projected=true"
+$EnemyTrackOk = $ClientText -match "EnemyWorldUITrack Actor=.* WidgetWorld=.* Screen=.* Projected=true"
 $ObjectiveReplicationOk = $ClientText -match "Objective HP replicated on client|MDS Debug \| NetMode=Client .*ObjectiveHP="
 $ClientConnectionOk = $ServerText -match "Join succeeded|Login request"
 $EngineScreenshotRequestedOk = $ClientText -match "MDS replicated UI viewport screenshot requested"
 $CommonUiViewportError = $ClientText -match "Using CommonUI without a CommonGameViewportClient"
 $FatalError = ($ServerText -match "Fatal error|LogWindows: Error:") -or ($ClientText -match "Fatal error|LogWindows: Error:")
 
-if ($AssetOk -and $ActorSpawnOk -and $MatchHudOk -and $MatchHudClassOk -and $ObjectiveWorldOk -and $ObjectiveWorldClassOk -and $EnemyWorldOk -and $EnemyWorldClassOk -and $ObjectiveReplicationOk -and $ClientConnectionOk -and $EngineScreenshotRequestedOk -and $EngineScreenshotOk -and $EngineScreenshotVisibleOk -and -not $CommonUiViewportError -and -not $FatalError) {
+if ($AssetOk -and $ActorSpawnOk -and $MatchHudOk -and $MatchHudClassOk -and $ObjectiveWorldOk -and $ObjectiveWorldClassOk -and $EnemyWorldOk -and $EnemyWorldClassOk -and $ObjectiveTrackOk -and $EnemyTrackOk -and $ObjectiveReplicationOk -and $ClientConnectionOk -and $EngineScreenshotRequestedOk -and $EngineScreenshotOk -and $EngineScreenshotVisibleOk -and -not $CommonUiViewportError -and -not $FatalError) {
     Write-Host "REPLICATED UI VIEWPORT VERIFY RESULT: PASS"
     exit 0
 }
@@ -318,6 +321,8 @@ Write-Host "Objective World UI ObjectiveActor read found: $ObjectiveWorldOk"
 Write-Host "Objective World UI WBP class used: $ObjectiveWorldClassOk"
 Write-Host "Enemy World UI CombatEnemy read found: $EnemyWorldOk"
 Write-Host "Enemy World UI WBP class used: $EnemyWorldClassOk"
+Write-Host "Objective World UI tracking log found: $ObjectiveTrackOk"
+Write-Host "Enemy World UI tracking log found: $EnemyTrackOk"
 Write-Host "Objective replication observed: $ObjectiveReplicationOk"
 Write-Host "Client connection observed: $ClientConnectionOk"
 Write-Host "Screenshot captured: $ScreenshotOk"

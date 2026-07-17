@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "TimerManager.h"
 #include "MDSCombatEnemyActor.generated.h"
 
 class AMDSObjectiveActor;
@@ -35,6 +36,8 @@ protected:
 private:
 	void HandleDeathOnce(FName DamageSource);
 	void HandleObjectiveArrivalOnce();
+	void StartWorldUITrackingLog();
+	void LogWorldUITrackingSample();
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Combat Enemy")
 	TObjectPtr<USceneComponent> SceneRoot;
@@ -57,4 +60,7 @@ private:
 
 	bool bDeathHandled = false;
 	bool bHasArrivedAtObjective = false;
+
+	FTimerHandle WorldUITrackingLogTimerHandle;
+	int32 WorldUITrackingLogSamplesRemaining = 0;
 };

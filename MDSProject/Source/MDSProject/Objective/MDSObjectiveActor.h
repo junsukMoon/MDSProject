@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "TimerManager.h"
 #include "MDSObjectiveActor.generated.h"
 
 class USceneComponent;
@@ -29,6 +30,9 @@ protected:
 	void OnRep_CurrentHealth();
 
 private:
+	void StartWorldUITrackingLog();
+	void LogWorldUITrackingSample();
+
 	UPROPERTY(VisibleDefaultsOnly, Category = "Objective")
 	TObjectPtr<USceneComponent> SceneRoot;
 
@@ -40,4 +44,7 @@ private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentHealth, VisibleInstanceOnly, Category = "Objective")
 	float CurrentHealth = 100.0f;
+
+	FTimerHandle WorldUITrackingLogTimerHandle;
+	int32 WorldUITrackingLogSamplesRemaining = 0;
 };
