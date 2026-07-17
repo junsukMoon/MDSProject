@@ -6,8 +6,14 @@
 #include "Net/UnrealNetwork.h"
 #include "Objective/MDSObjectiveActor.h"
 #include "UI/MDSEnemyWorldWidget.h"
+#include "UObject/SoftObjectPath.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMDSCombatEnemy, Log, All);
+
+namespace
+{
+const TCHAR* EnemyWorldWidgetClassPath = TEXT("/Game/MDS/UI/WBP_MDSEnemyWorldUI.WBP_MDSEnemyWorldUI_C");
+}
 
 AMDSCombatEnemyActor::AMDSCombatEnemyActor()
 {
@@ -50,18 +56,21 @@ void AMDSCombatEnemyActor::BeginPlay()
 		{
 			EnemyWorldWidgetComponent->SetVisibility(false);
 		}
-		else if (UMDSEnemyWorldWidget* EnemyWidget = Cast<UMDSEnemyWorldWidget>(EnemyWorldWidgetComponent->GetUserWidgetObject()))
-		{
-			EnemyWidget->SetEnemyActor(this);
-			UE_LOG(LogMDSCombatEnemy, Log, TEXT("Enemy World UI widget initialized on %s."), *GetNameSafe(this));
-		}
 		else
 		{
+			const FSoftClassPath WidgetClassPath(EnemyWorldWidgetClassPath);
+			if (UClass* LoadedWidgetClass = WidgetClassPath.TryLoadClass<UMDSEnemyWorldWidget>())
+			{
+				EnemyWorldWidgetComponent->SetWidgetClass(LoadedWidgetClass);
+			}
+
 			EnemyWorldWidgetComponent->InitWidget();
 			if (UMDSEnemyWorldWidget* InitializedEnemyWidget = Cast<UMDSEnemyWorldWidget>(EnemyWorldWidgetComponent->GetUserWidgetObject()))
 			{
 				InitializedEnemyWidget->SetEnemyActor(this);
-				UE_LOG(LogMDSCombatEnemy, Log, TEXT("Enemy World UI widget initialized on %s."), *GetNameSafe(this));
+				UE_LOG(LogMDSCombatEnemy, Log, TEXT("Enemy World UI widget initialized on %s using %s."),
+					*GetNameSafe(this),
+					*GetNameSafe(EnemyWorldWidgetComponent->GetWidgetClass()));
 			}
 		}
 	}

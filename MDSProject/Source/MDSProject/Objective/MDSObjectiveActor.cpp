@@ -4,8 +4,14 @@
 #include "Debug/MDSDebugStateSubsystem.h"
 #include "UI/MDSObjectiveWorldWidget.h"
 #include "Net/UnrealNetwork.h"
+#include "UObject/SoftObjectPath.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMDSObjective, Log, All);
+
+namespace
+{
+const TCHAR* ObjectiveWorldWidgetClassPath = TEXT("/Game/MDS/UI/WBP_MDSObjectiveWorldUI.WBP_MDSObjectiveWorldUI_C");
+}
 
 AMDSObjectiveActor::AMDSObjectiveActor()
 {
@@ -49,18 +55,21 @@ void AMDSObjectiveActor::BeginPlay()
 		{
 			ObjectiveWorldWidgetComponent->SetVisibility(false);
 		}
-		else if (UMDSObjectiveWorldWidget* ObjectiveWidget = Cast<UMDSObjectiveWorldWidget>(ObjectiveWorldWidgetComponent->GetUserWidgetObject()))
-		{
-			ObjectiveWidget->SetObjectiveActor(this);
-			UE_LOG(LogMDSObjective, Log, TEXT("Objective World UI widget initialized on %s."), *GetNameSafe(this));
-		}
 		else
 		{
+			const FSoftClassPath WidgetClassPath(ObjectiveWorldWidgetClassPath);
+			if (UClass* LoadedWidgetClass = WidgetClassPath.TryLoadClass<UMDSObjectiveWorldWidget>())
+			{
+				ObjectiveWorldWidgetComponent->SetWidgetClass(LoadedWidgetClass);
+			}
+
 			ObjectiveWorldWidgetComponent->InitWidget();
 			if (UMDSObjectiveWorldWidget* InitializedObjectiveWidget = Cast<UMDSObjectiveWorldWidget>(ObjectiveWorldWidgetComponent->GetUserWidgetObject()))
 			{
 				InitializedObjectiveWidget->SetObjectiveActor(this);
-				UE_LOG(LogMDSObjective, Log, TEXT("Objective World UI widget initialized on %s."), *GetNameSafe(this));
+				UE_LOG(LogMDSObjective, Log, TEXT("Objective World UI widget initialized on %s using %s."),
+					*GetNameSafe(this),
+					*GetNameSafe(ObjectiveWorldWidgetComponent->GetWidgetClass()));
 			}
 		}
 	}

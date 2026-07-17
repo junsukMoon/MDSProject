@@ -85,6 +85,9 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "MDS|UI", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UMDSDebugOverlayWidget> DebugOverlayWidgetClass;
 
+	UPROPERTY(EditDefaultsOnly, Category = "MDS|UI", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<UMDSMatchHUDWidget> MatchHUDWidgetClass;
+
 	UPROPERTY(Transient)
 	TObjectPtr<UMDSDebugOverlayWidget> DebugOverlayWidget;
 

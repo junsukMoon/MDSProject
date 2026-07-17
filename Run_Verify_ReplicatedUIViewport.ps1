@@ -13,9 +13,14 @@ $ProjectRoot = Join-Path $Root "MDSProject"
 $ProjectFile = Join-Path $ProjectRoot "MDSProject.uproject"
 $BuildBat = "C:\UnrealEngine\Engine\Build\BatchFiles\Build.bat"
 $RunUatBat = "C:\UnrealEngine\Engine\Build\BatchFiles\RunUAT.bat"
+$EditorCmd = Join-Path $ProjectRoot "Binaries\Win64\MDSProjectEditor-Cmd.exe"
+$CreateGameplayUIWidgetsScript = Join-Path $Root "Tools\CreateGameplayUIWidgets.py"
+$TempScriptDir = "C:\Temp\MDS"
+$TempCreateGameplayUIWidgetsScript = Join-Path $TempScriptDir "CreateGameplayUIWidgets.py"
 $ServerExe = Join-Path $ProjectRoot "Saved\StagedBuilds\WindowsServer\MDSProject\Binaries\Win64\MDSProjectServer.exe"
 $ClientExe = Join-Path $ProjectRoot "Saved\StagedBuilds\Windows\MDSProject\Binaries\Win64\MDSProject.exe"
 $LogDir = Join-Path $Root "SavedVerifyLogs"
+$AssetLog = Join-Path $LogDir "MDS_GameplayUIAsset.log"
 $ServerLog = Join-Path $LogDir "MDS_ReplicatedUIViewport_Server.log"
 $ClientLog = Join-Path $LogDir "MDS_ReplicatedUIViewport_Client.log"
 $ScreenshotPath = Join-Path $LogDir "MDS_ReplicatedUIViewport_Client_PrintWindow.png"
@@ -36,7 +41,7 @@ function Select-ReplicatedUIPatterns {
         return @()
     }
 
-    Select-String -Path $Path -Pattern "MDS Match HUD|MDS Objective World UI|MDS Enemy World UI|Objective World UI widget initialized|Enemy World UI widget initialized|Combat enemy wave spawn created|Objective HP replicated on client|MDS Debug \| NetMode=Client|MDS replicated UI viewport screenshot requested|Using CommonUI without a CommonGameViewportClient|Fatal|LogWindows: Error" |
+    Select-String -Path $Path -Pattern "MDSGameplayUIAsset|MDS Match HUD|WBP_MDSMatchHUD|MDS Objective World UI|WBP_MDSObjectiveWorldUI|MDS Enemy World UI|WBP_MDSEnemyWorldUI|Objective World UI widget initialized|Enemy World UI widget initialized|Combat enemy wave spawn created|Objective HP replicated on client|MDS Debug \| NetMode=Client|MDS replicated UI viewport screenshot requested|Using CommonUI without a CommonGameViewportClient|Fatal|LogWindows: Error" |
         Select-Object -Last 180
 }
 
@@ -156,7 +161,13 @@ if (-not (Test-Path -LiteralPath $ProjectFile)) {
     throw "Project file was not found at $ProjectFile"
 }
 
+if (-not (Test-Path -LiteralPath $CreateGameplayUIWidgetsScript)) {
+    throw "Gameplay UI widget creation script was not found at $CreateGameplayUIWidgetsScript"
+}
+
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
+New-Item -ItemType Directory -Force -Path $TempScriptDir | Out-Null
+Remove-Item -LiteralPath $AssetLog -Force -ErrorAction SilentlyContinue
 Remove-Item -LiteralPath $ServerLog -Force -ErrorAction SilentlyContinue
 Remove-Item -LiteralPath $ClientLog -Force -ErrorAction SilentlyContinue
 Remove-Item -LiteralPath $ScreenshotPath -Force -ErrorAction SilentlyContinue
@@ -167,6 +178,16 @@ Write-Host "Building MDSProjectEditor Win64 Development..."
 if ($LASTEXITCODE -ne 0) {
     throw "MDSProjectEditor build failed with exit code $LASTEXITCODE"
 }
+
+if (-not (Test-Path -LiteralPath $EditorCmd)) {
+    throw "Editor commandlet executable was not found at $EditorCmd"
+}
+
+Copy-Item -LiteralPath $CreateGameplayUIWidgetsScript -Destination $TempCreateGameplayUIWidgetsScript -Force
+
+Write-Host "Compiling/saving gameplay UI Widget Blueprints..."
+& $EditorCmd $ProjectFile -NullRHI -unattended -nop4 -nosplash "-ExecutePythonScript=$TempCreateGameplayUIWidgetsScript" -stdout -FullStdOutLogOutput -forcelogflush *>&1 |
+    Out-File -FilePath $AssetLog -Encoding utf8
 
 Write-Host "Building MDSProject Win64 Development..."
 & $BuildBat MDSProject Win64 Development $ProjectFile -WaitMutex -NoHotReloadFromIDE
@@ -244,7 +265,7 @@ finally {
     Stop-IfRunning -Process $ServerProcess
 }
 
-foreach ($Log in @($ServerLog, $ClientLog)) {
+foreach ($Log in @($AssetLog, $ServerLog, $ClientLog)) {
     Write-Host "---- Patterns from $Log ----"
     $Matches = @(Select-ReplicatedUIPatterns -Path $Log)
     if ($Matches.Count -eq 0) {
@@ -256,31 +277,47 @@ foreach ($Log in @($ServerLog, $ClientLog)) {
 
 $ServerText = if (Test-Path -LiteralPath $ServerLog) { Get-Content -LiteralPath $ServerLog -Raw -ErrorAction SilentlyContinue } else { "" }
 $ClientText = if (Test-Path -LiteralPath $ClientLog) { Get-Content -LiteralPath $ClientLog -Raw -ErrorAction SilentlyContinue } else { "" }
+$AssetText = if (Test-Path -LiteralPath $AssetLog) { Get-Content -LiteralPath $AssetLog -Raw -ErrorAction SilentlyContinue } else { "" }
 $ScreenshotOk = (Test-Path -LiteralPath $ScreenshotPath) -and ((Get-Item -LiteralPath $ScreenshotPath).Length -gt 0)
 $ScreenshotVisibleOk = Test-ScreenshotHasVisiblePixels -Path $ScreenshotPath
 $EngineScreenshotOk = (Test-Path -LiteralPath $EngineScreenshotPath) -and ((Get-Item -LiteralPath $EngineScreenshotPath).Length -gt 0)
 $EngineScreenshotVisibleOk = Test-ScreenshotHasVisiblePixels -Path $EngineScreenshotPath
 
+$AssetOk = $AssetText -match "MDSGameplayUIAsset: (Loaded existing|Created) widget blueprint /Game/MDS/UI/WBP_MDSMatchHUD" -and
+    $AssetText -match "MDSGameplayUIAsset: (Loaded existing|Created) widget blueprint /Game/MDS/UI/WBP_MDSObjectiveWorldUI" -and
+    $AssetText -match "MDSGameplayUIAsset: (Loaded existing|Created) widget blueprint /Game/MDS/UI/WBP_MDSEnemyWorldUI" -and
+    $AssetText -match "MDSGameplayUIAsset: Compiled and saved widget blueprint /Game/MDS/UI/WBP_MDSMatchHUD" -and
+    $AssetText -match "MDSGameplayUIAsset: Compiled and saved widget blueprint /Game/MDS/UI/WBP_MDSObjectiveWorldUI" -and
+    $AssetText -match "MDSGameplayUIAsset: Compiled and saved widget blueprint /Game/MDS/UI/WBP_MDSEnemyWorldUI" -and
+    $AssetText -match "MDSGameplayUIAsset: Done"
 $ActorSpawnOk = $ServerText -match "Combat enemy wave spawn created $ActorEnemyCount/$ActorEnemyCount enemies"
 $MatchHudOk = $ClientText -match "MDS Match HUD read GameState wave state"
+$MatchHudClassOk = $ClientText -match "MDS Match HUD widget class configured as .*WBP_MDSMatchHUD" -and
+    $ClientText -match "MDS Match HUD widget created .* using .*WBP_MDSMatchHUD"
 $ObjectiveWorldOk = $ClientText -match "MDS Objective World UI read ObjectiveActor health"
+$ObjectiveWorldClassOk = $ClientText -match "Objective World UI widget initialized .* using .*WBP_MDSObjectiveWorldUI"
 $EnemyWorldOk = $ClientText -match "MDS Enemy World UI read CombatEnemy health"
+$EnemyWorldClassOk = $ClientText -match "Enemy World UI widget initialized .* using .*WBP_MDSEnemyWorldUI"
 $ObjectiveReplicationOk = $ClientText -match "Objective HP replicated on client|MDS Debug \| NetMode=Client .*ObjectiveHP="
 $ClientConnectionOk = $ServerText -match "Join succeeded|Login request"
 $EngineScreenshotRequestedOk = $ClientText -match "MDS replicated UI viewport screenshot requested"
 $CommonUiViewportError = $ClientText -match "Using CommonUI without a CommonGameViewportClient"
 $FatalError = ($ServerText -match "Fatal error|LogWindows: Error:") -or ($ClientText -match "Fatal error|LogWindows: Error:")
 
-if ($ActorSpawnOk -and $MatchHudOk -and $ObjectiveWorldOk -and $EnemyWorldOk -and $ObjectiveReplicationOk -and $ClientConnectionOk -and $EngineScreenshotRequestedOk -and $EngineScreenshotOk -and $EngineScreenshotVisibleOk -and -not $CommonUiViewportError -and -not $FatalError) {
+if ($AssetOk -and $ActorSpawnOk -and $MatchHudOk -and $MatchHudClassOk -and $ObjectiveWorldOk -and $ObjectiveWorldClassOk -and $EnemyWorldOk -and $EnemyWorldClassOk -and $ObjectiveReplicationOk -and $ClientConnectionOk -and $EngineScreenshotRequestedOk -and $EngineScreenshotOk -and $EngineScreenshotVisibleOk -and -not $CommonUiViewportError -and -not $FatalError) {
     Write-Host "REPLICATED UI VIEWPORT VERIFY RESULT: PASS"
     exit 0
 }
 
 Write-Host "REPLICATED UI VIEWPORT VERIFY RESULT: INCOMPLETE"
+Write-Host "Gameplay UI widget assets compiled/saved: $AssetOk"
 Write-Host "Actor baseline spawn found: $ActorSpawnOk"
 Write-Host "Match HUD GameState read found: $MatchHudOk"
+Write-Host "Match HUD WBP class used: $MatchHudClassOk"
 Write-Host "Objective World UI ObjectiveActor read found: $ObjectiveWorldOk"
+Write-Host "Objective World UI WBP class used: $ObjectiveWorldClassOk"
 Write-Host "Enemy World UI CombatEnemy read found: $EnemyWorldOk"
+Write-Host "Enemy World UI WBP class used: $EnemyWorldClassOk"
 Write-Host "Objective replication observed: $ObjectiveReplicationOk"
 Write-Host "Client connection observed: $ClientConnectionOk"
 Write-Host "Screenshot captured: $ScreenshotOk"
