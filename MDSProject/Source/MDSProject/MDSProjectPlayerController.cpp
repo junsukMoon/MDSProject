@@ -20,6 +20,7 @@
 #include "Misc/Paths.h"
 #include "Misc/Parse.h"
 #include "UObject/ConstructorHelpers.h"
+#include "UObject/SoftObjectPath.h"
 #include "UI/MDSDebugOverlayWidget.h"
 #include "UI/MDSMatchHUDWidget.h"
 #include "UnrealClient.h"
@@ -30,6 +31,8 @@ const TCHAR* CursorSystemPath = TEXT("/Game/TopDown/Cursor/FX_Cursor_Success.FX_
 const TCHAR* DefaultMappingContextPath = TEXT("/Game/TopDown/Input/IMC_Default.IMC_Default");
 const TCHAR* ClickActionPath = TEXT("/Game/TopDown/Input/Actions/IA_SetDestination_Click.IA_SetDestination_Click");
 const TCHAR* TouchActionPath = TEXT("/Game/TopDown/Input/Actions/IA_SetDestination_Touch.IA_SetDestination_Touch");
+const TCHAR* DebugOverlayWidgetClassPath = TEXT("/Game/MDS/UI/WBP_MDSDebugOverlay.WBP_MDSDebugOverlay_C");
+const TCHAR* MatchHUDWidgetClassPath = TEXT("/Game/MDS/UI/WBP_MDSMatchHUD.WBP_MDSMatchHUD_C");
 }
 
 AMDSProjectPlayerController::AMDSProjectPlayerController()
@@ -68,14 +71,6 @@ AMDSProjectPlayerController::AMDSProjectPlayerController()
 		SetDestinationTouchAction = TouchActionFinder.Object;
 	}
 
-	static ConstructorHelpers::FClassFinder<UMDSDebugOverlayWidget> DebugOverlayWidgetClassFinder(
-		TEXT("/Game/MDS/UI/WBP_MDSDebugOverlay"));
-	if (DebugOverlayWidgetClassFinder.Succeeded())
-	{
-		DebugOverlayWidgetClass = DebugOverlayWidgetClassFinder.Class;
-		UE_LOG(LogMDSProject, Log, TEXT("Debug overlay widget class configured as %s."),
-			*GetNameSafe(DebugOverlayWidgetClass));
-	}
 }
 
 void AMDSProjectPlayerController::BeginPlay()
@@ -274,8 +269,18 @@ UMDSDebugOverlayWidget* AMDSProjectPlayerController::GetOrCreateDebugOverlay()
 
 	if (!DebugOverlayWidgetClass)
 	{
-		UE_LOG(LogMDSProject, Log, TEXT("Debug overlay widget class is not configured on %s."), *GetNameSafe(this));
-		return nullptr;
+		const FSoftClassPath WidgetClassPath(DebugOverlayWidgetClassPath);
+		if (UClass* LoadedWidgetClass = WidgetClassPath.TryLoadClass<UMDSDebugOverlayWidget>())
+		{
+			DebugOverlayWidgetClass = LoadedWidgetClass;
+			UE_LOG(LogMDSProject, Log, TEXT("Debug overlay widget class configured as %s."),
+				*GetNameSafe(DebugOverlayWidgetClass));
+		}
+		else
+		{
+			UE_LOG(LogMDSProject, Log, TEXT("Debug overlay widget class is not configured on %s."), *GetNameSafe(this));
+			return nullptr;
+		}
 	}
 
 	DebugOverlayWidget = CreateWidget<UMDSDebugOverlayWidget>(this, DebugOverlayWidgetClass);
@@ -309,7 +314,28 @@ UMDSMatchHUDWidget* AMDSProjectPlayerController::GetOrCreateMatchHUD()
 		return MatchHUDWidget;
 	}
 
-	MatchHUDWidget = CreateWidget<UMDSMatchHUDWidget>(this, UMDSMatchHUDWidget::StaticClass());
+	if (MatchHUDWidgetClass)
+	{
+		UE_LOG(LogMDSProject, Log, TEXT("MDS Match HUD widget class configured as %s."),
+			*GetNameSafe(MatchHUDWidgetClass));
+	}
+	else
+	{
+		const FSoftClassPath WidgetClassPath(MatchHUDWidgetClassPath);
+		if (UClass* LoadedWidgetClass = WidgetClassPath.TryLoadClass<UMDSMatchHUDWidget>())
+		{
+			MatchHUDWidgetClass = LoadedWidgetClass;
+			UE_LOG(LogMDSProject, Log, TEXT("MDS Match HUD widget class configured as %s."),
+				*GetNameSafe(MatchHUDWidgetClass));
+		}
+	}
+
+	TSubclassOf<UMDSMatchHUDWidget> WidgetClass = UMDSMatchHUDWidget::StaticClass();
+	if (MatchHUDWidgetClass)
+	{
+		WidgetClass = MatchHUDWidgetClass;
+	}
+	MatchHUDWidget = CreateWidget<UMDSMatchHUDWidget>(this, WidgetClass);
 	if (MatchHUDWidget)
 	{
 		MatchHUDWidget->AddToPlayerScreen(5);
@@ -317,11 +343,15 @@ UMDSMatchHUDWidget* AMDSProjectPlayerController::GetOrCreateMatchHUD()
 		MatchHUDWidget->SetAlignmentInViewport(FVector2D(0.0f, 0.0f));
 		MatchHUDWidget->SetPositionInViewport(FVector2D(24.0f, 24.0f), false);
 		MatchHUDWidget->SetDesiredSizeInViewport(FVector2D(320.0f, 80.0f));
-		UE_LOG(LogMDSProject, Log, TEXT("MDS Match HUD widget created on %s."), *GetNameSafe(this));
+		UE_LOG(LogMDSProject, Log, TEXT("MDS Match HUD widget created on %s using %s."),
+			*GetNameSafe(this),
+			*GetNameSafe(WidgetClass));
 	}
 	else
 	{
-		UE_LOG(LogMDSProject, Warning, TEXT("MDS Match HUD widget creation failed on %s."), *GetNameSafe(this));
+		UE_LOG(LogMDSProject, Warning, TEXT("MDS Match HUD widget creation failed on %s using %s."),
+			*GetNameSafe(this),
+			*GetNameSafe(WidgetClass));
 	}
 
 	return MatchHUDWidget;
