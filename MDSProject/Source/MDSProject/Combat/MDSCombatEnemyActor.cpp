@@ -2,10 +2,14 @@
 
 #include "Components/SceneComponent.h"
 #include "Components/WidgetComponent.h"
+#include "GameFramework/PlayerController.h"
+#include "Kismet/GameplayStatics.h"
 #include "MDSProjectGameMode.h"
 #include "Net/UnrealNetwork.h"
 #include "Objective/MDSObjectiveActor.h"
 #include "UI/MDSEnemyWorldWidget.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
 #include "UObject/SoftObjectPath.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMDSCombatEnemy, Log, All);
@@ -13,6 +17,13 @@ DEFINE_LOG_CATEGORY_STATIC(LogMDSCombatEnemy, Log, All);
 namespace
 {
 const TCHAR* EnemyWorldWidgetClassPath = TEXT("/Game/MDS/UI/WBP_MDSEnemyWorldUI.WBP_MDSEnemyWorldUI_C");
+constexpr int32 WorldUITrackingSampleCount = 4;
+constexpr float WorldUITrackingSampleIntervalSeconds = 1.0f;
+
+bool ShouldLogWorldUITracking()
+{
+	return FParse::Param(FCommandLine::Get(), TEXT("MDSWorldUITrackingLog"));
+}
 }
 
 AMDSCombatEnemyActor::AMDSCombatEnemyActor()
@@ -29,7 +40,9 @@ AMDSCombatEnemyActor::AMDSCombatEnemyActor()
 	EnemyWorldWidgetComponent->SetupAttachment(SceneRoot);
 	EnemyWorldWidgetComponent->SetWidgetClass(UMDSEnemyWorldWidget::StaticClass());
 	EnemyWorldWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
-	EnemyWorldWidgetComponent->SetDrawAtDesiredSize(true);
+	EnemyWorldWidgetComponent->SetDrawAtDesiredSize(false);
+	EnemyWorldWidgetComponent->SetDrawSize(FVector2D(220.0f, 48.0f));
+	EnemyWorldWidgetComponent->SetPivot(FVector2D(0.5f, 1.0f));
 	EnemyWorldWidgetComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 120.0f));
 	EnemyWorldWidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
@@ -71,6 +84,7 @@ void AMDSCombatEnemyActor::BeginPlay()
 				UE_LOG(LogMDSCombatEnemy, Log, TEXT("Enemy World UI widget initialized on %s using %s."),
 					*GetNameSafe(this),
 					*GetNameSafe(EnemyWorldWidgetComponent->GetWidgetClass()));
+				StartWorldUITrackingLog();
 			}
 		}
 	}
@@ -109,6 +123,61 @@ void AMDSCombatEnemyActor::Tick(const float DeltaSeconds)
 	{
 		HandleObjectiveArrivalOnce();
 	}
+}
+
+void AMDSCombatEnemyActor::StartWorldUITrackingLog()
+{
+	if (!EnemyWorldWidgetComponent || GetNetMode() == NM_DedicatedServer || !ShouldLogWorldUITracking())
+	{
+		return;
+	}
+
+	WorldUITrackingLogSamplesRemaining = WorldUITrackingSampleCount;
+	LogWorldUITrackingSample();
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimer(
+			WorldUITrackingLogTimerHandle,
+			this,
+			&AMDSCombatEnemyActor::LogWorldUITrackingSample,
+			WorldUITrackingSampleIntervalSeconds,
+			true);
+	}
+}
+
+void AMDSCombatEnemyActor::LogWorldUITrackingSample()
+{
+	if (!EnemyWorldWidgetComponent || WorldUITrackingLogSamplesRemaining <= 0)
+	{
+		if (UWorld* World = GetWorld())
+		{
+			World->GetTimerManager().ClearTimer(WorldUITrackingLogTimerHandle);
+		}
+		return;
+	}
+
+	--WorldUITrackingLogSamplesRemaining;
+
+	FVector2D ScreenPosition = FVector2D::ZeroVector;
+	bool bProjected = false;
+	if (APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0))
+	{
+		bProjected = UGameplayStatics::ProjectWorldToScreen(
+			PlayerController,
+			EnemyWorldWidgetComponent->GetComponentLocation(),
+			ScreenPosition,
+			false);
+	}
+
+	UE_LOG(LogMDSCombatEnemy, Log, TEXT("EnemyWorldUITrack Actor=%s ActorWorld=%s WidgetWorld=%s Screen=(%.1f,%.1f) Projected=%s WidgetClass=%s."),
+		*GetNameSafe(this),
+		*GetActorLocation().ToCompactString(),
+		*EnemyWorldWidgetComponent->GetComponentLocation().ToCompactString(),
+		ScreenPosition.X,
+		ScreenPosition.Y,
+		bProjected ? TEXT("true") : TEXT("false"),
+		*GetNameSafe(EnemyWorldWidgetComponent->GetWidgetClass()));
 }
 
 void AMDSCombatEnemyActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

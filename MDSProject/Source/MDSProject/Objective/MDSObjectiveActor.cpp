@@ -2,8 +2,12 @@
 
 #include "Components/WidgetComponent.h"
 #include "Debug/MDSDebugStateSubsystem.h"
+#include "Kismet/GameplayStatics.h"
+#include "GameFramework/PlayerController.h"
 #include "UI/MDSObjectiveWorldWidget.h"
 #include "Net/UnrealNetwork.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
 #include "UObject/SoftObjectPath.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMDSObjective, Log, All);
@@ -11,6 +15,13 @@ DEFINE_LOG_CATEGORY_STATIC(LogMDSObjective, Log, All);
 namespace
 {
 const TCHAR* ObjectiveWorldWidgetClassPath = TEXT("/Game/MDS/UI/WBP_MDSObjectiveWorldUI.WBP_MDSObjectiveWorldUI_C");
+constexpr int32 WorldUITrackingSampleCount = 4;
+constexpr float WorldUITrackingSampleIntervalSeconds = 1.0f;
+
+bool ShouldLogWorldUITracking()
+{
+	return FParse::Param(FCommandLine::Get(), TEXT("MDSWorldUITrackingLog"));
+}
 }
 
 AMDSObjectiveActor::AMDSObjectiveActor()
@@ -26,7 +37,9 @@ AMDSObjectiveActor::AMDSObjectiveActor()
 	ObjectiveWorldWidgetComponent->SetupAttachment(SceneRoot);
 	ObjectiveWorldWidgetComponent->SetWidgetClass(UMDSObjectiveWorldWidget::StaticClass());
 	ObjectiveWorldWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
-	ObjectiveWorldWidgetComponent->SetDrawAtDesiredSize(true);
+	ObjectiveWorldWidgetComponent->SetDrawAtDesiredSize(false);
+	ObjectiveWorldWidgetComponent->SetDrawSize(FVector2D(260.0f, 56.0f));
+	ObjectiveWorldWidgetComponent->SetPivot(FVector2D(0.5f, 1.0f));
 	ObjectiveWorldWidgetComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 160.0f));
 	ObjectiveWorldWidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
@@ -70,6 +83,7 @@ void AMDSObjectiveActor::BeginPlay()
 				UE_LOG(LogMDSObjective, Log, TEXT("Objective World UI widget initialized on %s using %s."),
 					*GetNameSafe(this),
 					*GetNameSafe(ObjectiveWorldWidgetComponent->GetWidgetClass()));
+				StartWorldUITrackingLog();
 			}
 		}
 	}
@@ -128,4 +142,59 @@ void AMDSObjectiveActor::OnRep_CurrentHealth()
 			ObjectiveWidget->RefreshFromObjective();
 		}
 	}
+}
+
+void AMDSObjectiveActor::StartWorldUITrackingLog()
+{
+	if (!ObjectiveWorldWidgetComponent || GetNetMode() == NM_DedicatedServer || !ShouldLogWorldUITracking())
+	{
+		return;
+	}
+
+	WorldUITrackingLogSamplesRemaining = WorldUITrackingSampleCount;
+	LogWorldUITrackingSample();
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimer(
+			WorldUITrackingLogTimerHandle,
+			this,
+			&AMDSObjectiveActor::LogWorldUITrackingSample,
+			WorldUITrackingSampleIntervalSeconds,
+			true);
+	}
+}
+
+void AMDSObjectiveActor::LogWorldUITrackingSample()
+{
+	if (!ObjectiveWorldWidgetComponent || WorldUITrackingLogSamplesRemaining <= 0)
+	{
+		if (UWorld* World = GetWorld())
+		{
+			World->GetTimerManager().ClearTimer(WorldUITrackingLogTimerHandle);
+		}
+		return;
+	}
+
+	--WorldUITrackingLogSamplesRemaining;
+
+	FVector2D ScreenPosition = FVector2D::ZeroVector;
+	bool bProjected = false;
+	if (APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0))
+	{
+		bProjected = UGameplayStatics::ProjectWorldToScreen(
+			PlayerController,
+			ObjectiveWorldWidgetComponent->GetComponentLocation(),
+			ScreenPosition,
+			false);
+	}
+
+	UE_LOG(LogMDSObjective, Log, TEXT("ObjectiveWorldUITrack Actor=%s ActorWorld=%s WidgetWorld=%s Screen=(%.1f,%.1f) Projected=%s WidgetClass=%s."),
+		*GetNameSafe(this),
+		*GetActorLocation().ToCompactString(),
+		*ObjectiveWorldWidgetComponent->GetComponentLocation().ToCompactString(),
+		ScreenPosition.X,
+		ScreenPosition.Y,
+		bProjected ? TEXT("true") : TEXT("false"),
+		*GetNameSafe(ObjectiveWorldWidgetComponent->GetWidgetClass()));
 }

@@ -20,12 +20,12 @@ private:
 	static constexpr float SpawnDistanceFromObjective = 1200.0f;
 	static constexpr float SpawnLaneSpacing = 180.0f;
 	static constexpr float SpawnHeightOffset = 120.0f;
-	static constexpr float MovementSpeed = 320.0f;
 	static constexpr float ArrivalDistance = 150.0f;
 	static constexpr float ObjectiveDamagePerArrival = 5.0f;
 
 	static bool IsActorBaselineEnabled();
 	static int32 GetSpawnEnemyCount();
+	static float GetMovementSpeed();
 	static FVector CalculateSpawnLocation(const FVector& ObjectiveLocation, int32 SpawnIndex);
 	static FVector GetCardinalSpawnDirection(int32 SpawnIndex);
 

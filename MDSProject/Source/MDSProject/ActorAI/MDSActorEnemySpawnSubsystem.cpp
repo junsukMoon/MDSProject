@@ -21,6 +21,11 @@ static TAutoConsoleVariable<int32> CVarMDSActorBaselineCount(
 	16,
 	TEXT("Combat enemy baseline count. Use MDSActorBaselineCount=<N> on the command line for early startup override."));
 
+static TAutoConsoleVariable<float> CVarMDSActorBaselineMoveSpeed(
+	TEXT("mds.ActorBaseline.MoveSpeed"),
+	320.0f,
+	TEXT("Combat enemy baseline movement speed. Use MDSActorBaselineMoveSpeed=<Speed> on the command line for verification scenarios."));
+
 bool UMDSActorEnemySpawnSubsystem::IsActorBaselineEnabled()
 {
 	return CVarMDSActorBaselineEnabled.GetValueOnGameThread() != 0 || FParse::Param(FCommandLine::Get(), TEXT("MDSActorBaseline"));
@@ -31,6 +36,13 @@ int32 UMDSActorEnemySpawnSubsystem::GetSpawnEnemyCount()
 	int32 SpawnCount = CVarMDSActorBaselineCount.GetValueOnGameThread();
 	FParse::Value(FCommandLine::Get(), TEXT("MDSActorBaselineCount="), SpawnCount);
 	return FMath::Max(1, SpawnCount);
+}
+
+float UMDSActorEnemySpawnSubsystem::GetMovementSpeed()
+{
+	float MoveSpeed = CVarMDSActorBaselineMoveSpeed.GetValueOnGameThread();
+	FParse::Value(FCommandLine::Get(), TEXT("MDSActorBaselineMoveSpeed="), MoveSpeed);
+	return FMath::Max(0.0f, MoveSpeed);
 }
 
 FVector UMDSActorEnemySpawnSubsystem::CalculateSpawnLocation(const FVector& SpawnOrigin, const int32 SpawnIndex)
@@ -129,6 +141,7 @@ int32 UMDSActorEnemySpawnSubsystem::SpawnCombatEnemiesForWave(const int32 EnemyC
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	SpawnParameters.ObjectFlags |= RF_Transient;
+	const float MoveSpeed = GetMovementSpeed();
 
 	int32 WaveSpawnedEnemyCount = 0;
 	for (int32 EnemyIndex = 0; EnemyIndex < ClampedEnemyCount; ++EnemyIndex)
@@ -141,7 +154,7 @@ int32 UMDSActorEnemySpawnSubsystem::SpawnCombatEnemiesForWave(const int32 EnemyC
 			continue;
 		}
 
-		CombatEnemy->InitializeCombatEnemy(ObjectiveActor, MovementSpeed, ArrivalDistance, ObjectiveDamagePerArrival);
+		CombatEnemy->InitializeCombatEnemy(ObjectiveActor, MoveSpeed, ArrivalDistance, ObjectiveDamagePerArrival);
 		++WaveSpawnedEnemyCount;
 		++SpawnedEnemyCount;
 	}
