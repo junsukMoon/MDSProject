@@ -4,7 +4,9 @@
 
 ## 30초 설명
 
-MDS v2는 Dedicated Server 환경에서 동작하는 Objective Combat Demo입니다. 서버가 전투 판정, Enemy HP, Objective HP, Wave 진행을 소유하고, 클라이언트는 replicated state를 기반으로 UI와 animation presentation을 갱신합니다. 캐릭터 레이어는 CMC 이동, Skeletal Mesh, AnimBP State Machine, Attack Montage, AnimNotify timing, Hit Reaction, Death Animation을 최소 범위로 포함합니다. Mover, Motion Matching, Mutable, Mass Entity는 MVP 구현이 아니라 future extension으로 문서화했습니다.
+MDS v2는 Dedicated Server 환경에서 동작하는 Objective Combat Demo입니다. 서버가 전투 판정, Enemy HP, Objective HP, Wave 진행을 소유하고, 클라이언트는 replicated state를 기반으로 UI presentation을 갱신합니다. 캐릭터 이동과 animation presentation은 CMC, Skeletal Mesh, AnimBP State Machine, Attack Montage, AnimNotify timing, Hit Reaction, Death Animation을 기준으로 한 후속 evidence 범위입니다. Mover, Motion Matching, Mutable, Mass Entity는 MVP 구현이 아니라 future extension으로 문서화했습니다.
+
+Current evidence note: the verified runtime path covers Dedicated Server Objective/Enemy/Wave state and replicated UI presentation. Character movement and animation presentation are still remaining evidence gaps, not verified runtime claims.
 
 ## Core Flow
 
@@ -14,7 +16,8 @@ Player input
 -> server attack validation
 -> server updates Enemy HP / Objective HP / Wave state
 -> replicated state reaches clients
--> UI and animation presentation update
+-> gameplay/debug UI presentation update
+-> future animation presentation update after separate implementation and verification
 ```
 
 ## Authority Boundary
@@ -33,11 +36,6 @@ Player input
 - Enemy HP / Objective HP separation
 - Wave display state replication
 - Match HUD, Objective World UI, Enemy World UI
-- CMC-based movement
-- Skeletal Mesh character
-- AnimBP State Machine
-- Attack Montage and AnimNotify timing
-- Hit Reaction and Death Animation
 - Runtime Review / Verification Evidence
 
 ## MVP Excludes
@@ -58,6 +56,24 @@ Player input
 - Mutable: future character customization pipeline topic
 - Mass Entity: future scaling comparison and Actor vs Mass profiling topic
 
+## Verified Runtime Evidence
+
+- Dedicated Server/client launch and smoke verification.
+- Objective HP replication observed on clients.
+- Wave display state replication observed through `AMDSProjectGameState`.
+- Debug Overlay runtime and viewport visibility verified as a debug snapshot, not gameplay truth.
+- Match HUD reads replicated GameState Wave values.
+- Objective World UI reads replicated `AMDSObjectiveActor` HP.
+- Enemy World UI reads replicated `AMDSCombatEnemyActor` HP for multiple spawned combat enemies.
+- Objective/Enemy World UI labels are actor-attached and verified in a staged viewport with separated actor-following labels.
+
+## Remaining Evidence Gaps
+
+- Authored Widget Blueprint visual layout polish is not verified.
+- Enemy death presentation runtime evidence is not verified.
+- Attack Montage / AnimNotify negative test is not verified.
+- Hit Reaction and Death Animation runtime presentation are not verified.
+
 ## Runtime Evidence
 
 MVP completion should be supported by runtime correctness evidence, not performance claims.
@@ -68,7 +84,7 @@ Evidence to collect:
 - server combat validation log
 - Objective HP before/after and client replicated observation
 - Wave index / EnemiesRemaining replication
-- Enemy HP/death presentation
+- Enemy death presentation
 - Match HUD / Objective World UI / Enemy World UI screenshot or short video
 - negative test showing AnimNotify or client-only event cannot apply authoritative damage
 - Debug Overlay showing state as a snapshot, not gameplay truth
@@ -77,14 +93,19 @@ Current evidence document:
 
 - `Docs/11_Runtime_Review_Evidence.md`
 
-## Next Implementation Direction
+## Remaining Implementation Direction
 
-Recommended implementation order:
+Completed baseline order:
 
 1. Confirm existing `AMDSObjectiveActor` authority and `CurrentHealth` replication.
 2. Add minimal GameState replicated Wave display state.
 3. Add minimal combat enemy actor with server-owned HP.
 4. Connect server-side combat validation and Objective damage.
 5. Add replicated UI presentation for Match HUD, Objective HP, and Enemy HP.
-6. Add minimal animation presentation hooks for attack, hit reaction, and death.
-7. Capture runtime review evidence on Dedicated Server and client.
+
+Remaining optional implementation/evidence order:
+
+1. Add authored Widget Blueprint layout polish only if custom visuals are needed.
+2. Add minimal animation presentation hooks for attack, hit reaction, and death.
+3. Verify that Attack Montage / AnimNotify cannot directly apply authoritative damage.
+4. Capture dedicated server/client runtime evidence for the animation and death presentation path.
