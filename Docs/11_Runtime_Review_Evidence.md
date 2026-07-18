@@ -234,6 +234,64 @@ Interpretation:
 - `MDS_ReplicatedUIViewport_Client_EngineShot.png` shows the Match HUD fallback text plus Objective World UI and Enemy World UI fallback text in the connected staged client.
 - Fallback UI root widgets are now created during `RebuildWidget`, before Slate builds the widget tree, so the C++ fallback UI is actually rendered.
 
+## Actor-Following World UI Viewport Check
+
+- Date: 2026-07-17
+- PR: #43 (`Make world UI follow owning actors`)
+- Script: `Run_Verify_ReplicatedUIViewport.ps1 -Port 7779 -ActorEnemyCount 4 -ActorEnemyMoveSpeed 30`
+- Logs:
+  - `SavedVerifyLogs/MDS_GameplayUIAsset.log`
+  - `SavedVerifyLogs/MDS_ReplicatedUIViewport_Server.log`
+  - `SavedVerifyLogs/MDS_ReplicatedUIViewport_Client.log`
+- Screenshot:
+  - `SavedVerifyLogs/MDS_ReplicatedUIViewport_Client_EngineShot.png`
+
+Result:
+
+```text
+REPLICATED UI VIEWPORT VERIFY RESULT: PASS
+```
+
+Evidence:
+
+```text
+IpNetDriver listening on port 7779
+Combat enemy wave spawn created 4/4 enemies around objective MDS_ActorObjectiveProbe at V(0). Total spawned=4.
+Login request
+Join succeeded
+MDS Match HUD read GameState wave state: Wave=1 Remaining=0 Total=0 Active=false.
+Objective World UI widget initialized ... using WBP_MDSObjectiveWorldUI_C.
+Enemy World UI widget initialized ... using WBP_MDSEnemyWorldUI_C.
+ObjectiveWorldUITrack Actor=... ActorWorld=... WidgetWorld=... Screen=... Projected=true WidgetClass=WBP_MDSObjectiveWorldUI_C.
+EnemyWorldUITrack Actor=... ActorWorld=... WidgetWorld=... Screen=... Projected=true WidgetClass=WBP_MDSEnemyWorldUI_C.
+MDS replicated UI viewport screenshot requested: .../SavedVerifyLogs/MDS_ReplicatedUIViewport_Client_EngineShot.png
+```
+
+Widget Blueprint asset evidence:
+
+```text
+Compiled and saved widget blueprint /Game/MDS/UI/WBP_MDSMatchHUD
+Compiled and saved widget blueprint /Game/MDS/UI/WBP_MDSObjectiveWorldUI
+Compiled and saved widget blueprint /Game/MDS/UI/WBP_MDSEnemyWorldUI
+```
+
+Interpretation:
+
+- Objective World UI and Enemy World UI remain presentation-only `UWidgetComponent` paths attached to their owning actors.
+- The staged client logged actor world position, widget world position, and projected screen position for Objective and Enemy world UI.
+- Enemy tracking samples show moving enemy actor positions with matching widget component positions, for example `ActorWorld=V(Y=652.00, Z=65.00)` and `WidgetWorld=V(Y=652.00, Z=185.00)`.
+- Later tracking samples include `Projected=true` for Objective UI and all four spawned Enemy UI labels.
+- `MDS_ReplicatedUIViewport_Client_EngineShot.png` shows Match HUD/debug text, an Objective HP label near the objective, and four separated Enemy HP labels around the objective instead of a single center overlap.
+- The tracking log is gated by `-MDSWorldUITrackingLog`; it is verification evidence and not an always-on runtime UI position update path.
+- UI continues to read replicated GameState, ObjectiveActor, and CombatEnemy state. It does not mutate HP, damage, Wave, or combat state.
+
+Caveats:
+
+- The saved log files contain the runtime evidence lines above; the script summary PASS line was observed in the verification console output rather than persisted inside the runtime logs.
+- `SavedVerifyLogs/MDS_ReplicatedUIViewport_Client_EngineShot.png` is the visible placement evidence for this run. `SavedVerifyLogs/MDS_ReplicatedUIViewport_Client_PrintWindow.png` was produced by the script but is not used as the visual proof.
+- Initial projection samples can be `Projected=false` for actors outside the current camera projection; later samples show `Projected=true`.
+- The screenshot includes multiple Objective/probe contexts, so it should be used as UI placement evidence rather than as a single-objective HP-before/after proof.
+
 ## Verified
 
 - Dedicated Server starts and listens on port `7777`.
@@ -249,6 +307,7 @@ Interpretation:
 - Match HUD, Objective World UI, and Enemy World UI baseline widgets read replicated gameplay sources on a staged dedicated server/client run.
 - Replicated UI viewport verification now fails closed when the client content screenshot is visually blank.
 - Replicated UI viewport pixels are visible in an engine-captured staged client screenshot.
+- Objective and Enemy World UI labels can be captured in a staged client viewport while following actor-attached widget component positions.
 
 ## Not Verified In This Pass
 

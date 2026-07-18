@@ -142,3 +142,16 @@ main
 - Added a verification-only staged client engine screenshot request via `-MDSReplicatedUIViewportShot`.
 - Verified `SavedVerifyLogs/MDS_ReplicatedUIViewport_Client_EngineShot.png` shows Match HUD fallback text plus Objective World UI and Enemy World UI fallback text.
 - Latest strict result: `REPLICATED UI VIEWPORT VERIFY RESULT: PASS`.
+
+## Recent Actor-Following World UI Verification
+
+- Date: 2026-07-17
+- Branch/PR scope: PR #43, Objective/Enemy World UI follows owning actors.
+- Kept Objective World UI and Enemy World UI as actor-attached screen-space `UWidgetComponent` presentation paths.
+- Set explicit draw size and pivot so Objective and Enemy HP labels no longer collapse into a single center overlap in the staged viewport evidence.
+- Added `-MDSWorldUITrackingLog` verification logging for short actor/widget/screen projection samples without enabling always-on runtime tracking logs.
+- Added `MDSActorBaselineMoveSpeed` verification override so the staged viewport capture can show separated enemies before they converge on the objective.
+- Verified `Run_Verify_ReplicatedUIViewport.ps1 -Port 7779 -ActorEnemyCount 4 -ActorEnemyMoveSpeed 30` result: `REPLICATED UI VIEWPORT VERIFY RESULT: PASS`.
+- Verified latest logs show dedicated server listen on port `7779`, client join, `4/4` actor combat enemy spawn, Match HUD GameState reads, Objective World UI initialization, Enemy World UI initialization, and later `Projected=true` tracking samples for Objective and four Enemy UI labels.
+- Verified `SavedVerifyLogs/MDS_ReplicatedUIViewport_Client_EngineShot.png` shows Match HUD/debug text, an Objective HP label near the objective, and four separated Enemy HP labels around the objective.
+- Notes: this is visible placement and replicated UI evidence, not authored UI polish, animation/death presentation, Mass profiling, or performance evidence.
