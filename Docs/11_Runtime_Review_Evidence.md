@@ -292,6 +292,87 @@ Caveats:
 - Initial projection samples can be `Projected=false` for actors outside the current camera projection; later samples show `Projected=true`.
 - The screenshot includes multiple Objective/probe contexts, so it should be used as UI placement evidence rather than as a single-objective HP-before/after proof.
 
+## Player Attack Runtime Verification
+
+- Date: 2026-07-19
+- Scope: owning-client player attack intent, server validation, Enemy HP replication, and negative reject checks.
+- Script: `Run_Verify_PlayerAttack.ps1`
+- Runtime command used for the latest scenario sweep:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\Run_Verify_PlayerAttack.ps1 -Port 7790 -SkipBuild -SkipStage
+```
+
+Result:
+
+```text
+PLAYER ATTACK VERIFY RESULT: PASS
+```
+
+Logs:
+
+- `SavedVerifyLogs/MDS_PlayerAttack_Valid_Server.log`
+- `SavedVerifyLogs/MDS_PlayerAttack_Valid_Client.log`
+- `SavedVerifyLogs/MDS_PlayerAttack_OutOfRange_Server.log`
+- `SavedVerifyLogs/MDS_PlayerAttack_OutOfRange_Client.log`
+- `SavedVerifyLogs/MDS_PlayerAttack_Cooldown_Server.log`
+- `SavedVerifyLogs/MDS_PlayerAttack_Cooldown_Client.log`
+
+Valid scenario evidence:
+
+```text
+MDS Combat | AutoAttackIntent | ... | Distance=1214.7
+Enemy damage applied by PlayerAttack: 25.0 damage, HP 100.0 -> 75.0.
+Enemy damage applied by PlayerAttack: 25.0 damage, HP 75.0 -> 50.0.
+Enemy damage applied by PlayerAttack: 25.0 damage, HP 50.0 -> 25.0.
+Enemy damage applied by PlayerAttack: 25.0 damage, HP 25.0 -> 0.0.
+MDS Combat | ServerAttackResolved | ... | Valid=true | ... | EnemyHP=25.0->0.0.
+Enemy death handled on server from PlayerAttack.
+Wave enemy death consumed on server: Wave=1 Remaining=1 -> 0.
+Wave cleared on server: Wave=1.
+Enemy HP replicated on client: 75.0 / 100.0. Dead=false.
+Enemy HP replicated on client: 50.0 / 100.0. Dead=false.
+Enemy HP replicated on client: 25.0 / 100.0. Dead=false.
+Enemy HP replicated on client: 0.0 / 100.0. Dead=true.
+```
+
+OutOfRange negative evidence:
+
+```text
+MDS Combat | AutoAttackIntent | ... | Distance=1214.7
+MDS Combat | ServerAttackRejected | Reason=OutOfRange | ... | Distance=1214.7 | Range=100.0.
+Valid attack count: 0
+PlayerAttack damage count: 0
+Client Enemy HP replication count: 0
+```
+
+Cooldown negative evidence:
+
+```text
+MDS Combat | AutoAttackIntent | ... | AttemptsRemaining=1
+Enemy damage applied by PlayerAttack: 10.0 damage, HP 100.0 -> 90.0.
+MDS Combat | ServerAttackResolved | ... | Valid=true | ... | EnemyHP=100.0->90.0.
+MDS Combat | AutoAttackIntent | ... | AttemptsRemaining=0
+MDS Combat | ServerAttackRejected | Reason=Cooldown | ... | CooldownRemaining=9.84.
+Valid attack count: 1
+PlayerAttack damage count: 1
+Client Enemy HP replication count: 1
+Cooldown reject count: 1
+```
+
+Interpretation:
+
+- The auto-attack harness is command-line gated and uses the same owning-client `ServerRequestAttack` RPC path as manual attack input.
+- The client selects a replicated enemy actor only as request intent; the server remains authoritative for target validation, range, cooldown, damage, HP, death handling, and Wave remaining decrement.
+- OutOfRange and Cooldown runtime checks verify rejected attack requests do not apply extra Enemy HP damage.
+- This is log/runtime evidence, not visible animation evidence.
+
+Caveats:
+
+- The latest scenario sweep used `-SkipBuild -SkipStage` because the same player attack code had already been built, cooked, and staged in the immediately preceding verification pass.
+- Verified death is HP-derived death handling and Wave consumption. Enemy death visual/animation presentation remains unverified.
+- Additional reject branches such as InvalidTarget, InvalidDamage, DeadTarget, and NoPawn are not covered by this pass.
+
 ## Verified
 
 - Dedicated Server starts and listens on port `7777`.
@@ -308,6 +389,10 @@ Caveats:
 - Replicated UI viewport verification now fails closed when the client content screenshot is visually blank.
 - Replicated UI viewport pixels are visible in an engine-captured staged client screenshot.
 - Objective and Enemy World UI labels can be captured in a staged client viewport while following actor-attached widget component positions.
+- Player attack intent from the owning client reaches server validation and applies Enemy HP damage only through the server path.
+- Valid player attack damage replicates Enemy HP changes to the client.
+- HP-derived enemy death is handled once by the server and Wave remaining is decremented from `1` to `0`.
+- OutOfRange and Cooldown player attack requests are rejected without extra Enemy HP damage.
 
 ## Not Verified In This Pass
 
@@ -315,9 +400,10 @@ Caveats:
 - Authored Match HUD visual layout.
 - Authored Objective World UI visual layout.
 - Authored Enemy World UI visual layout.
-- Enemy HP/death presentation.
+- Enemy death visual/animation presentation.
 - Attack Montage / AnimNotify negative test.
 - Hit Reaction and Death Animation presentation.
+- Additional player attack reject branches: InvalidTarget, InvalidDamage, DeadTarget, and NoPawn.
 
 These items require visual PIE/client checks, authored Widget Blueprint layout work, or animation-specific runtime scenarios.
 

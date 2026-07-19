@@ -64,6 +64,7 @@ Mover, Motion Matching, Mutable, Mass Entity는 MVP에 직접 구현하지 않�
 - GameState Wave display state replication
 - Match HUD, Objective World UI, and Enemy World UI replicated-state presentation
 - actor-attached Objective/Enemy World UI viewport evidence
+- owning-client player attack intent, server validation, Enemy HP replication, and negative reject log evidence
 - runtime debug state subsystem
 - visible two-client Objective HP verification
 - smoke verification script
@@ -75,6 +76,7 @@ Verified runtime evidence:
 - Debug Overlay viewport verification: `DEBUG OVERLAY VIEWPORT VERIFY RESULT: PASS`
 - Replicated UI baseline verification: `REPLICATED UI BASELINE VERIFY RESULT: PASS`
 - Replicated UI viewport verification: `REPLICATED UI VIEWPORT VERIFY RESULT: PASS`
+- Player attack runtime verification: `PLAYER ATTACK VERIFY RESULT: PASS`
 - Actor-following Objective/Enemy World UI evidence is recorded in `Docs/11_Runtime_Review_Evidence.md`.
 
 v2에서 재정의할 MVP 항목:
@@ -87,7 +89,7 @@ The items below remain implementation or verification gaps, not completed runtim
 - Attack Montage / AnimNotify timing
 - Hit Reaction / Death Animation
 - authored Widget Blueprint visual polish
-- Enemy death presentation runtime evidence
+- Enemy death visual/animation presentation runtime evidence
 - Attack Montage / AnimNotify negative test
 - Hit Reaction / Death Animation runtime evidence
 
@@ -187,11 +189,13 @@ Verified:
 - Debug Overlay runtime and viewport visibility
 - Match HUD / Objective World UI / Enemy World UI replicated-state reads
 - Objective/Enemy World UI actor-following viewport placement
+- Player attack server validation, Enemy HP replication, HP-derived enemy death, and Wave remaining decrement
+- Player attack negative validation for OutOfRange and Cooldown rejects
 
 Not yet verified:
 
 - authored Widget Blueprint visual polish
-- Enemy death presentation
+- Enemy death visual/animation presentation
 - Attack Montage / AnimNotify negative test
 - Hit Reaction and Death Animation runtime presentation
 

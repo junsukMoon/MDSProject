@@ -12,6 +12,7 @@ class UInputMappingContext;
 class UInputAction;
 class UMDSDebugOverlayWidget;
 class UMDSMatchHUDWidget;
+class AActor;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
@@ -76,17 +77,35 @@ protected:
 	void OnTouchTriggered();
 	void OnTouchReleased();
 	void ToggleDebugOverlay();
+	void OnAttackPressed();
 
 private:
 	UMDSDebugOverlayWidget* GetOrCreateDebugOverlay();
 	UMDSMatchHUDWidget* GetOrCreateMatchHUD();
 	void RequestReplicatedUIViewportScreenshot();
+	void ServerProcessAttack(AActor* RequestedTarget);
+	void ConfigureAttackFromCommandLine();
+	void StartAutoAttackVerification();
+	void TryAutoAttackNearestEnemy();
+	class AMDSCombatEnemyActor* FindNearestAutoAttackEnemy(float& OutDistance) const;
+
+	UFUNCTION(Server, Reliable)
+	void ServerRequestAttack(AActor* RequestedTarget);
 
 	UPROPERTY(EditDefaultsOnly, Category = "MDS|UI", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UMDSDebugOverlayWidget> DebugOverlayWidgetClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = "MDS|UI", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UMDSMatchHUDWidget> MatchHUDWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "MDS|Combat", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float AttackDamage = 25.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "MDS|Combat", meta = (AllowPrivateAccess = "true", ClampMin = "1.0"))
+	float AttackRange = 450.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "MDS|Combat", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float AttackCooldownSeconds = 0.5f;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMDSDebugOverlayWidget> DebugOverlayWidget;
@@ -95,6 +114,10 @@ private:
 	TObjectPtr<UMDSMatchHUDWidget> MatchHUDWidget;
 
 	FTimerHandle ReplicatedUIViewportScreenshotTimerHandle;
+	FTimerHandle AutoAttackTimerHandle;
+	double LastServerAttackTimeSeconds = -1000000.0;
+	int32 AutoAttackAttemptsRemaining = 0;
+	float AutoAttackRetryIntervalSeconds = 0.75f;
 };
 
 
