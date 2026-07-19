@@ -15,6 +15,8 @@
 #include "Engine/LocalPlayer.h"
 #include "InputCoreTypes.h"
 #include "MDSProject.h"
+#include "Combat/MDSCombatEnemyActor.h"
+#include "EngineUtils.h"
 #include "HAL/FileManager.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Paths.h"
@@ -24,6 +26,8 @@
 #include "UI/MDSDebugOverlayWidget.h"
 #include "UI/MDSMatchHUDWidget.h"
 #include "UnrealClient.h"
+
+DEFINE_LOG_CATEGORY_STATIC(LogMDSPlayerCombat, Log, All);
 
 namespace
 {
@@ -77,6 +81,8 @@ void AMDSProjectPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
+	ConfigureAttackFromCommandLine();
+
 	if (IsLocalPlayerController())
 	{
 		GetOrCreateMatchHUD();
@@ -91,6 +97,8 @@ void AMDSProjectPlayerController::BeginPlay()
 				6.0f,
 				false);
 		}
+
+		StartAutoAttackVerification();
 	}
 }
 
@@ -170,6 +178,7 @@ void AMDSProjectPlayerController::SetupInputComponent()
 		}
 
 		InputComponent->BindKey(EKeys::F1, IE_Pressed, this, &AMDSProjectPlayerController::ToggleDebugOverlay);
+		InputComponent->BindKey(EKeys::E, IE_Pressed, this, &AMDSProjectPlayerController::OnAttackPressed);
 	}
 }
 
@@ -253,6 +262,252 @@ void AMDSProjectPlayerController::ToggleDebugOverlay()
 
 	OverlayWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	OverlayWidget->ActivateWidget();
+}
+
+void AMDSProjectPlayerController::OnAttackPressed()
+{
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+
+	FHitResult Hit;
+	AActor* RequestedTarget = nullptr;
+	if (GetHitResultUnderCursor(ECollisionChannel::ECC_Visibility, true, Hit))
+	{
+		RequestedTarget = Hit.GetActor();
+	}
+
+	UE_LOG(LogMDSPlayerCombat, Log, TEXT("MDS Combat | ClientAttackIntent | Controller=%s | RequestedTarget=%s."),
+		*GetNameSafe(this),
+		*GetNameSafe(RequestedTarget));
+
+	ServerRequestAttack(RequestedTarget);
+}
+
+void AMDSProjectPlayerController::ConfigureAttackFromCommandLine()
+{
+	bool bConfigured = false;
+	float ParsedAttackDamage = AttackDamage;
+	if (FParse::Value(FCommandLine::Get(), TEXT("MDSAttackDamage="), ParsedAttackDamage))
+	{
+		AttackDamage = FMath::Max(0.0f, ParsedAttackDamage);
+		bConfigured = true;
+	}
+
+	float ParsedAttackRange = AttackRange;
+	if (FParse::Value(FCommandLine::Get(), TEXT("MDSAttackRange="), ParsedAttackRange))
+	{
+		AttackRange = FMath::Max(1.0f, ParsedAttackRange);
+		bConfigured = true;
+	}
+
+	float ParsedAttackCooldownSeconds = AttackCooldownSeconds;
+	if (FParse::Value(FCommandLine::Get(), TEXT("MDSAttackCooldown="), ParsedAttackCooldownSeconds))
+	{
+		AttackCooldownSeconds = FMath::Max(0.0f, ParsedAttackCooldownSeconds);
+		bConfigured = true;
+	}
+
+	if (bConfigured || FParse::Param(FCommandLine::Get(), TEXT("MDSAutoAttackNearestEnemy")))
+	{
+		UE_LOG(LogMDSPlayerCombat, Log, TEXT("MDS Combat | AttackConfig | Controller=%s | Damage=%.1f | Range=%.1f | Cooldown=%.2f."),
+			*GetNameSafe(this),
+			AttackDamage,
+			AttackRange,
+			AttackCooldownSeconds);
+	}
+}
+
+void AMDSProjectPlayerController::StartAutoAttackVerification()
+{
+	if (!IsLocalPlayerController() || !FParse::Param(FCommandLine::Get(), TEXT("MDSAutoAttackNearestEnemy")))
+	{
+		return;
+	}
+
+	float AutoAttackDelaySeconds = 3.0f;
+	FParse::Value(FCommandLine::Get(), TEXT("MDSAutoAttackDelay="), AutoAttackDelaySeconds);
+	AutoAttackDelaySeconds = FMath::Max(0.0f, AutoAttackDelaySeconds);
+
+	FParse::Value(FCommandLine::Get(), TEXT("MDSAutoAttackRetryInterval="), AutoAttackRetryIntervalSeconds);
+	AutoAttackRetryIntervalSeconds = FMath::Max(0.1f, AutoAttackRetryIntervalSeconds);
+
+	int32 AutoAttackCount = 4;
+	FParse::Value(FCommandLine::Get(), TEXT("MDSAutoAttackCount="), AutoAttackCount);
+	AutoAttackAttemptsRemaining = FMath::Max(1, AutoAttackCount);
+
+	UE_LOG(LogMDSPlayerCombat, Log, TEXT("MDS Combat | AutoAttackScheduled | Controller=%s | Delay=%.2f | RetryInterval=%.2f | Attempts=%d."),
+		*GetNameSafe(this),
+		AutoAttackDelaySeconds,
+		AutoAttackRetryIntervalSeconds,
+		AutoAttackAttemptsRemaining);
+
+	GetWorldTimerManager().SetTimer(
+		AutoAttackTimerHandle,
+		this,
+		&AMDSProjectPlayerController::TryAutoAttackNearestEnemy,
+		AutoAttackRetryIntervalSeconds,
+		true,
+		AutoAttackDelaySeconds);
+}
+
+void AMDSProjectPlayerController::TryAutoAttackNearestEnemy()
+{
+	if (!IsLocalPlayerController())
+	{
+		GetWorldTimerManager().ClearTimer(AutoAttackTimerHandle);
+		return;
+	}
+
+	if (AutoAttackAttemptsRemaining <= 0)
+	{
+		GetWorldTimerManager().ClearTimer(AutoAttackTimerHandle);
+		UE_LOG(LogMDSPlayerCombat, Log, TEXT("MDS Combat | AutoAttackFinished | Controller=%s."), *GetNameSafe(this));
+		return;
+	}
+
+	--AutoAttackAttemptsRemaining;
+
+	float DistanceToTarget = 0.0f;
+	AMDSCombatEnemyActor* TargetEnemy = FindNearestAutoAttackEnemy(DistanceToTarget);
+	if (!TargetEnemy)
+	{
+		UE_LOG(LogMDSPlayerCombat, Warning, TEXT("MDS Combat | AutoAttackNoTarget | Controller=%s | AttemptsRemaining=%d."),
+			*GetNameSafe(this),
+			AutoAttackAttemptsRemaining);
+		return;
+	}
+
+	UE_LOG(LogMDSPlayerCombat, Log, TEXT("MDS Combat | AutoAttackIntent | Controller=%s | Target=%s | Distance=%.1f | AttemptsRemaining=%d."),
+		*GetNameSafe(this),
+		*GetNameSafe(TargetEnemy),
+		DistanceToTarget,
+		AutoAttackAttemptsRemaining);
+
+	ServerRequestAttack(TargetEnemy);
+}
+
+AMDSCombatEnemyActor* AMDSProjectPlayerController::FindNearestAutoAttackEnemy(float& OutDistance) const
+{
+	OutDistance = 0.0f;
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	const APawn* RequestingPawn = GetPawn();
+	const FVector SearchOrigin = RequestingPawn ? RequestingPawn->GetActorLocation() : GetFocalLocation();
+	AMDSCombatEnemyActor* BestEnemy = nullptr;
+	float BestDistanceSquared = TNumericLimits<float>::Max();
+
+	for (TActorIterator<AMDSCombatEnemyActor> EnemyIt(World); EnemyIt; ++EnemyIt)
+	{
+		AMDSCombatEnemyActor* Enemy = *EnemyIt;
+		if (!Enemy || Enemy->IsDead())
+		{
+			continue;
+		}
+
+		const float DistanceSquared = FVector::DistSquared(SearchOrigin, Enemy->GetActorLocation());
+		if (DistanceSquared < BestDistanceSquared)
+		{
+			BestDistanceSquared = DistanceSquared;
+			BestEnemy = Enemy;
+		}
+	}
+
+	if (BestEnemy)
+	{
+		OutDistance = FMath::Sqrt(BestDistanceSquared);
+	}
+
+	return BestEnemy;
+}
+
+void AMDSProjectPlayerController::ServerRequestAttack_Implementation(AActor* RequestedTarget)
+{
+	ServerProcessAttack(RequestedTarget);
+}
+
+void AMDSProjectPlayerController::ServerProcessAttack(AActor* RequestedTarget)
+{
+	APawn* RequestingPawn = GetPawn();
+	if (!RequestingPawn)
+	{
+		UE_LOG(LogMDSPlayerCombat, Warning, TEXT("MDS Combat | ServerAttackRejected | Reason=NoPawn | Controller=%s | RequestedTarget=%s."),
+			*GetNameSafe(this),
+			*GetNameSafe(RequestedTarget));
+		return;
+	}
+
+	AMDSCombatEnemyActor* TargetEnemy = Cast<AMDSCombatEnemyActor>(RequestedTarget);
+	if (!TargetEnemy)
+	{
+		UE_LOG(LogMDSPlayerCombat, Warning, TEXT("MDS Combat | ServerAttackRejected | Reason=InvalidTarget | Requester=%s | RequestedTarget=%s."),
+			*GetNameSafe(RequestingPawn),
+			*GetNameSafe(RequestedTarget));
+		return;
+	}
+
+	if (TargetEnemy->IsDead())
+	{
+		UE_LOG(LogMDSPlayerCombat, Log, TEXT("MDS Combat | ServerAttackRejected | Reason=DeadTarget | Requester=%s | Target=%s."),
+			*GetNameSafe(RequestingPawn),
+			*GetNameSafe(TargetEnemy));
+		return;
+	}
+
+	if (AttackDamage <= 0.0f)
+	{
+		UE_LOG(LogMDSPlayerCombat, Warning, TEXT("MDS Combat | ServerAttackRejected | Reason=InvalidDamage | Requester=%s | Target=%s | Damage=%.1f."),
+			*GetNameSafe(RequestingPawn),
+			*GetNameSafe(TargetEnemy),
+			AttackDamage);
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	const double CurrentTimeSeconds = World ? World->GetTimeSeconds() : 0.0;
+	const double CooldownRemaining = LastServerAttackTimeSeconds + AttackCooldownSeconds - CurrentTimeSeconds;
+	if (CooldownRemaining > 0.0)
+	{
+		UE_LOG(LogMDSPlayerCombat, Log, TEXT("MDS Combat | ServerAttackRejected | Reason=Cooldown | Requester=%s | Target=%s | CooldownRemaining=%.2f."),
+			*GetNameSafe(RequestingPawn),
+			*GetNameSafe(TargetEnemy),
+			CooldownRemaining);
+		return;
+	}
+
+	const float DistanceToTarget = FVector::Dist(RequestingPawn->GetActorLocation(), TargetEnemy->GetActorLocation());
+	if (DistanceToTarget > AttackRange)
+	{
+		UE_LOG(LogMDSPlayerCombat, Log, TEXT("MDS Combat | ServerAttackRejected | Reason=OutOfRange | Requester=%s | Target=%s | Distance=%.1f | Range=%.1f."),
+			*GetNameSafe(RequestingPawn),
+			*GetNameSafe(TargetEnemy),
+			DistanceToTarget,
+			AttackRange);
+		return;
+	}
+
+	const float PreviousHealth = TargetEnemy->GetCurrentHealth();
+	const bool bDamageApplied = TargetEnemy->ApplyEnemyDamage(AttackDamage, TEXT("PlayerAttack"));
+	const float NewHealth = TargetEnemy->GetCurrentHealth();
+	if (bDamageApplied)
+	{
+		LastServerAttackTimeSeconds = CurrentTimeSeconds;
+	}
+
+	UE_LOG(LogMDSPlayerCombat, Log, TEXT("MDS Combat | ServerAttackResolved | Requester=%s | Target=%s | Valid=%s | Distance=%.1f | Damage=%.1f | EnemyHP=%.1f->%.1f."),
+		*GetNameSafe(RequestingPawn),
+		*GetNameSafe(TargetEnemy),
+		bDamageApplied ? TEXT("true") : TEXT("false"),
+		DistanceToTarget,
+		AttackDamage,
+		PreviousHealth,
+		NewHealth);
 }
 
 UMDSDebugOverlayWidget* AMDSProjectPlayerController::GetOrCreateDebugOverlay()

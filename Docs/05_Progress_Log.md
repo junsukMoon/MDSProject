@@ -155,3 +155,17 @@ main
 - Verified latest logs show dedicated server listen on port `7779`, client join, `4/4` actor combat enemy spawn, Match HUD GameState reads, Objective World UI initialization, Enemy World UI initialization, and later `Projected=true` tracking samples for Objective and four Enemy UI labels.
 - Verified `SavedVerifyLogs/MDS_ReplicatedUIViewport_Client_EngineShot.png` shows Match HUD/debug text, an Objective HP label near the objective, and four separated Enemy HP labels around the objective.
 - Notes: this is visible placement and replicated UI evidence, not authored UI polish, animation/death presentation, Mass profiling, or performance evidence.
+
+## Recent Player Attack Runtime Verification
+
+- Date: 2026-07-19
+- Branch/PR scope: player attack request, server validation, Enemy HP replication, and negative reject verification.
+- Added owning-client `ServerRequestAttack` flow on `AMDSProjectPlayerController`.
+- Added command-line gated `-MDSAutoAttackNearestEnemy` verification harness that selects a replicated enemy on the client and still uses the same server RPC path.
+- Added `Run_Verify_PlayerAttack.ps1`.
+- Verified staged dedicated server/client runtime with `Run_Verify_PlayerAttack.ps1`.
+- Verified `Valid` scenario: four accepted player attacks apply server-owned Enemy HP damage `100 -> 75 -> 50 -> 25 -> 0`, replicate Enemy HP to the client, handle HP-derived enemy death, and decrement Wave remaining `1 -> 0`.
+- Verified `OutOfRange` negative scenario: server rejects the request with `Reason=OutOfRange`, with zero valid attacks and zero `PlayerAttack` damage.
+- Verified `Cooldown` negative scenario: one valid damage applies `100 -> 90`, the next request is rejected with `Reason=Cooldown`, and no extra damage is applied.
+- Verified latest script result: `PLAYER ATTACK VERIFY RESULT: PASS`.
+- Notes: this is runtime/log evidence, not Attack Montage, AnimNotify, Hit Reaction, or Death Animation presentation evidence. Additional reject branches such as InvalidTarget, InvalidDamage, DeadTarget, and NoPawn remain unverified.

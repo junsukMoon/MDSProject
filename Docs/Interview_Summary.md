@@ -6,7 +6,7 @@
 
 MDS v2는 Dedicated Server 환경에서 동작하는 Objective Combat Demo입니다. 서버가 전투 판정, Enemy HP, Objective HP, Wave 진행을 소유하고, 클라이언트는 replicated state를 기반으로 UI presentation을 갱신합니다. 캐릭터 이동과 animation presentation은 CMC, Skeletal Mesh, AnimBP State Machine, Attack Montage, AnimNotify timing, Hit Reaction, Death Animation을 기준으로 한 후속 evidence 범위입니다. Mover, Motion Matching, Mutable, Mass Entity는 MVP 구현이 아니라 future extension으로 문서화했습니다.
 
-Current evidence note: the verified runtime path covers Dedicated Server Objective/Enemy/Wave state and replicated UI presentation. Character movement and animation presentation are still remaining evidence gaps, not verified runtime claims.
+Current evidence note: the verified runtime path covers Dedicated Server Objective/Enemy/Wave state, owning-client player attack intent, server attack validation, Enemy HP replication, and replicated UI presentation. Character movement and animation presentation are still remaining evidence gaps, not verified runtime claims.
 
 ## Core Flow
 
@@ -66,13 +66,17 @@ Player input
 - Objective World UI reads replicated `AMDSObjectiveActor` HP.
 - Enemy World UI reads replicated `AMDSCombatEnemyActor` HP for multiple spawned combat enemies.
 - Objective/Enemy World UI labels are actor-attached and verified in a staged viewport with separated actor-following labels.
+- Player attack intent from the owning client reaches the server RPC path and is validated on the server.
+- Valid player attack damage replicates Enemy HP to the client, including HP-derived enemy death and Wave remaining decrement.
+- Player attack negative runtime checks verify OutOfRange and Cooldown rejects do not apply extra damage.
 
 ## Remaining Evidence Gaps
 
 - Authored Widget Blueprint visual layout polish is not verified.
-- Enemy death presentation runtime evidence is not verified.
+- Enemy death visual/animation presentation runtime evidence is not verified.
 - Attack Montage / AnimNotify negative test is not verified.
 - Hit Reaction and Death Animation runtime presentation are not verified.
+- Additional reject branches such as InvalidTarget, InvalidDamage, DeadTarget, and NoPawn are not verified.
 
 ## Runtime Evidence
 
@@ -102,6 +106,7 @@ Completed baseline order:
 3. Add minimal combat enemy actor with server-owned HP.
 4. Connect server-side combat validation and Objective damage.
 5. Add replicated UI presentation for Match HUD, Objective HP, and Enemy HP.
+6. Add owning-client player attack request, server validation, Enemy HP replication, and valid/negative runtime evidence.
 
 Remaining optional implementation/evidence order:
 

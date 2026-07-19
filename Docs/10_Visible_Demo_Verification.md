@@ -95,6 +95,18 @@ Notes:
 - Some initial tracking samples are `Projected=false` when actors are outside the current camera projection, but later samples include `Projected=true` for Objective UI and all four Enemy UI labels.
 - The screenshot is visible layout evidence. The multiple Objective/probe context means it should not be treated as a single Objective HP state transition proof.
 
+## Player Attack Runtime Evidence Reference
+
+Player attack verification is tracked as runtime/log evidence rather than visible screenshot evidence.
+
+- Script: `Run_Verify_PlayerAttack.ps1`
+- Latest result: `PLAYER ATTACK VERIFY RESULT: PASS`
+- Scenarios: `Valid`, `OutOfRange`, `Cooldown`
+- Logs: `SavedVerifyLogs/MDS_PlayerAttack_*`
+- Detailed evidence: `Docs/11_Runtime_Review_Evidence.md`
+
+This verifies owning-client attack intent, server validation, Enemy HP replication, HP-derived death handling, Wave remaining decrement, and OutOfRange/Cooldown rejects. It does not verify Attack Montage, AnimNotify, Hit Reaction, or Death Animation presentation.
+
 ## Unreal Insights Trace
 
 Smoke trace:

@@ -15,10 +15,10 @@ DEFINE_LOG_CATEGORY_STATIC(LogMDSObjective, Log, All);
 namespace
 {
 const TCHAR* ObjectiveWorldWidgetClassPath = TEXT("/Game/MDS/UI/WBP_MDSObjectiveWorldUI.WBP_MDSObjectiveWorldUI_C");
-constexpr int32 WorldUITrackingSampleCount = 4;
-constexpr float WorldUITrackingSampleIntervalSeconds = 1.0f;
+constexpr int32 ObjectiveWorldUITrackingSampleCount = 4;
+constexpr float ObjectiveWorldUITrackingSampleIntervalSeconds = 1.0f;
 
-bool ShouldLogWorldUITracking()
+bool ShouldLogObjectiveWorldUITracking()
 {
 	return FParse::Param(FCommandLine::Get(), TEXT("MDSWorldUITrackingLog"));
 }
@@ -146,12 +146,12 @@ void AMDSObjectiveActor::OnRep_CurrentHealth()
 
 void AMDSObjectiveActor::StartWorldUITrackingLog()
 {
-	if (!ObjectiveWorldWidgetComponent || GetNetMode() == NM_DedicatedServer || !ShouldLogWorldUITracking())
+	if (!ObjectiveWorldWidgetComponent || GetNetMode() == NM_DedicatedServer || !ShouldLogObjectiveWorldUITracking())
 	{
 		return;
 	}
 
-	WorldUITrackingLogSamplesRemaining = WorldUITrackingSampleCount;
+	WorldUITrackingLogSamplesRemaining = ObjectiveWorldUITrackingSampleCount;
 	LogWorldUITrackingSample();
 
 	if (UWorld* World = GetWorld())
@@ -160,7 +160,7 @@ void AMDSObjectiveActor::StartWorldUITrackingLog()
 			WorldUITrackingLogTimerHandle,
 			this,
 			&AMDSObjectiveActor::LogWorldUITrackingSample,
-			WorldUITrackingSampleIntervalSeconds,
+			ObjectiveWorldUITrackingSampleIntervalSeconds,
 			true);
 	}
 }
