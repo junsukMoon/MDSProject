@@ -107,6 +107,16 @@ Player attack verification is tracked as runtime/log evidence rather than visibl
 
 This verifies owning-client attack intent, server validation, Enemy HP replication, HP-derived death handling, Wave remaining decrement, and OutOfRange/Cooldown rejects. It does not verify Attack Montage, AnimNotify, Hit Reaction, or Death Animation presentation.
 
+## Combat Presentation Hook Evidence Reference
+
+Combat presentation hook verification is tracked as runtime/log evidence rather than visible animation evidence.
+
+- Script: `Run_Verify_CombatPresentationHooks.ps1`
+- Evidence type: C++ hook/log ordering
+- Detailed evidence: `Docs/11_Runtime_Review_Evidence.md`
+
+This verifies local attack presentation hooks, replicated Enemy HP-driven hit/death presentation hooks, and a presentation-only negative path that does not send an attack RPC or apply Enemy HP damage. It does not verify authored Attack Montage playback, real AnimNotify asset firing, authored Hit Reaction, authored Death Animation, or viewport-visible animation pose changes.
+
 ## Unreal Insights Trace
 
 Smoke trace:
