@@ -37,6 +37,11 @@ const TCHAR* ClickActionPath = TEXT("/Game/TopDown/Input/Actions/IA_SetDestinati
 const TCHAR* TouchActionPath = TEXT("/Game/TopDown/Input/Actions/IA_SetDestination_Touch.IA_SetDestination_Touch");
 const TCHAR* DebugOverlayWidgetClassPath = TEXT("/Game/MDS/UI/WBP_MDSDebugOverlay.WBP_MDSDebugOverlay_C");
 const TCHAR* MatchHUDWidgetClassPath = TEXT("/Game/MDS/UI/WBP_MDSMatchHUD.WBP_MDSMatchHUD_C");
+
+bool ShouldLogCombatPresentation()
+{
+	return FParse::Param(FCommandLine::Get(), TEXT("MDSCombatPresentationLog"));
+}
 }
 
 AMDSProjectPlayerController::AMDSProjectPlayerController()
@@ -99,6 +104,7 @@ void AMDSProjectPlayerController::BeginPlay()
 		}
 
 		StartAutoAttackVerification();
+		StartPresentationOnlyVerification();
 	}
 }
 
@@ -282,6 +288,7 @@ void AMDSProjectPlayerController::OnAttackPressed()
 		*GetNameSafe(this),
 		*GetNameSafe(RequestedTarget));
 
+	RequestLocalAttackPresentation(TEXT("ManualInput"));
 	ServerRequestAttack(RequestedTarget);
 }
 
@@ -385,7 +392,69 @@ void AMDSProjectPlayerController::TryAutoAttackNearestEnemy()
 		DistanceToTarget,
 		AutoAttackAttemptsRemaining);
 
+	RequestLocalAttackPresentation(TEXT("AutoAttack"));
 	ServerRequestAttack(TargetEnemy);
+}
+
+void AMDSProjectPlayerController::RequestLocalAttackPresentation(const FName PresentationSource)
+{
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+
+	APawn* ControlledPawn = GetPawn();
+	if (ShouldLogCombatPresentation())
+	{
+		UE_LOG(LogMDSPlayerCombat, Log, TEXT("MDS CombatPresentation | AttackPresentationRequested | Controller=%s | Pawn=%s | Source=%s."),
+			*GetNameSafe(this),
+			*GetNameSafe(ControlledPawn),
+			*PresentationSource.ToString());
+		UE_LOG(LogMDSPlayerCombat, Log, TEXT("MDS CombatPresentation | AttackTimingMarker | Controller=%s | Pawn=%s | Source=%s | GameplayDamage=false."),
+			*GetNameSafe(this),
+			*GetNameSafe(ControlledPawn),
+			*PresentationSource.ToString());
+	}
+
+	if (AMDSProjectCharacter* MDSCharacter = Cast<AMDSProjectCharacter>(GetPawn()))
+	{
+		MDSCharacter->RequestLocalAttackPresentation(PresentationSource);
+	}
+}
+
+void AMDSProjectPlayerController::StartPresentationOnlyVerification()
+{
+	if (!IsLocalPlayerController() || !FParse::Param(FCommandLine::Get(), TEXT("MDSPresentationOnlyAttackMarker")))
+	{
+		return;
+	}
+
+	float PresentationOnlyDelaySeconds = 3.0f;
+	FParse::Value(FCommandLine::Get(), TEXT("MDSPresentationOnlyAttackDelay="), PresentationOnlyDelaySeconds);
+	PresentationOnlyDelaySeconds = FMath::Max(0.0f, PresentationOnlyDelaySeconds);
+
+	UE_LOG(LogMDSPlayerCombat, Log, TEXT("MDS Combat | PresentationOnlyAttackScheduled | Controller=%s | Delay=%.2f."),
+		*GetNameSafe(this),
+		PresentationOnlyDelaySeconds);
+
+	GetWorldTimerManager().SetTimer(
+		PresentationOnlyAttackTimerHandle,
+		this,
+		&AMDSProjectPlayerController::TriggerPresentationOnlyAttackMarker,
+		PresentationOnlyDelaySeconds,
+		false);
+}
+
+void AMDSProjectPlayerController::TriggerPresentationOnlyAttackMarker()
+{
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+
+	UE_LOG(LogMDSPlayerCombat, Log, TEXT("MDS Combat | PresentationOnlyAttackMarker | Controller=%s | ServerRequestSent=false."),
+		*GetNameSafe(this));
+	RequestLocalAttackPresentation(TEXT("PresentationOnly"));
 }
 
 AMDSCombatEnemyActor* AMDSProjectPlayerController::FindNearestAutoAttackEnemy(float& OutDistance) const

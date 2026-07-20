@@ -24,6 +24,11 @@ bool ShouldLogWorldUITracking()
 {
 	return FParse::Param(FCommandLine::Get(), TEXT("MDSWorldUITrackingLog"));
 }
+
+bool ShouldLogCombatPresentation()
+{
+	return FParse::Param(FCommandLine::Get(), TEXT("MDSCombatPresentationLog"));
+}
 }
 
 AMDSCombatEnemyActor::AMDSCombatEnemyActor()
@@ -56,6 +61,7 @@ void AMDSCombatEnemyActor::BeginPlay()
 		CurrentHealth = MaxHealth;
 		bDeathHandled = false;
 		bHasArrivedAtObjective = false;
+		bDeathPresentationHandled = false;
 
 		UE_LOG(LogMDSCombatEnemy, Log, TEXT("Combat enemy initialized on server with %.1f / %.1f HP at %s."),
 			CurrentHealth,
@@ -240,7 +246,7 @@ bool AMDSCombatEnemyActor::ApplyEnemyDamage(const float DamageAmount, const FNam
 	return CurrentHealth < PreviousHealth;
 }
 
-void AMDSCombatEnemyActor::OnRep_CurrentHealth()
+void AMDSCombatEnemyActor::OnRep_CurrentHealth(const float PreviousHealth)
 {
 	UE_LOG(LogMDSCombatEnemy, Log, TEXT("Enemy HP replicated on client: %.1f / %.1f. Dead=%s."),
 		CurrentHealth,
@@ -253,6 +259,20 @@ void AMDSCombatEnemyActor::OnRep_CurrentHealth()
 		{
 			EnemyWidget->RefreshFromEnemy();
 		}
+	}
+
+	if (GetNetMode() == NM_DedicatedServer || CurrentHealth >= PreviousHealth)
+	{
+		return;
+	}
+
+	if (IsDead())
+	{
+		RequestDeathPresentation(PreviousHealth);
+	}
+	else
+	{
+		RequestHitPresentation(PreviousHealth);
 	}
 }
 
@@ -298,4 +318,42 @@ void AMDSCombatEnemyActor::HandleObjectiveArrivalOnce()
 	UE_LOG(LogMDSCombatEnemy, Log, TEXT("Combat enemy arrived at objective. DamageApplied=%s Location=%s."),
 		bDamageApplied ? TEXT("true") : TEXT("false"),
 		*GetActorLocation().ToCompactString());
+}
+
+void AMDSCombatEnemyActor::RequestHitPresentation(const float PreviousHealth)
+{
+	if (GetNetMode() == NM_DedicatedServer)
+	{
+		return;
+	}
+
+	if (ShouldLogCombatPresentation())
+	{
+		UE_LOG(LogMDSCombatEnemy, Log, TEXT("MDS CombatPresentation | EnemyHitPresentationRequested | Enemy=%s | EnemyHP=%.1f->%.1f | GameplayDamage=false."),
+			*GetNameSafe(this),
+			PreviousHealth,
+			CurrentHealth);
+	}
+
+	BP_OnHitPresentationRequested(PreviousHealth, CurrentHealth);
+}
+
+void AMDSCombatEnemyActor::RequestDeathPresentation(const float PreviousHealth)
+{
+	if (GetNetMode() == NM_DedicatedServer || bDeathPresentationHandled)
+	{
+		return;
+	}
+
+	bDeathPresentationHandled = true;
+
+	if (ShouldLogCombatPresentation())
+	{
+		UE_LOG(LogMDSCombatEnemy, Log, TEXT("MDS CombatPresentation | EnemyDeathPresentationRequested | Enemy=%s | EnemyHP=%.1f->%.1f | GameplayDamage=false."),
+			*GetNameSafe(this),
+			PreviousHealth,
+			CurrentHealth);
+	}
+
+	BP_OnDeathPresentationRequested(PreviousHealth);
 }

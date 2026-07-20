@@ -373,6 +373,51 @@ Caveats:
 - Verified death is HP-derived death handling and Wave consumption. Enemy death visual/animation presentation remains unverified.
 - Additional reject branches such as InvalidTarget, InvalidDamage, DeadTarget, and NoPawn are not covered by this pass.
 
+## Combat Presentation Hook Verification
+
+- Date: 2026-07-19
+- Scope: C++ presentation hook/log evidence for local attack presentation, replicated Enemy HP hit presentation, and HP-derived death presentation.
+- Script: `Run_Verify_CombatPresentationHooks.ps1`
+- Runtime command:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\Run_Verify_CombatPresentationHooks.ps1 -Port 7798
+```
+
+Result:
+
+```text
+COMBAT PRESENTATION VERIFY RESULT: PASS
+```
+
+Evidence:
+
+- Valid attack scenario:
+  - local client logs `AttackPresentationRequested` and `AttackTimingMarker` before sending the existing server attack request.
+  - server applies `PlayerAttack` damage through the authoritative path.
+  - client observes replicated Enemy HP in `OnRep_CurrentHealth`.
+  - client logs `EnemyHitPresentationRequested` after non-death HP replication.
+  - client logs one `EnemyDeathPresentationRequested` after replicated HP reaches `0`.
+- Presentation-only negative scenario:
+  - client logs `PresentationOnlyAttackMarker`, `AttackPresentationRequested`, and `AttackTimingMarker`.
+  - `ServerAttackResolved` count remains `0`.
+  - `Enemy damage applied by PlayerAttack` count remains `0`.
+  - client `Enemy HP replicated on client` count remains `0`.
+
+Interpretation:
+
+- Attack, hit, and death presentation hooks are presentation-only C++ extension points.
+- Hit/death presentation is driven by replicated Enemy HP observation on clients.
+- The presentation-only marker does not apply Enemy HP damage and does not send the server attack RPC.
+- This verifies hook/log ordering only; it is not visible animation playback evidence.
+
+Caveats:
+
+- Real Attack Montage playback is not verified.
+- Real AnimNotify asset firing is not verified.
+- Authored Hit Reaction and Death Animation asset playback are not verified.
+- Viewport-visible animation pose changes and frame-accurate animation/combat timing are not verified.
+
 ## Verified
 
 - Dedicated Server starts and listens on port `7777`.
@@ -393,6 +438,8 @@ Caveats:
 - Valid player attack damage replicates Enemy HP changes to the client.
 - HP-derived enemy death is handled once by the server and Wave remaining is decremented from `1` to `0`.
 - OutOfRange and Cooldown player attack requests are rejected without extra Enemy HP damage.
+- Combat presentation hooks can be triggered as local/client presentation without mutating server-owned damage state.
+- Client hit/death presentation hook logs occur after replicated Enemy HP observation.
 
 ## Not Verified In This Pass
 
@@ -403,6 +450,7 @@ Caveats:
 - Enemy death visual/animation presentation.
 - Attack Montage / AnimNotify negative test.
 - Hit Reaction and Death Animation presentation.
+- Authored Attack Montage playback, real AnimNotify asset firing, and viewport-visible hit/death animation pose changes.
 - Additional player attack reject branches: InvalidTarget, InvalidDamage, DeadTarget, and NoPawn.
 
 These items require visual PIE/client checks, authored Widget Blueprint layout work, or animation-specific runtime scenarios.

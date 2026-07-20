@@ -8,6 +8,8 @@ MDS v2는 Dedicated Server 환경에서 동작하는 Objective Combat Demo입니
 
 Current evidence note: the verified runtime path covers Dedicated Server Objective/Enemy/Wave state, owning-client player attack intent, server attack validation, Enemy HP replication, and replicated UI presentation. Character movement and animation presentation are still remaining evidence gaps, not verified runtime claims.
 
+Presentation hook note: C++ attack/hit/death presentation hook ordering can be verified with logs, but authored Montage/AnimNotify/Hit Reaction/Death Animation asset playback remains separate visual evidence.
+
 ## Core Flow
 
 ```text
@@ -69,13 +71,15 @@ Player input
 - Player attack intent from the owning client reaches the server RPC path and is validated on the server.
 - Valid player attack damage replicates Enemy HP to the client, including HP-derived enemy death and Wave remaining decrement.
 - Player attack negative runtime checks verify OutOfRange and Cooldown rejects do not apply extra damage.
+- C++ combat presentation hooks can be triggered from local attack intent and replicated Enemy HP observation without mutating server-owned damage state.
 
 ## Remaining Evidence Gaps
 
 - Authored Widget Blueprint visual layout polish is not verified.
 - Enemy death visual/animation presentation runtime evidence is not verified.
-- Attack Montage / AnimNotify negative test is not verified.
-- Hit Reaction and Death Animation runtime presentation are not verified.
+- Authored Attack Montage playback and real AnimNotify asset firing are not verified.
+- Authored Hit Reaction and Death Animation playback are not verified.
+- Viewport-visible animation pose changes are not verified.
 - Additional reject branches such as InvalidTarget, InvalidDamage, DeadTarget, and NoPawn are not verified.
 
 ## Runtime Evidence

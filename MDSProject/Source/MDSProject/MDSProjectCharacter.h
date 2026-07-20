@@ -35,11 +35,17 @@ public:
 	/** Update */
 	virtual void Tick(float DeltaSeconds) override;
 
+	void RequestLocalAttackPresentation(FName PresentationSource);
+
 	/** Returns the camera component **/
 	FORCEINLINE class UCameraComponent* GetTopDownCameraComponent() const { return TopDownCameraComponent; }
 
 	/** Returns the Camera Boom component **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+
+protected:
+	UFUNCTION(BlueprintImplementableEvent, Category = "MDS|Combat Presentation")
+	void BP_OnLocalAttackPresentationRequested(FName PresentationSource);
 
 };
 

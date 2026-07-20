@@ -31,11 +31,13 @@ protected:
 	virtual void BeginPlay() override;
 
 	UFUNCTION()
-	void OnRep_CurrentHealth();
+	void OnRep_CurrentHealth(float PreviousHealth);
 
 private:
 	void HandleDeathOnce(FName DamageSource);
 	void HandleObjectiveArrivalOnce();
+	void RequestHitPresentation(float PreviousHealth);
+	void RequestDeathPresentation(float PreviousHealth);
 	void StartWorldUITrackingLog();
 	void LogWorldUITrackingSample();
 
@@ -60,7 +62,15 @@ private:
 
 	bool bDeathHandled = false;
 	bool bHasArrivedAtObjective = false;
+	bool bDeathPresentationHandled = false;
 
 	FTimerHandle WorldUITrackingLogTimerHandle;
 	int32 WorldUITrackingLogSamplesRemaining = 0;
+
+protected:
+	UFUNCTION(BlueprintImplementableEvent, Category = "MDS|Combat Presentation")
+	void BP_OnHitPresentationRequested(float PreviousHealth, float NewHealth);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "MDS|Combat Presentation")
+	void BP_OnDeathPresentationRequested(float PreviousHealth);
 };

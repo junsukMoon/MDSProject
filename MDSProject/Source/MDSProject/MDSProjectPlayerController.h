@@ -88,6 +88,9 @@ private:
 	void StartAutoAttackVerification();
 	void TryAutoAttackNearestEnemy();
 	class AMDSCombatEnemyActor* FindNearestAutoAttackEnemy(float& OutDistance) const;
+	void RequestLocalAttackPresentation(FName PresentationSource);
+	void StartPresentationOnlyVerification();
+	void TriggerPresentationOnlyAttackMarker();
 
 	UFUNCTION(Server, Reliable)
 	void ServerRequestAttack(AActor* RequestedTarget);
@@ -115,6 +118,7 @@ private:
 
 	FTimerHandle ReplicatedUIViewportScreenshotTimerHandle;
 	FTimerHandle AutoAttackTimerHandle;
+	FTimerHandle PresentationOnlyAttackTimerHandle;
 	double LastServerAttackTimeSeconds = -1000000.0;
 	int32 AutoAttackAttemptsRemaining = 0;
 	float AutoAttackRetryIntervalSeconds = 0.75f;

@@ -10,6 +10,18 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Materials/Material.h"
 #include "Engine/World.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
+
+DEFINE_LOG_CATEGORY_STATIC(LogMDSCombatPresentation, Log, All);
+
+namespace
+{
+bool ShouldLogCombatPresentation()
+{
+	return FParse::Param(FCommandLine::Get(), TEXT("MDSCombatPresentationLog"));
+}
+}
 
 AMDSProjectCharacter::AMDSProjectCharacter()
 {
@@ -59,4 +71,24 @@ void AMDSProjectCharacter::Tick(float DeltaSeconds)
     Super::Tick(DeltaSeconds);
 
 	// stub
+}
+
+void AMDSProjectCharacter::RequestLocalAttackPresentation(const FName PresentationSource)
+{
+	if (GetNetMode() == NM_DedicatedServer)
+	{
+		return;
+	}
+
+	if (ShouldLogCombatPresentation())
+	{
+		UE_LOG(LogMDSCombatPresentation, Log, TEXT("MDS CombatPresentation | AttackPresentationRequested | Character=%s | Source=%s."),
+			*GetNameSafe(this),
+			*PresentationSource.ToString());
+		UE_LOG(LogMDSCombatPresentation, Log, TEXT("MDS CombatPresentation | AttackTimingMarker | Character=%s | Source=%s | GameplayDamage=false."),
+			*GetNameSafe(this),
+			*PresentationSource.ToString());
+	}
+
+	BP_OnLocalAttackPresentationRequested(PresentationSource);
 }

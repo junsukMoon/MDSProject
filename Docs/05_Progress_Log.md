@@ -169,3 +169,17 @@ main
 - Verified `Cooldown` negative scenario: one valid damage applies `100 -> 90`, the next request is rejected with `Reason=Cooldown`, and no extra damage is applied.
 - Verified latest script result: `PLAYER ATTACK VERIFY RESULT: PASS`.
 - Notes: this is runtime/log evidence, not Attack Montage, AnimNotify, Hit Reaction, or Death Animation presentation evidence. Additional reject branches such as InvalidTarget, InvalidDamage, DeadTarget, and NoPawn remain unverified.
+
+## Recent Combat Presentation Hook Verification
+
+- Date: 2026-07-19
+- Branch/PR scope: minimal C++ combat presentation hooks for attack, hit, and death trigger evidence.
+- Added presentation-only local attack hook on `AMDSProjectCharacter`.
+- `AMDSProjectPlayerController` requests local attack presentation for manual and auto attack intent without changing the server-authoritative damage path.
+- Added command-line gated `-MDSPresentationOnlyAttackMarker` negative path that triggers presentation markers without sending a server attack RPC.
+- `AMDSCombatEnemyActor` now uses replicated `CurrentHealth` previous value in `OnRep_CurrentHealth` to request client-only hit/death presentation hooks.
+- Death presentation uses a client-only transient guard separate from server Wave death handling.
+- Added `Run_Verify_CombatPresentationHooks.ps1`.
+- Verified `Run_Verify_CombatPresentationHooks.ps1 -Port 7798` result: `COMBAT PRESENTATION VERIFY RESULT: PASS`.
+- Re-verified `Run_Verify_PlayerAttack.ps1 -Port 7800 -SkipBuild -SkipStage` result: `PLAYER ATTACK VERIFY RESULT: PASS`.
+- Notes: this is C++ hook/log evidence only. Real Attack Montage playback, real AnimNotify asset firing, authored Hit Reaction, authored Death Animation, and viewport-visible animation pose changes remain unverified.
