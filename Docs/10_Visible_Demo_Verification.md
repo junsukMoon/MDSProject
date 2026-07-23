@@ -128,6 +128,8 @@ Combat animation asset readiness is tracked as Editor-Cmd asset evidence rather 
 
 This verifies that existing attack, hit reaction, and death animation candidate assets can be loaded and are compatible with the `BP_TopDownCharacter` skeletal mesh skeleton. The authored Notify, character lineage, simulated-client playback, and viewport pose changes are verified by later runtime passes.
 
+`PASS_WITH_INCOMPLETE_ITEMS` is the historical result of this earlier read-only asset scan. Its lineage and Notify limitations were superseded by the later native-parent, persistent authored AnimNotify, runtime dispatch, simulated-client playback, and pose-delta verification passes.
+
 ## Combat Animation Playback Attempt Reference
 
 Combat animation playback attempt verification is tracked as runtime/log evidence rather than visible pose-change evidence.
@@ -208,6 +210,15 @@ cpu, frame, bookmark, log
 - Enemy World UI: red HP text attached to four enemies around the Objective.
 - Asset compile/save, four-enemy spawn, WBP runtime classes, replicated-state reads, actor projection, connection, screenshot request/file, and visible pixels all passed.
 - No CommonUI viewport error or fatal error was found.
+
+## Final Standalone Enemy Presentation Review
+
+- Date: 2026-07-24
+- Runtime: Editor Standalone PIE using the newly built `MDSProjectEditor Win64 Development` target.
+- Manual review confirmed enemies use locomotion animation while moving with Character Movement.
+- Manual review confirmed a nonlethal server-owned hit briefly pauses movement and shows the hit reaction.
+- Manual review confirmed a dead enemy remains in its death pose and then fades after the configured two-second hold.
+- This is manual viewport evidence. It complements, but does not replace, the automated Dedicated Server/client authority and replication evidence recorded above.
 
 ## Result
 

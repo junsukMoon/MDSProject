@@ -45,7 +45,7 @@ MDS v2는 Dedicated Server 환경에서 동작하는 Objective Combat Demo입니
 
 서버 권한으로 전투 판정, 적 HP, Objective HP, Wave 진행을 처리하고, 클라이언트는 Replication된 상태를 기반으로 UI와 연출을 갱신하는 구조입니다.
 
-캐릭터 구현 기본기 중 CMC 이동 복제는 Dedicated Server와 두 클라이언트에서 검증했습니다. 완성된 AnimBP presentation은 후속 evidence 범위이며, 실제 AnimNotify firing과 프레임 단위 pose 변화는 아직 검증하지 않았습니다.
+캐릭터 구현 기본기 중 CMC 이동 복제는 Dedicated Server와 두 클라이언트에서 검증했습니다. 플레이어와 적은 Skeletal Mesh와 AnimBP를 사용하며, 실제 AnimNotify firing과 Attack/Hit/Death pose 변화도 후속 runtime pass에서 검증했습니다. 최종 Standalone 수동 검토에서는 적 이동, 피격 정지, 사망 자세 유지와 fade도 확인했습니다.
 
 Mover, Motion Matching, Mutable, Mass Entity는 MVP에 직접 구현하지 않고 추후 확장 가능한 기술 항목으로 문서화합니다.
 
@@ -78,10 +78,11 @@ Verified runtime evidence:
 - Replicated UI viewport verification: `REPLICATED UI VIEWPORT VERIFY RESULT: PASS`
 - Player attack runtime verification: `PLAYER ATTACK VERIFY RESULT: PASS`
 - Combat presentation hook and playback API verification: `COMBAT PRESENTATION VERIFY RESULT: PASS`
-- Combat animation asset readiness: `COMBAT ANIMATION ASSET VERIFY RESULT: PASS_WITH_INCOMPLETE_ITEMS`
+- Historical read-only combat animation asset scan: `PASS_WITH_INCOMPLETE_ITEMS`; its lineage and Notify gaps were superseded by the later runtime verification below.
 - Combat animation pose delta: `COMBAT ANIMATION POSE DELTA VERIFY RESULT: PASS`
 - Runtime AnimNotify dispatch verification: `COMBAT ANIMNOTIFY VERIFY RESULT: PASS`
 - Character movement replication: `CHARACTER MOVEMENT REPLICATION VERIFY RESULT: PASS`. Dedicated server `Authority`, owning client `AutonomousProxy`, and observer client `SimulatedProxy` each observed maximum distance/speed `1620.5 / 600`.
+- Continuous three-wave loop: `3 -> 4 -> 5` enemies, 12 server-owned deaths, three Wave clears, and one final demo-complete event.
 - `BP_TopDownCharacter` derives from `AMDSProjectCharacter`. W/S/A/D feed a normalized world-plane CMC movement vector; desktop click-to-move, touch movement, and the previous E-key attack binding are disabled.
 - Left mouse requests directional fire independently of movement. Empty-space shots resolve as valid misses with zero damage; the server owns range/hit evaluation, cooldown, damage, Enemy HP, death, and Wave progression.
 - Visible Dedicated Server + two-client review verified physical WASD, diagonal movement, observer-visible locomotion, movement-direction facing, temporary cursor-facing during fire, and return to movement-direction facing.
@@ -89,15 +90,13 @@ Verified runtime evidence:
 - Authored gameplay UI styling is viewport-verified: cyan Match HUD, gold Objective HP, and red Enemy HP labels retain replicated-state reads and actor-following placement.
 - Actor-following Objective/Enemy World UI evidence is recorded in `Docs/11_Runtime_Review_Evidence.md`.
 
-v2에서 재정의할 MVP 항목:
+남아 있는 선택적 polish 항목:
 
-The items below remain implementation or verification gaps, not completed runtime evidence:
+- production-level Widget Blueprint panel/art polish
+- authored montage Notify의 정확한 시각 프레임에 대한 영상 편집용 확인
+- Attack / Hit Reaction / Death Animation의 추가적인 품질 튜닝
 
-- Skeletal Mesh character
-- AnimBP State Machine
-- optional production-level Widget Blueprint panel/art polish
-- manual viewport confirmation of the authored montage Notify timing cue
-- artistic review of Attack / Hit Reaction / Death Animation quality
+Skeletal Mesh 캐릭터, AnimBP locomotion, authored AnimNotify dispatch, 전투 pose 변화와 적 사망 lifecycle은 구현 또는 runtime/manual evidence가 확보된 항목입니다.
 
 기존 Mass 실험은 v2 MVP 필수 구현이 아니라 future extension/reference 항목으로 유지합니다.
 
