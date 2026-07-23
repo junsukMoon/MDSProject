@@ -443,6 +443,11 @@ Attack notify readiness note: INCOMPLETE
 Character lineage readiness note: INCOMPLETE
 ```
 
+Historical-status note:
+
+- This result records the limitations of the 2026-07-20 read-only asset scan, not the current project readiness.
+- Later passes proved `BP_TopDownCharacter` derives from `AMDSProjectCharacter`, authored one persistent `UMDSCombatTimingAnimNotify`, verified its runtime dispatch, verified simulated-client playback, and captured Attack/Hit/Death pose deltas.
+
 Evidence:
 
 - `BP_TopDownCharacter` loads and resolves a character mesh/AnimBP candidate. The checked Editor Python class APIs did not prove the `AMDSProjectCharacter` lineage in this pass.

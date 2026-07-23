@@ -40,9 +40,12 @@
 - CommonUI 기반 debug overlay C++ 골격
 - Widget Blueprint 연동용 `BindWidgetOptional` 필드와 제작 가이드
 - CommonUI viewport client config 정리
-- UI 화면 검증은 Widget Blueprint asset 생성 후 진행 필요
+- authored Widget Blueprint gameplay UI와 viewport 검증
 - 제출용 코드 샘플 정리 및 VS2022 탐색용 프로젝트 패키징
 - 원본 프로젝트 기준 MDS v2 구조 정합성 리뷰
+- 독립 WASD 이동, 마우스 방향 사격과 플레이어 발사 presentation
+- `3 -> 4 -> 5` server-authoritative continuous Wave loop
+- 적 CMC locomotion, 피격 정지, 사망 자세 유지와 fade lifecycle
 
 검증:
 
@@ -71,8 +74,8 @@ main
 
 ## 다음 후보 작업
 
-- Runtime Review / Verification Evidence 추가 정리
-- Widget Blueprint asset 생성 후 UI 화면 검증
+- 최종 포트폴리오 영상 또는 GIF 갱신
+- 선택적인 UI/animation art polish
 - future network extension으로 client prediction / server reconciliation / server rewind를 단계별 검토
 - 문서 한글화
 - 추가 profiling 반복 측정 또는 Unreal Insights deeper capture는 필요 시 future/reference 작업으로만 진행
@@ -376,3 +379,13 @@ main
 - Player attack montage playback is routed through the Character presentation path for both owning and simulated clients.
 - Client/Server build and stage succeeded; Continuous Wave and PlayerAttack Valid passed.
 - Four valid attacks produced four damage/HP replication events and three movement resumes after the three nonlethal hits.
+
+## Final Enemy Locomotion and Standalone Presentation Resolution
+
+- Date: 2026-07-24
+- Replaced actor-tick swept translation with standard `AddMovementInput` and Character Movement Walking so `ABP_Unarmed` observes normal CMC velocity during animation evaluation.
+- Standalone and Listen Server authority paths now request local hit/death presentation immediately after server-owned HP mutation; remote clients continue to use `OnRep_CurrentHealth`.
+- Dedicated Server remains visual-free, and damage, HP, death, and Wave progression remain server-authoritative.
+- `MDSProjectEditor Win64 Development` build succeeded.
+- Manual Standalone review confirmed enemy locomotion, nonlethal hit pause/reaction, persistent death pose, and delayed fade.
+- The completed checkpoint was merged through PR #48 with merge commit `ed43547`.
