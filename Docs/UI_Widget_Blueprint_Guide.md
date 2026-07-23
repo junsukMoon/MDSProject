@@ -60,6 +60,17 @@ ActorSummaryTextBlock
 
 `WaveSummaryTextBlock`은 v2 Wave display state 확인용입니다. 기존 Widget Blueprint에 이 TextBlock이 없어도 `BindWidgetOptional` 때문에 위젯 생성은 실패하지 않습니다.
 
+## Authored Gameplay UI Style
+
+`Tools/CreateGameplayUIWidgets.py`는 기존 source widget을 재사용하며 다음 스타일을 idempotent하게 적용합니다.
+
+- Match HUD: `WaveTextBlock` 청록색 28pt, `EnemiesTextBlock` 밝은 청록색 24pt
+- Objective World UI: 금색 22pt 중앙 정렬
+- Enemy World UI: 적색 20pt 중앙 정렬
+- 공통: 2px 검은 그림자와 VerticalBox slot 패딩
+
+UE 5.8 Editor Python은 기존 source widget 제거/재부모화 API를 노출하지 않으므로 asset을 파괴적으로 재생성하지 않습니다. 기존 Root와 데이터 바인딩을 유지하고 TextBlock presentation만 갱신합니다.
+
 ## PlayerController 연결
 
 Widget Blueprint를 만든 뒤:

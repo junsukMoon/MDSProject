@@ -32,20 +32,20 @@ The list below describes the target interview demo flow. The currently verified 
 가장 짧은 설명:
 
 ```text
-Dedicated server owns Objective HP, combat enemy HP, Objective arrival damage, and Wave display state. Clients observe replicated state and update debug/gameplay UI. Character movement, Skeletal Mesh, AnimBP, Montage/AnimNotify, Hit Reaction, and Death Animation remain target presentation work until separately implemented and verified.
+Dedicated server owns directional fire hit evaluation, combat enemy HP, Objective HP, Objective arrival damage, and Wave display state. Clients provide movement/fire intent, observe replicated state, and update debug/gameplay presentation. Physical WASD movement, observer-visible locomotion, fire-facing transitions, persistent authored AnimNotify firing, simulated-client attack presentation, and paired Attack/Hit/Death pose deltas are verified.
 ```
 
-Current implementation note: the verified runtime path is a technical Objective Combat baseline with server-owned Objective HP, minimal replicated combat enemies, Wave display replication, and replicated UI evidence. It is not yet a complete player character or animation presentation demo.
+Current implementation note: the verified runtime path is a technical Objective Combat baseline with physical WASD movement, movement-direction facing, temporary cursor-facing during directional fire, server-owned hit/damage evaluation, replicated Objective/Enemy/Wave state, replicated UI, and staged-client combat presentation. Paired screenshots prove rendered pose changes, not production animation quality.
 
 ## MDS v2 Positioning
 
-Current verified scope is the server-authoritative Objective/Enemy/Wave state baseline plus replicated UI evidence. Character movement and animation presentation remain planned presentation work until separate runtime evidence is captured.
+Current verified scope is the server-authoritative Objective/Enemy/Wave state baseline, CMC movement replication, replicated UI evidence, combat presentation hook ordering, persistent authored AnimNotify firing, simulated-client montage presentation, and paired Attack/Hit/Death viewport pose-delta evidence.
 
 MDS v2는 Dedicated Server 환경에서 동작하는 Objective Combat Demo입니다.
 
 서버 권한으로 전투 판정, 적 HP, Objective HP, Wave 진행을 처리하고, 클라이언트는 Replication된 상태를 기반으로 UI와 연출을 갱신하는 구조입니다.
 
-캐릭터 구현 기본기인 CMC 이동, Skeletal Mesh, AnimBP State Machine, Attack Montage, AnimNotify 타이밍, Hit Reaction, Death Animation은 후속 presentation/evidence 범위로 남겨 둡니다.
+캐릭터 구현 기본기 중 CMC 이동 복제는 Dedicated Server와 두 클라이언트에서 검증했습니다. 완성된 AnimBP presentation은 후속 evidence 범위이며, 실제 AnimNotify firing과 프레임 단위 pose 변화는 아직 검증하지 않았습니다.
 
 Mover, Motion Matching, Mutable, Mass Entity는 MVP에 직접 구현하지 않고 추후 확장 가능한 기술 항목으로 문서화합니다.
 
@@ -77,21 +77,27 @@ Verified runtime evidence:
 - Replicated UI baseline verification: `REPLICATED UI BASELINE VERIFY RESULT: PASS`
 - Replicated UI viewport verification: `REPLICATED UI VIEWPORT VERIFY RESULT: PASS`
 - Player attack runtime verification: `PLAYER ATTACK VERIFY RESULT: PASS`
+- Combat presentation hook and playback API verification: `COMBAT PRESENTATION VERIFY RESULT: PASS`
+- Combat animation asset readiness: `COMBAT ANIMATION ASSET VERIFY RESULT: PASS_WITH_INCOMPLETE_ITEMS`
+- Combat animation pose delta: `COMBAT ANIMATION POSE DELTA VERIFY RESULT: PASS`
+- Runtime AnimNotify dispatch verification: `COMBAT ANIMNOTIFY VERIFY RESULT: PASS`
+- Character movement replication: `CHARACTER MOVEMENT REPLICATION VERIFY RESULT: PASS`. Dedicated server `Authority`, owning client `AutonomousProxy`, and observer client `SimulatedProxy` each observed maximum distance/speed `1620.5 / 600`.
+- `BP_TopDownCharacter` derives from `AMDSProjectCharacter`. W/S/A/D feed a normalized world-plane CMC movement vector; desktop click-to-move, touch movement, and the previous E-key attack binding are disabled.
+- Left mouse requests directional fire independently of movement. Empty-space shots resolve as valid misses with zero damage; the server owns range/hit evaluation, cooldown, damage, Enemy HP, death, and Wave progression.
+- Visible Dedicated Server + two-client review verified physical WASD, diagonal movement, observer-visible locomotion, movement-direction facing, temporary cursor-facing during fire, and return to movement-direction facing.
+- Dedicated Server + two-client automation verified four remote attack montage playbacks and fire-facing direction receipts on the observer's `SimulatedProxy`, with no owner duplicate or server animation playback.
+- Authored gameplay UI styling is viewport-verified: cyan Match HUD, gold Objective HP, and red Enemy HP labels retain replicated-state reads and actor-following placement.
 - Actor-following Objective/Enemy World UI evidence is recorded in `Docs/11_Runtime_Review_Evidence.md`.
 
 v2에서 재정의할 MVP 항목:
 
 The items below remain implementation or verification gaps, not completed runtime evidence:
 
-- CMC-based player movement
 - Skeletal Mesh character
 - AnimBP State Machine
-- Attack Montage / AnimNotify timing
-- Hit Reaction / Death Animation
-- authored Widget Blueprint visual polish
-- Enemy death visual/animation presentation runtime evidence
-- Attack Montage / AnimNotify negative test
-- Hit Reaction / Death Animation runtime evidence
+- optional production-level Widget Blueprint panel/art polish
+- manual viewport confirmation of the authored montage Notify timing cue
+- artistic review of Attack / Hit Reaction / Death Animation quality
 
 기존 Mass 실험은 v2 MVP 필수 구현이 아니라 future extension/reference 항목으로 유지합니다.
 
@@ -138,7 +144,7 @@ Current verified flow:
 4. replicated state update
 5. gameplay/debug UI presentation update on clients
 
-Player movement and animation presentation remain separate future evidence items.
+Physical input, observer locomotion, simulated-client attack presentation, and paired Attack/Hit/Death viewport pose changes are verified.
 
 Debug / runtime evidence:
 
@@ -190,14 +196,16 @@ Verified:
 - Match HUD / Objective World UI / Enemy World UI replicated-state reads
 - Objective/Enemy World UI actor-following viewport placement
 - Player attack server validation, Enemy HP replication, HP-derived enemy death, and Wave remaining decrement
-- Player attack negative validation for OutOfRange and Cooldown rejects
+- Directional-fire validation for server-owned hits, valid misses without damage, and Cooldown rejects
+- combat presentation hook ordering without gameplay-state mutation
+- staged-client attack, hit reaction, and death animation playback API acceptance
+- paired pre-combat and playback-frame Attack, Hit, and Death viewport captures with non-zero center-region pixel deltas
+- verification-only runtime AnimNotify dispatch on the client with zero server-side Notify callbacks or presentation-only damage
 
 Not yet verified:
 
-- authored Widget Blueprint visual polish
-- Enemy death visual/animation presentation
-- Attack Montage / AnimNotify negative test
-- Hit Reaction and Death Animation runtime presentation
+- optional production-level Widget Blueprint panel/art polish
+- frame-accurate visual confirmation of the authored montage Notify timing cue
 
 ## Runtime Review / Profiling Reference
 

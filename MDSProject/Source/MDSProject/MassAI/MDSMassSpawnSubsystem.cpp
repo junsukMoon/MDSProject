@@ -17,8 +17,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogMDSMassSpawn, Log, All);
 
 static TAutoConsoleVariable<int32> CVarMDSMassBaselineEnabled(
 	TEXT("mds.MassBaseline.Enabled"),
-	1,
-	TEXT("Enables the server-only Mass baseline. Use -NoMDSMassBaseline on the command line to disable it before world begin play."));
+	0,
+	TEXT("Enables the server-only Mass baseline only when explicitly set or when -MDSMassBaseline is supplied."));
 
 static TAutoConsoleVariable<int32> CVarMDSMassBaselineCount(
 	TEXT("mds.MassBaseline.Count"),

@@ -23,7 +23,7 @@ static TAutoConsoleVariable<int32> CVarMDSActorBaselineCount(
 
 static TAutoConsoleVariable<float> CVarMDSActorBaselineMoveSpeed(
 	TEXT("mds.ActorBaseline.MoveSpeed"),
-	320.0f,
+	100.0f,
 	TEXT("Combat enemy baseline movement speed. Use MDSActorBaselineMoveSpeed=<Speed> on the command line for verification scenarios."));
 
 bool UMDSActorEnemySpawnSubsystem::IsActorBaselineEnabled()

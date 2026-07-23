@@ -1,5 +1,5 @@
 param(
-    [ValidateSet("All", "Valid", "OutOfRange", "Cooldown")]
+    [ValidateSet("All", "Valid", "OutOfRange", "Cooldown", "InvalidDirection", "InvalidDamage", "NoPawn", "Rejects")]
     [string]$Scenario = "All",
     [int]$Port = 7782,
     [int]$ServerWaitSeconds = 15,
@@ -65,6 +65,7 @@ function Get-ScenarioConfig {
                 AutoAttackDelay = 4.0
                 AutoAttackRetryInterval = 0.75
                 ClientWaitSeconds = $ClientWaitSeconds
+                RejectScenario = ""
             }
         }
         "OutOfRange" {
@@ -77,6 +78,7 @@ function Get-ScenarioConfig {
                 AutoAttackDelay = 4.0
                 AutoAttackRetryInterval = 0.75
                 ClientWaitSeconds = [Math]::Max(10, $ClientWaitSeconds)
+                RejectScenario = ""
             }
         }
         "Cooldown" {
@@ -89,7 +91,17 @@ function Get-ScenarioConfig {
                 AutoAttackDelay = 4.0
                 AutoAttackRetryInterval = 0.25
                 ClientWaitSeconds = [Math]::Max(12, $ClientWaitSeconds)
+                RejectScenario = ""
             }
+        }
+        "InvalidDirection" {
+            return [pscustomobject]@{ Name = "InvalidDirection"; AttackRange = 5000.0; AttackDamage = 25.0; AttackCooldown = 0.5; AutoAttackCount = 1; AutoAttackDelay = 4.0; AutoAttackRetryInterval = 0.75; ClientWaitSeconds = [Math]::Max(10, $ClientWaitSeconds); RejectScenario = "InvalidDirection" }
+        }
+        "InvalidDamage" {
+            return [pscustomobject]@{ Name = "InvalidDamage"; AttackRange = 5000.0; AttackDamage = 0.0; AttackCooldown = 0.5; AutoAttackCount = 1; AutoAttackDelay = 4.0; AutoAttackRetryInterval = 0.75; ClientWaitSeconds = [Math]::Max(10, $ClientWaitSeconds); RejectScenario = "InvalidDamage" }
+        }
+        "NoPawn" {
+            return [pscustomobject]@{ Name = "NoPawn"; AttackRange = 5000.0; AttackDamage = 25.0; AttackCooldown = 0.5; AutoAttackCount = 1; AutoAttackDelay = 4.0; AutoAttackRetryInterval = 0.75; ClientWaitSeconds = [Math]::Max(10, $ClientWaitSeconds); RejectScenario = "NoPawn" }
         }
     }
 
@@ -126,12 +138,16 @@ function Invoke-PlayerAttackScenario {
         Write-Host "  $ServerExe"
         Write-Host "  /Game/TopDown/Lvl_TopDown -NullRHI -unattended -stdout -FullStdOutLogOutput -forcelogflush -MDSAutoStartWave MDSWaveEnemyCount=$WaveEnemyCount MDSActorBaselineMoveSpeed=0 MDSAttackRange=$($Config.AttackRange) MDSAttackDamage=$($Config.AttackDamage) MDSAttackCooldown=$($Config.AttackCooldown) -port=$ListenPort"
         $ServerJob = Start-Job -ScriptBlock {
-            param($Exe, $Dir, $Out, $ListenPort, $EnemyCount, $Range, $Damage, $Cooldown)
+            param($Exe, $Dir, $Out, $ListenPort, $EnemyCount, $Range, $Damage, $Cooldown, $RejectScenario)
 
             Set-Location -LiteralPath $Dir
-            & $Exe "/Game/TopDown/Lvl_TopDown" -NullRHI -unattended -stdout -FullStdOutLogOutput -forcelogflush -MDSAutoStartWave "MDSWaveEnemyCount=$EnemyCount" "MDSActorBaselineMoveSpeed=0" "MDSAttackRange=$Range" "MDSAttackDamage=$Damage" "MDSAttackCooldown=$Cooldown" "-port=$ListenPort" *>&1 |
+            $ServerArguments = @("/Game/TopDown/Lvl_TopDown", "-NullRHI", "-unattended", "-stdout", "-FullStdOutLogOutput", "-forcelogflush", "-MDSAutoStartWave", "MDSWaveEnemyCount=$EnemyCount", "MDSActorBaselineMoveSpeed=0", "MDSAttackRange=$Range", "MDSAttackDamage=$Damage", "MDSAttackCooldown=$Cooldown", "-port=$ListenPort")
+            if ($RejectScenario) {
+                $ServerArguments += "MDSAutoAttackReject=$RejectScenario"
+            }
+            & $Exe @ServerArguments *>&1 |
                 Out-File -FilePath $Out -Encoding utf8
-        } -ArgumentList $ServerExe, $ServerDir, $ServerLog, $ListenPort, $WaveEnemyCount, $Config.AttackRange, $Config.AttackDamage, $Config.AttackCooldown
+        } -ArgumentList $ServerExe, $ServerDir, $ServerLog, $ListenPort, $WaveEnemyCount, $Config.AttackRange, $Config.AttackDamage, $Config.AttackCooldown, $Config.RejectScenario
 
         Start-Sleep -Seconds $ServerWaitSeconds
         Receive-Job $ServerJob -Keep | Out-Null
@@ -148,12 +164,17 @@ function Invoke-PlayerAttackScenario {
         Write-Host "  $ClientExe"
         Write-Host "  127.0.0.1:$ListenPort -NullRHI -unattended -nosound -NoSplash -stdout -FullStdOutLogOutput -forcelogflush -MDSAutoAttackNearestEnemy MDSAutoAttackCount=$($Config.AutoAttackCount) MDSAutoAttackDelay=$($Config.AutoAttackDelay) MDSAutoAttackRetryInterval=$($Config.AutoAttackRetryInterval) MDSAttackRange=$($Config.AttackRange) MDSAttackDamage=$($Config.AttackDamage) MDSAttackCooldown=$($Config.AttackCooldown)"
         $ClientJob = Start-Job -ScriptBlock {
-            param($Exe, $Dir, $Out, $ConnectAddress, $Count, $Delay, $Interval, $Range, $Damage, $Cooldown)
+            param($Exe, $Dir, $Out, $ConnectAddress, $Count, $Delay, $Interval, $Range, $Damage, $Cooldown, $RejectScenario)
 
             Set-Location -LiteralPath $Dir
+            if ($RejectScenario) {
+                & $Exe $ConnectAddress -NullRHI -unattended -nosound -NoSplash -stdout -FullStdOutLogOutput -forcelogflush "MDSAutoAttackReject=$RejectScenario" "MDSAutoAttackRejectDelay=$Delay" "MDSAttackRange=$Range" "MDSAttackDamage=$Damage" "MDSAttackCooldown=$Cooldown" *>&1 |
+                    Out-File -FilePath $Out -Encoding utf8
+                return
+            }
             & $Exe $ConnectAddress -NullRHI -unattended -nosound -NoSplash -stdout -FullStdOutLogOutput -forcelogflush -MDSAutoAttackNearestEnemy "MDSAutoAttackCount=$Count" "MDSAutoAttackDelay=$Delay" "MDSAutoAttackRetryInterval=$Interval" "MDSAttackRange=$Range" "MDSAttackDamage=$Damage" "MDSAttackCooldown=$Cooldown" *>&1 |
                 Out-File -FilePath $Out -Encoding utf8
-        } -ArgumentList $ClientExe, $ClientDir, $ClientLog, "127.0.0.1:$ListenPort", $Config.AutoAttackCount, $Config.AutoAttackDelay, $Config.AutoAttackRetryInterval, $Config.AttackRange, $Config.AttackDamage, $Config.AttackCooldown
+        } -ArgumentList $ClientExe, $ClientDir, $ClientLog, "127.0.0.1:$ListenPort", $Config.AutoAttackCount, $Config.AutoAttackDelay, $Config.AutoAttackRetryInterval, $Config.AttackRange, $Config.AttackDamage, $Config.AttackCooldown, $Config.RejectScenario
 
         Start-Sleep -Seconds $Config.ClientWaitSeconds
         Receive-Job $ClientJob -Keep | Out-Null
@@ -171,14 +192,19 @@ function Invoke-PlayerAttackScenario {
         $ServerText = if (Test-Path -LiteralPath $ServerLog) { Get-Content -LiteralPath $ServerLog -Raw -ErrorAction SilentlyContinue } else { "" }
         $ClientText = if (Test-Path -LiteralPath $ClientLog) { Get-Content -LiteralPath $ClientLog -Raw -ErrorAction SilentlyContinue } else { "" }
 
-        $FatalError = ($ServerText -match "Fatal error|LogWindows: Error:") -or ($ClientText -match "Fatal error|LogWindows: Error:")
+		$KnownEventLogWarning = "LogWindows: Error: Failed to open the Windows Event Log for writing (5)"
+		$FilteredServerText = $ServerText.Replace($KnownEventLogWarning, "")
+		$FilteredClientText = $ClientText.Replace($KnownEventLogWarning, "")
+		$FatalError = ($FilteredServerText -match "Fatal error|LogWindows: Error:") -or ($FilteredClientText -match "Fatal error|LogWindows: Error:")
         $ConnectionOk = ($ServerText -match "Login request|Join succeeded") -or ($ClientText -match "Join succeeded|Welcomed by server")
         $ClientAutoIntentOk = $ClientText -match "MDS Combat \| AutoAttackIntent"
         $ValidCount = Get-MatchCount -Text $ServerText -Pattern "MDS Combat \| ServerAttackResolved .* Valid=true"
+		$MissCount = Get-MatchCount -Text $ServerText -Pattern "MDS Combat \| ServerAttackResolved .* Valid=true .* Hit=false"
         $DamageCount = Get-MatchCount -Text $ServerText -Pattern "Enemy damage applied by PlayerAttack"
         $ClientReplicationCount = Get-MatchCount -Text $ClientText -Pattern "Enemy HP replicated on client"
         $OutOfRangeRejectCount = Get-MatchCount -Text $ServerText -Pattern "ServerAttackRejected .* Reason=OutOfRange"
         $CooldownRejectCount = Get-MatchCount -Text $ServerText -Pattern "ServerAttackRejected .* Reason=Cooldown"
+        $ExpectedRejectCount = if ($Config.RejectScenario) { Get-MatchCount -Text $ServerText -Pattern "ServerAttackRejected .* Reason=$($Config.RejectScenario)" } else { 0 }
         $DeathOk = $ServerText -match "Enemy death handled on server from PlayerAttack"
         $WaveConsumedOk = $ServerText -match "Wave enemy death consumed on server"
 
@@ -188,10 +214,15 @@ function Invoke-PlayerAttackScenario {
                 $ScenarioOk = $ClientAutoIntentOk -and ($ValidCount -ge 1) -and ($DamageCount -ge 1) -and ($ClientReplicationCount -ge 1) -and $ConnectionOk -and -not $FatalError
             }
             "OutOfRange" {
-                $ScenarioOk = $ClientAutoIntentOk -and ($OutOfRangeRejectCount -ge 1) -and ($DamageCount -eq 0) -and ($ValidCount -eq 0) -and $ConnectionOk -and -not $FatalError
+				# Directional fire remains valid without a target; a short range must resolve as a miss with zero damage.
+                $ScenarioOk = $ClientAutoIntentOk -and ($MissCount -ge 1) -and ($DamageCount -eq 0) -and ($ValidCount -ge 1) -and $ConnectionOk -and -not $FatalError
             }
             "Cooldown" {
                 $ScenarioOk = $ClientAutoIntentOk -and ($ValidCount -eq 1) -and ($DamageCount -eq 1) -and ($CooldownRejectCount -ge 1) -and ($ClientReplicationCount -ge 1) -and $ConnectionOk -and -not $FatalError
+            }
+            { $_ -in @("InvalidDirection", "InvalidDamage", "NoPawn") } {
+                $RejectIntentOk = $ClientText -match "AttackRejectVerificationIntent .* Scenario=$($Config.RejectScenario)"
+                $ScenarioOk = $RejectIntentOk -and ($ExpectedRejectCount -eq 1) -and ($ValidCount -eq 0) -and ($DamageCount -eq 0) -and (-not $DeathOk) -and (-not $WaveConsumedOk) -and $ConnectionOk -and -not $FatalError
             }
         }
 
@@ -203,10 +234,12 @@ function Invoke-PlayerAttackScenario {
 
         Write-Host "Client auto attack intent found: $ClientAutoIntentOk"
         Write-Host "Valid attack count: $ValidCount"
+		Write-Host "Valid miss count: $MissCount"
         Write-Host "PlayerAttack damage count: $DamageCount"
         Write-Host "Client Enemy HP replication count: $ClientReplicationCount"
         Write-Host "OutOfRange reject count: $OutOfRangeRejectCount"
         Write-Host "Cooldown reject count: $CooldownRejectCount"
+        Write-Host "Expected reject count: $ExpectedRejectCount"
         Write-Host "Connection found: $ConnectionOk"
         Write-Host "Death observed: $DeathOk"
         Write-Host "Wave enemy death consumed: $WaveConsumedOk"
@@ -273,7 +306,7 @@ if (-not (Test-Path -LiteralPath $ClientExe)) {
     throw "Client executable was not found at $ClientExe"
 }
 
-$ScenarioNames = if ($Scenario -eq "All") { @("Valid", "OutOfRange", "Cooldown") } else { @($Scenario) }
+$ScenarioNames = if ($Scenario -eq "All") { @("Valid", "OutOfRange", "Cooldown", "InvalidDirection", "InvalidDamage", "NoPawn") } elseif ($Scenario -eq "Rejects") { @("InvalidDirection", "InvalidDamage", "NoPawn") } else { @($Scenario) }
 $AllPassed = $true
 $ScenarioIndex = 0
 foreach ($ScenarioName in $ScenarioNames) {

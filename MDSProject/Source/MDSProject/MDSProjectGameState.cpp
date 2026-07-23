@@ -95,7 +95,7 @@ void AMDSProjectGameState::SetWaveActive(const bool bInWaveActive)
 
 void AMDSProjectGameState::OnRep_WaveState()
 {
-	UE_LOG(LogMDSGameState, Verbose, TEXT("Wave state replicated on client: Wave=%d Remaining=%d Total=%d Active=%s."),
+	UE_LOG(LogMDSGameState, Log, TEXT("Wave state replicated on client: Wave=%d Remaining=%d Total=%d Active=%s."),
 		CurrentWaveIndex,
 		EnemiesRemaining,
 		TotalEnemiesThisWave,

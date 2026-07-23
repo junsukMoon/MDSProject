@@ -101,11 +101,11 @@ Player attack verification is tracked as runtime/log evidence rather than visibl
 
 - Script: `Run_Verify_PlayerAttack.ps1`
 - Latest result: `PLAYER ATTACK VERIFY RESULT: PASS`
-- Scenarios: `Valid`, `OutOfRange`, `Cooldown`
+- Scenarios: `Valid`, valid directional miss (`OutOfRange` legacy scenario name), `Cooldown`, `InvalidDirection`, `InvalidDamage`, and `NoPawn`
 - Logs: `SavedVerifyLogs/MDS_PlayerAttack_*`
 - Detailed evidence: `Docs/11_Runtime_Review_Evidence.md`
 
-This verifies owning-client attack intent, server validation, Enemy HP replication, HP-derived death handling, Wave remaining decrement, and OutOfRange/Cooldown rejects. It does not verify Attack Montage, AnimNotify, Hit Reaction, or Death Animation presentation.
+This verifies owning-client attack intent, server validation, Enemy HP replication, HP-derived death handling, Wave remaining decrement, and directional-fire valid/reject scenarios. Animation presentation is verified by the later dedicated presentation sections.
 
 ## Combat Presentation Hook Evidence Reference
 
@@ -116,6 +116,53 @@ Combat presentation hook verification is tracked as runtime/log evidence rather 
 - Detailed evidence: `Docs/11_Runtime_Review_Evidence.md`
 
 This verifies local attack presentation hooks, replicated Enemy HP-driven hit/death presentation hooks, and a presentation-only negative path that does not send an attack RPC or apply Enemy HP damage. It does not verify authored Attack Montage playback, real AnimNotify asset firing, authored Hit Reaction, authored Death Animation, or viewport-visible animation pose changes.
+
+## Combat Animation Asset Readiness Reference
+
+Combat animation asset readiness is tracked as Editor-Cmd asset evidence rather than visible animation evidence.
+
+- Script: `Run_Verify_CombatAnimationAssets.ps1`
+- Evidence type: existing asset loadability and skeleton compatibility
+- Latest result: `COMBAT ANIMATION ASSET VERIFY RESULT: PASS_WITH_INCOMPLETE_ITEMS`
+- Log: `SavedVerifyLogs/MDS_CombatAnimationAssets.log`
+
+This verifies that existing attack, hit reaction, and death animation candidate assets can be loaded and are compatible with the `BP_TopDownCharacter` skeletal mesh skeleton. The authored Notify, character lineage, simulated-client playback, and viewport pose changes are verified by later runtime passes.
+
+## Combat Animation Playback Attempt Reference
+
+Combat animation playback attempt verification is tracked as runtime/log evidence rather than visible pose-change evidence.
+
+- Script: `Run_Verify_CombatPresentationHooks.ps1`
+- Evidence type: staged client animation playback API attempt/acceptance logs
+- Latest result: `COMBAT ANIMATION PLAYBACK ATTEMPT VERIFY RESULT: PASS`
+- Detailed evidence: `Docs/11_Runtime_Review_Evidence.md`
+
+This verifies that the staged client accepts playback attempts for the existing attack montage, hit reaction sequence, and death sequence after the expected presentation triggers. It does not verify viewport-visible pose changes, real AnimNotify firing, or simulated-client attack montage replication.
+
+## Combat Animation Visible Capture Reference
+
+Combat animation visible capture verification is tracked as viewport screenshot evidence correlated with runtime playback logs.
+
+- Script: `Run_Verify_CombatAnimationVisibleCapture.ps1`
+- Evidence type: staged visible client engine screenshots requested after successful attack, hit, and death animation playback events
+- Historical result: `COMBAT ANIMATION VISIBLE CAPTURE VERIFY RESULT: PASS_WITH_POSE_LIMITATION`
+- Latest result: `COMBAT ANIMATION POSE DELTA VERIFY RESULT: PASS`
+- Latest command:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Run_Verify_CombatAnimationVisibleCapture.ps1 -Port 7922 -ClientWaitSeconds 26 -SkipBuild -SkipStage
+```
+
+Visible screenshots:
+
+- `SavedVerifyLogs/MDS_CombatAnimationVisible_AttackBefore.png`
+- `SavedVerifyLogs/MDS_CombatAnimationVisible_AttackPose.png`
+- `SavedVerifyLogs/MDS_CombatAnimationVisible_HitBefore.png`
+- `SavedVerifyLogs/MDS_CombatAnimationVisible_HitPose.png`
+- `SavedVerifyLogs/MDS_CombatAnimationVisible_DeathBefore.png`
+- `SavedVerifyLogs/MDS_CombatAnimationVisible_DeathPose.png`
+
+All six images exist, are nonempty/visible, and have compatible dimensions. Center-gameplay comparison measured Attack `75`, Hit `58`, and Death `803` changed samples. This proves rendered pose change; artistic quality and the exact visual frame of the authored Notify remain optional review items.
 
 ## Unreal Insights Trace
 
@@ -132,6 +179,35 @@ cpu, frame, bookmark, log
 ```
 
 이 trace는 smoke capture이며 full performance investigation은 아닙니다.
+
+## Runtime AnimNotify Verification
+
+- Runtime: UE 5.8 staged dedicated server plus staged `-NullRHI` client.
+- Verification flag: `-MDSCombatAnimNotifyVerify`.
+- Latest result: `COMBAT ANIMNOTIFY VERIFY RESULT: PASS`.
+- Valid scenario observed four client `UAnimNotify::Notify` callbacks, zero server callbacks, and four server-authoritative PlayerAttack damage applications.
+- Presentation-only scenario observed one client Notify callback, zero server callbacks, zero server attack resolutions, zero PlayerAttack damage, and zero Enemy HP replication.
+- Latest resolution: `MM_Pistol_Fire_Montage` contains one persistent authored `MDSCombatTimingAnimNotify` at configured time `0.100` within its `0.667` second duration. Runtime transient injection has been removed.
+- `COMBAT ANIMNOTIFY VERIFY RESULT: PASS`: valid attacks fired `4` client callbacks and presentation-only fired `1`; Dedicated Server callbacks remained `0` and presentation-only gameplay damage/RPC remained `0`.
+- This is persistent asset and headless runtime callback evidence. Frame-accurate viewport pose/cue timing remains a separate visual check.
+
+## Character Movement Replication Status
+
+- Script: `Run_Verify_CharacterMovementReplication.ps1`
+- Topology observed: dedicated server `Authority`, mover client `AutonomousProxy`, observer client `SimulatedProxy`.
+- Current result: `CHARACTER MOVEMENT REPLICATION VERIFY RESULT: PASS`.
+- Mover `AutonomousProxy`, server `Authority`, and observer `SimulatedProxy` each reached maximum distance/speed `1620.5 / 600`; movement input was accepted and consumed.
+- This is packaged runtime/log evidence for CMC replication. Capture physical WASD input and observer-visible locomotion pose separately for portfolio footage.
+
+## Authored Gameplay UI Style Verification
+
+- Date: 2026-07-23
+- Evidence: `SavedVerifyLogs/MDS_ReplicatedUIViewport_Client_EngineShot.png`
+- Match HUD: cyan Wave and Enemies text in the upper-left viewport.
+- Objective World UI: gold HP text attached to the center Objective.
+- Enemy World UI: red HP text attached to four enemies around the Objective.
+- Asset compile/save, four-enemy spawn, WBP runtime classes, replicated-state reads, actor projection, connection, screenshot request/file, and visible pixels all passed.
+- No CommonUI viewport error or fatal error was found.
 
 ## Result
 

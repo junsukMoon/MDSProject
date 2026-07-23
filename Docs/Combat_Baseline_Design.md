@@ -65,9 +65,10 @@ Combat state is server-owned.
 ```text
 Owning Client Input
 -> optional local Attack Montage presentation
--> Server Attack Request
--> Server validates attack state / range / target / cooldown
--> Server applies damage
+-> Server Directional Fire Request
+-> Server validates requester / direction / range / cooldown
+-> Server resolves a hit or a valid miss
+-> Server applies damage only on a valid enemy hit
 -> Server updates replicated combat state
 -> Clients update UI and animation presentation
 ```
@@ -106,17 +107,20 @@ Enemy reaches Objective attack range
 
 ## Attack Request Rule
 
-Client request는 gameplay intent입니다. 결과가 아닙니다.
+Client request는 gameplay intent입니다. 결과가 아닙니다. 현재 desktop path는 왼쪽 클릭 시 수평 fire direction을 요청하며, target actor reference를 결과로 제출하지 않습니다.
 
 Server validation should check:
 
 - requester is valid and possessed
 - requester has authority path through owning connection
-- target is valid
-- target is damageable
+- requested direction is finite and normalizable
 - attack is allowed by server-side state
-- range or overlap condition is valid
+- server-side directional range/hit-radius evaluation finds a damageable enemy, or resolves a valid miss
+- command-line-gated Dedicated Server verification covers `InvalidDirection`, `InvalidDamage`, and `NoPawn`; every reject must produce no valid resolution, damage, HP replication, death, or Wave decrement
+- after server-confirmed directional fire, remote attack facing and montage presentation multicast to observer `SimulatedProxy` instances; the owning client keeps its local presentation path and the Dedicated Server performs no animation playback
 - cooldown or attack lockout is valid if implemented
+
+방향 안에 적이 없거나 사거리 안에서 hit가 발생하지 않은 경우에도 발사 자체는 유효할 수 있습니다. 이 경우 `Valid=true`, `Hit=false`, `DamageApplied=false`로 처리합니다.
 
 Validation 실패 시:
 
@@ -202,7 +206,8 @@ combat debug는 면접 설명과 dedicated server 검증에 도움이 되어야 
 - NetMode
 - LocalRole / RemoteRole
 - attack requester
-- target
+- requested direction
+- resolved target or miss
 - validation result
 - damage amount
 - target HP before/after
@@ -212,7 +217,7 @@ combat debug는 면접 설명과 dedicated server 검증에 도움이 되어야 
 예시:
 
 ```text
-MDS Combat | NetMode=DedicatedServer | Requester=P1 | Target=Enemy_03 | Valid=true | Damage=10 | EnemyHP=30->20
+MDS Combat | NetMode=DedicatedServer | Requester=P1 | Direction=(1,0,0) | Target=Enemy_03 | Valid=true | Hit=true | Damage=10 | EnemyHP=30->20
 ```
 
 ## Verification Criteria
@@ -231,4 +236,20 @@ Phase 1 문서 기준:
 - client-only animation event로 enemy HP 또는 Objective HP가 바뀌지 않습니다.
 - owning client input이 server request로 전달됩니다.
 - simulated client는 replicated state 기반으로 presentation을 갱신합니다.
-- invalid target/range/cooldown request는 damage 없이 거절됩니다.
+- invalid direction/damage/pawn request와 cooldown request는 damage 없이 거절됩니다.
+- target이 없는 정상 방향 발사는 valid miss로 처리되며 damage를 적용하지 않습니다.
+
+## Future Network Prediction / Reconciliation
+
+현재 MVP는 공격 입력 시 로컬 presentation을 즉시 시작하고, 실제 damage와 HP/death state는 서버 검증 및 replication 결과를 기준으로 처리합니다.
+
+향후 FPS-style network extension 후보:
+
+- client-predicted fire presentation과 pending attack 기록
+- client별 `AttackSequenceId`를 이용한 request/result 대응
+- 예측 탄약, 쿨다운, hit marker 상태와 서버 결과 비교
+- accept/reject 또는 mismatch 이후 server reconciliation
+- latency 환경에서의 server rewind / lag compensation 검토
+- 예측 impact는 임시 presentation으로 제한하고 authoritative HP/death는 서버 소유 유지
+
+이 항목들은 현재 구현 또는 검증 완료 범위가 아닙니다. 실제 추가 시 prediction, reconciliation, server rewind를 한 작업에 묶지 않고 작은 단계로 분리합니다.

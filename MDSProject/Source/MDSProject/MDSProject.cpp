@@ -6,4 +6,3 @@
 IMPLEMENT_PRIMARY_GAME_MODULE( FDefaultGameModuleImpl, MDSProject, "MDSProject" );
 
 DEFINE_LOG_CATEGORY(LogMDSProject)
- 

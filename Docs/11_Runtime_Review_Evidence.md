@@ -418,6 +418,169 @@ Caveats:
 - Authored Hit Reaction and Death Animation asset playback are not verified.
 - Viewport-visible animation pose changes and frame-accurate animation/combat timing are not verified.
 
+## Combat Animation Asset Readiness Verification
+
+- Date: 2026-07-20
+- Scope: read-only Editor-Cmd asset readiness check for existing combat animation assets.
+- Script: `Run_Verify_CombatAnimationAssets.ps1`
+- Log: `SavedVerifyLogs/MDS_CombatAnimationAssets.log`
+- Build evidence:
+  - `MDSProjectEditor Win64 Development` succeeded before the Editor-Cmd asset verification pass.
+  - UBT log path reported by the build: `C:\UnrealEngine\Engine\Programs\UnrealBuildTool\Log.txt`
+- Runtime command:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\Run_Verify_CombatAnimationAssets.ps1 -SkipBuild
+```
+
+Result:
+
+```text
+COMBAT ANIMATION ASSET VERIFY RESULT: PASS_WITH_INCOMPLETE_ITEMS
+BP_TopDownCharacter lineage proven: False
+Attack notify authored/readable: False
+Attack notify readiness note: INCOMPLETE
+Character lineage readiness note: INCOMPLETE
+```
+
+Evidence:
+
+- `BP_TopDownCharacter` loads and resolves a character mesh/AnimBP candidate. The checked Editor Python class APIs did not prove the `AMDSProjectCharacter` lineage in this pass.
+- The character mesh is `SKM_Manny_Simple`, uses `ABP_Unarmed_C`, and resolves skeleton `SK_Mannequin`.
+- `ABP_Unarmed` loads as an `AnimBlueprint` and is compatible with the character skeleton.
+- Skeletal mesh candidates `SKM_Manny_Simple` and `SKM_Quinn_Simple` load and use `SK_Mannequin`.
+- Attack candidates load: four unarmed `AnimSequence` assets and one pistol `AnimMontage`.
+- Hit reaction candidates load as `AnimSequence` assets and are compatible with `SK_Mannequin`.
+- Death candidates load as `AnimSequence` assets and are compatible with `SK_Mannequin`.
+
+Interpretation:
+
+- Existing project assets are sufficient as candidates for attack, hit reaction, and death presentation integration.
+- The check is read-only and does not create, save, compile, or modify Blueprint/content assets.
+- Attack timing notify readiness remains incomplete because no authored/readable notify was found in the checked attack candidates.
+- `BP_TopDownCharacter` lineage readiness remains incomplete because the checked Editor Python APIs did not prove the parent chain.
+- The script reports this as `PASS_WITH_INCOMPLETE_ITEMS`, not a full animation readiness pass.
+
+Caveats:
+
+- This is Editor asset loadability and skeleton compatibility evidence only.
+- Real Attack Montage playback is not verified.
+- Real AnimNotify firing is not verified.
+- Authored Hit Reaction and Death Animation playback are not verified.
+- Viewport-visible animation pose changes and combat timing alignment are not verified.
+
+Regression:
+
+- `Run_Verify_CombatPresentationHooks.ps1 -Port 7804 -SkipBuild -SkipStage -ClientWaitSeconds 28` returned `COMBAT PRESENTATION VERIFY RESULT: PASS` after rebuilding/staging the same source with `Run_Verify_CombatPresentationHooks.ps1 -Port 7802`.
+
+## Combat Animation Playback Attempt Verification
+
+- Date: 2026-07-20
+- Scope: existing asset playback API attempt/acceptance logs for attack, hit reaction, and death presentation.
+- Script: `Run_Verify_CombatPresentationHooks.ps1`
+- Runtime command:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\Run_Verify_CombatPresentationHooks.ps1 -Port 7815 -SkipBuild -SkipStage -ClientWaitSeconds 28
+```
+
+Result:
+
+```text
+COMBAT PRESENTATION VERIFY RESULT: PASS
+COMBAT ANIMATION PLAYBACK ATTEMPT VERIFY RESULT: PASS
+```
+
+Evidence:
+
+- `MDSProject`, `MDSProjectServer`, client cook/stage, and server cook/stage succeeded in the immediately preceding `Run_Verify_CombatPresentationHooks.ps1 -Port 7808 -ClientWaitSeconds 28` run.
+- The latest runtime replay used the same staged build with `-MDSCombatPresentationLog` enabled on both server and client.
+- The latest script version requires exact playback/presentation counts, equal attempt/success counts, and zero rejected attacks in the presentation-only no-RPC scenario.
+- Valid attack scenario:
+  - server animation playback count: `0`.
+  - attack montage playback attempts: `4`, success count: `4`.
+  - hit animation playback attempts: `3`, success count: `3`.
+  - death animation playback attempts: `1`, success count: `1`.
+  - client Enemy HP replication count: `4`.
+  - first hit animation playback occurs after replicated Enemy HP `100 -> 75`.
+  - death animation playback occurs after replicated Enemy HP reaches `0`.
+- Presentation-only scenario:
+  - server animation playback count: `0`.
+  - attack montage playback attempts: `1`, success count: `1`.
+  - hit/death animation playback attempts: `0`.
+  - valid attack count, PlayerAttack damage count, and client Enemy HP replication count remain `0`.
+
+Representative client logs:
+
+```text
+MDS CombatAnimationPlayback | AttackMontagePlaybackAttempted | ... | Asset=MM_Pistol_Fire_Montage | ... | Duration=0.667 | PlaybackSucceeded=true | ... | GameplayDamage=false.
+MDS CombatAnimationPlayback | EnemyHitAnimationPlaybackAttempted | ... | Asset=MM_HitReact_Front_Lgt_01 | ... | PlaybackSucceeded=true | ... | GameplayDamage=false.
+MDS CombatAnimationPlayback | EnemyDeathAnimationPlaybackAttempted | ... | Asset=MM_Death_Front_01 | ... | PlaybackSucceeded=true | ... | GameplayDamage=false.
+```
+
+Interpretation:
+
+- Existing attack, hit reaction, and death assets can be accepted by Unreal animation playback APIs in the staged client.
+- Enemy presentation now has a visual-only skeletal mesh component using existing mannequin mesh/AnimBP assets.
+- Animation playback attempts are client presentation only and do not apply gameplay damage.
+- Dedicated server logs show no animation playback attempts.
+
+Caveats:
+
+- This is playback API attempt/acceptance evidence, not viewport-visible pose-change evidence.
+- At this earlier capture pass, real authored AnimNotify firing was not yet verified; see the later persistent authored Notify evidence.
+- At this earlier pass, simulated-client attack montage replication was not verified; the later Dedicated Server + two-client verification supersedes this limitation.
+- Listen-server host enemy presentation is not covered by this dedicated server/client check.
+
+Regression:
+
+- `Run_Verify_PlayerAttack.ps1 -Port 7810 -SkipBuild -SkipStage` returned `PLAYER ATTACK VERIFY RESULT: PASS`.
+- `git diff --check` passed with CRLF warnings only.
+
+## Combat Animation Visible Capture Verification
+
+- Date: 2026-07-20
+- Scope: visible staged client screenshots correlated with attack, hit, and death animation playback events.
+- Script: `Run_Verify_CombatAnimationVisibleCapture.ps1`
+- Runtime command:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\Run_Verify_CombatAnimationVisibleCapture.ps1 -Port 7822 -SkipBuild -SkipStage -ClientWaitSeconds 24
+```
+
+Result:
+
+```text
+COMBAT ANIMATION VISIBLE CAPTURE VERIFY RESULT: PASS_WITH_POSE_LIMITATION (historical; superseded by paired pose-delta PASS)
+```
+
+Evidence:
+
+- `MDSProject Win64 Development` and `MDSProjectServer Win64 Development` built successfully in the immediately preceding full visible capture run.
+- Client and server cook/stage succeeded in the immediately preceding full visible capture run.
+- The successful runtime replay used the same staged build with a visible `MDSProject.exe` client and `-MDSCombatAnimationVisibleShot`.
+- Dedicated server logs show zero `MDS CombatAnimationPlayback` and zero `MDS CombatAnimationVisibleCapture` entries.
+- Server applied four valid `PlayerAttack` damage events and handled death once.
+- Client observed four Enemy HP replication updates.
+- Client logged four successful attack montage playback attempts, three successful hit animation playback attempts, and one successful death animation playback attempt.
+- Client requested event-timed screenshots:
+  - `SavedVerifyLogs/MDS_CombatAnimationVisible_Attack.png`
+  - `SavedVerifyLogs/MDS_CombatAnimationVisible_Hit.png`
+  - `SavedVerifyLogs/MDS_CombatAnimationVisible_Death.png`
+- The script verified that all three screenshot files exist, are non-empty, and contain visible pixels.
+
+Interpretation:
+
+- A visible staged client viewport can be captured at attack, hit, and death playback moments using existing project assets.
+- Capture hooks are command-line gated and presentation-only; they do not apply gameplay damage.
+- Hit/death captures occur after replicated Enemy HP observation in the client log.
+
+Caveats:
+
+- Historical limitation: these original single screenshots did not prove pose delta; the later paired `Before`/`Pose` pass supersedes it.
+- At this earlier visible-capture pass, authored AnimNotify firing remained unverified; the later staged runtime test supersedes this limitation.
+- Simulated-client attack montage presentation is verified by the later Dedicated Server + two-client pass.
+
 ## Verified
 
 - Dedicated Server starts and listens on port `7777`.
@@ -440,6 +603,105 @@ Caveats:
 - OutOfRange and Cooldown player attack requests are rejected without extra Enemy HP damage.
 - Combat presentation hooks can be triggered as local/client presentation without mutating server-owned damage state.
 - Client hit/death presentation hook logs occur after replicated Enemy HP observation.
+- Existing attack, hit reaction, and death animation candidate assets load in Editor-Cmd and are compatible with the character skeleton.
+- Existing attack montage, hit reaction, and death animation assets are accepted by client-side animation playback APIs during the staged dedicated server/client presentation scenario.
+- Visible staged client screenshots are captured at attack, hit, and death animation playback moments and pass nonblank pixel checks.
+
+## Runtime AnimNotify Dispatch Verification
+
+Command:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Run_Verify_CombatAnimNotify.ps1 -Port 7832 -ClientWaitSeconds 24 -SkipBuild -SkipStage
+```
+
+Result:
+
+```text
+COMBAT PRESENTATION VERIFY RESULT: PASS
+COMBAT ANIMATION PLAYBACK ATTEMPT VERIFY RESULT: PASS
+COMBAT ANIMNOTIFY VERIFY RESULT: PASS
+```
+
+Observed evidence:
+
+- Valid scenario: client Notify callbacks `4`, dedicated server Notify callbacks `0`, valid server attacks `4`, PlayerAttack damage events `4`, client Enemy HP observations `4`.
+- Presentation-only scenario: client Notify callbacks `1`, dedicated server Notify callbacks `0`, valid server attacks `0`, rejected server attacks `0`, PlayerAttack damage events `0`, client Enemy HP observations `0`.
+- Notify logs explicitly record `GameplayDamage=false` and `ServerRequestSent=false`.
+- Historical note: this pass used transient injection. It is superseded by the persistent authored Notify resolution below.
+
+## Persistent Authored Attack AnimNotify Evidence
+
+- Asset: `/Game/Characters/Mannequins/Anims/Pistol/MM_Pistol_Fire_Montage`
+- Notify: one `UMDSCombatTimingAnimNotify`, configured at `0.100` seconds in a `0.667` second montage.
+- Idempotency: a second Editor-Cmd configuration run found exactly one existing Notify and added no duplicate.
+- Transient runtime injection was removed from `AMDSProjectPlayerController` before build/cook/stage.
+- Asset verification reports `ATTACK_NOTIFY_READINESS | PASS=True` and authored/readable `True`.
+- Valid runtime scenario: client callbacks `4`, Dedicated Server callbacks `0`, server-authoritative damage events `4`.
+- Presentation-only scenario: client callback `1`, Dedicated Server callbacks `0`, attack RPC/damage/Enemy HP replication `0`.
+- Result: `COMBAT ANIMNOTIFY VERIFY RESULT: PASS`.
+- Notify logs explicitly report `GameplayDamage=false` and `ServerRequestSent=false`.
+- UE Python does not expose stored `FAnimNotifyEvent.LinkValue`; configured-time range is checked during authoring and actual in-playback firing is proven by the staged runtime test.
+
+Regression results:
+
+```text
+COMBAT PRESENTATION VERIFY RESULT: PASS
+PLAYER ATTACK VERIFY RESULT: PASS
+```
+
+## Character Movement Role and Replication Evidence
+
+Command:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Run_Verify_CharacterMovementReplication.ps1 -Port 7849 -ClientWaitSeconds 30 -SkipBuild -SkipStage
+```
+
+Observed:
+
+- Dedicated server accepted both clients (`4` login/join markers).
+- Mover pawn: `NetMode=Client`, `LocalRole=AutonomousProxy`, `RemoteRole=Authority`, `LocallyControlled=true`.
+- Observer view of the remote pawn: `LocalRole=SimulatedProxy`, `RemoteRole=Authority`, `LocallyControlled=false`.
+- Server pawns: `NetMode=DedicatedServer`, `LocalRole=Authority`.
+- Automated move start and finish markers were emitted without fatal errors.
+- Maximum movement distance and speed remained `0 / 0` for mover, server, and observer.
+
+Result:
+
+```text
+CHARACTER MOVEMENT REPLICATION VERIFY RESULT: INCOMPLETE
+```
+
+Interpretation: network role topology is proven, but actual CMC movement and simulated-proxy motion are not. This is a fail-closed evidence result, not a movement-completion claim.
+
+Follow-up diagnostic evidence:
+
+- Pawn class: `BP_TopDownCharacter_C`; native parent: engine `Character`.
+- CMC: active, component Tick enabled, updated component `CollisionCylinder`, `MaxWalkSpeed=600`, `MaxAcceleration=1000`.
+- Input injection: Pending Input changes from zero to `Y=1` immediately after forced injection.
+- Input consumption: later AutonomousProxy snapshots keep Last Input, velocity, and distance at zero.
+- Navigation: packaged client reports `NavSystem=None`, `NavData=None`, `PathFollowing=None`, and the engine logs the corresponding `SimpleMove` navigation warning.
+
+This isolates two configuration gaps: the Blueprint is not based on `AMDSProjectCharacter`, and the packaged network client cannot use the navigation-dependent TopDown simple-move path in the current configuration.
+
+Reparent follow-up:
+
+- `BP_TopDownCharacter` was successfully reparented from engine `Character` to `/Script/MDSProject.MDSProjectCharacter`, then compiled and saved through Editor-Cmd.
+- The recooked staged client reports that the native parent is no longer engine `Character`.
+- Navigation-independent input was tested along the X axis to avoid the adjacent player capsule.
+- Pending Input was still accepted but not observed as Last Input, and mover/server/observer did not exceed the required distance or speed thresholds.
+- A temporary `RequestDirectMove` probe also failed the thresholds and was removed; it is not part of the retained implementation.
+- That diagnostic pass remained `INCOMPLETE`; the retained direct-move workaround was not used.
+
+Resolution evidence (2026-07-21):
+
+- `BP_TopDownCharacter` was reparented to `AMDSProjectCharacter` and an Enhanced Input `IA_Move` Axis2D action was mapped to W/A/S/D.
+- Automated movement now enters through the shared character movement helper during the owning controller's `PlayerTick`, matching the CMC input-consumption window.
+- Mover `AutonomousProxy`, server `Authority`, and observer `SimulatedProxy` each reported maximum distance/speed `1620.5 / 600`.
+- Movement input accepted/consumed: `True / True`; fatal error: `False`.
+- Final result: `CHARACTER MOVEMENT REPLICATION VERIFY RESULT: PASS`.
+- This proves packaged CMC movement replication, not physical keyboard-event injection or frame-accurate AnimBP locomotion pose changes.
 
 ## Not Verified In This Pass
 
@@ -447,15 +709,197 @@ Caveats:
 - Authored Match HUD visual layout.
 - Authored Objective World UI visual layout.
 - Authored Enemy World UI visual layout.
-- Enemy death visual/animation presentation.
-- Attack Montage / AnimNotify negative test.
-- Hit Reaction and Death Animation presentation.
-- Authored Attack Montage playback, real AnimNotify asset firing, and viewport-visible hit/death animation pose changes.
-- Additional player attack reject branches: InvalidTarget, InvalidDamage, DeadTarget, and NoPawn.
+- Frame-accurate Attack Montage pose delta.
+- Frame-accurate viewport confirmation of the authored attack Notify cue.
+- Frame-accurate Hit Reaction and Death Animation pose deltas.
+- Additional player attack reject branches outside the directional-fire contract, such as InvalidTarget and DeadTarget.
 
 These items require visual PIE/client checks, authored Widget Blueprint layout work, or animation-specific runtime scenarios.
 
+## Directional Movement and Fire-Facing Evidence
+
+Date: 2026-07-22
+
+Command:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Run_Verify_CharacterMovementVisible.ps1 -Port 7874 -ManualInputSeconds 90
+```
+
+Observed:
+
+- Dedicated server accepted two clients (`4` login/join markers).
+- Mover `AutonomousProxy` maximum distance/speed: `1585.5 / 600`.
+- Server `Authority` maximum distance/speed: `1588.7 / 600`.
+- Observer `SimulatedProxy` maximum distance/speed: `1629 / 600.4`.
+- Directional fire resolved `19` valid shots: `3` hits and `16` misses.
+- Fatal error: `False`.
+- User manual viewport review confirmed W/S/A/D cardinal movement and diagonal input.
+- Normal facing followed movement direction on mover and observer.
+- Left-mouse fire temporarily faced the cursor direction during the attack montage and then returned to movement-direction facing while movement continued.
+- Empty-space fire produced presentation and a valid miss without damage.
+- Enemy-direction fire produced server-authoritative hits and replicated HP changes.
+
+Result:
+
+```text
+CHARACTER MOVEMENT VISIBLE VERIFY RESULT: PASS_WITH_MANUAL_POSE_REVIEW
+```
+
+Authority note: cursor direction is client attack intent. The server owns directional range/hit evaluation, cooldown, damage application, Enemy HP, death handling, and Wave progression. Montage playback and AnimNotify remain presentation-only.
+
+## Directional Fire Reject Verification
+
+Date: 2026-07-22
+
+Command:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Run_Verify_PlayerAttack.ps1 -Scenario Rejects -Port 7900 -SkipBuild -SkipStage
+```
+
+Observed:
+
+- `InvalidDirection`: zero-vector owning-client RPC intent produced exactly one `Reason=InvalidDirection` server rejection.
+- `InvalidDamage`: server attack damage `0.0` produced exactly one `Reason=InvalidDamage` rejection.
+- `NoPawn`: the command-line-gated server verification path unpossessed the requester's Pawn immediately before validation and produced exactly one `Reason=NoPawn` rejection.
+- Every scenario recorded zero valid attacks, zero `PlayerAttack` damage, zero Enemy HP replication, zero enemy deaths, and zero Wave enemy-death consumption.
+- All three client connections succeeded and no fatal error was found.
+- Normal attack regression passed with four valid hits, four replicated Enemy HP updates, HP `100 -> 0`, one server death, and one Wave consumption.
+- CharacterMovement regression passed after extending the collection window: mover, server, and observer each reached `1620.5 / 600`, with input accepted/consumed `True / True`.
+
+Result:
+
+```text
+PLAYER ATTACK InvalidDirection VERIFY RESULT: PASS
+PLAYER ATTACK InvalidDamage VERIFY RESULT: PASS
+PLAYER ATTACK NoPawn VERIFY RESULT: PASS
+PLAYER ATTACK VERIFY RESULT: PASS
+CHARACTER MOVEMENT REPLICATION VERIFY RESULT: PASS
+```
+
+The rejection harness is inactive unless `MDSAutoAttackReject=<Scenario>` is explicitly supplied. Normal manual and automated fire continue to use the owning-client `ServerRequestAttack` RPC and server-owned validation path.
+
+## Simulated Client Attack Presentation Verification
+
+Date: 2026-07-22
+
+Command:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Run_Verify_SimulatedClientAttackPresentation.ps1 -Port 7910 -SkipBuild -SkipStage
+```
+
+Observed:
+
+- Dedicated Server accepted observer and attacker clients (`4` login/join markers).
+- Server resolved four valid directional hits and applied four `PlayerAttack` damage events.
+- Observer received four `RemoteAttackPresentationReceived` events on `LocalRole=SimulatedProxy`, including the server-confirmed direction and presentation duration.
+- Observer remote montage playback succeeded `4/4`, and the character presentation hook ran `4/4`.
+- Observer and attacker each observed four replicated Enemy HP changes.
+- Owning attacker remote montage playback count was `0`; its local intent path remained the sole owning-client montage path.
+- Dedicated Server animation playback count was `0`.
+- No fatal error or ensure was found.
+
+Result:
+
+```text
+SIMULATED CLIENT ATTACK PRESENTATION VERIFY RESULT: PASS
+PLAYER ATTACK VERIFY RESULT: PASS
+CHARACTER MOVEMENT REPLICATION VERIFY RESULT: PASS
+```
+
+Authority note: the server confirms the directional attack before issuing the multicast presentation. The multicast changes facing and presentation only; damage, Enemy HP, death, and Wave progression remain server-owned.
+
+## Continuous Wave Loop Verification
+
+Date: 2026-07-23
+
+Command:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Run_Verify_ContinuousWaveLoop.ps1
+```
+
+Observed:
+
+- Dedicated Server spawned Wave 1/2/3 with exactly `3/4/5` combat enemies.
+- The owning client issued server-validated attacks; the server consumed exactly `12` enemy deaths.
+- Each wave cleared exactly once, and `Demo wave loop completed on server: FinalWave=3` appeared exactly once.
+- The client replication log observed active Wave 1, Wave 2, and Wave 3 state.
+- No fatal error or ensure was found.
+- `MDSWaveIntermission=1` and zero enemy movement were verification-only overrides; normal defaults remain three seconds and movement speed `100`.
+
+Result:
+
+```text
+CONTINUOUS WAVE LOOP VERIFY RESULT: PASS
+PLAYER ATTACK Valid VERIFY RESULT: PASS
+SIMULATED CLIENT ATTACK PRESENTATION VERIFY RESULT: PASS
+CHARACTER MOVEMENT REPLICATION VERIFY RESULT: INCOMPLETE
+```
+
+The movement result was incomplete because the existing auto-move trigger did not start; server and two-client connection succeeded and no fatal error occurred. It is not counted as a passing movement re-verification.
+
+## Enemy Presentation and Mass Default-Off Verification
+
+Date: 2026-07-23
+
+Observed:
+
+- Client and Server Development builds and both staged packages succeeded.
+- Three Wave runtime spawned and consumed `12` Character-based enemies without changing authoritative Wave counts.
+- Server and client each logged `12` death-fade starts after the two-second body hold.
+- Normal server startup logged `Mass baseline disabled` and zero Mass initialization events.
+- Explicit `-MDSMassBaseline MDSMassBaselineCount=2` initialized exactly two Mass entities, preserving the opt-in technical probe.
+- Dedicated Server animation playback remained zero.
+- Simulated observer received all four server-confirmed attack presentations and four replicated Enemy HP updates.
+- No fatal error or ensure was found.
+
+Visual verification scope:
+
+- Enemy slope/step walking and locomotion pose.
+- Immediate owning-client yellow shot tracer and pistol montage.
+- Pawn-overlap enemy crowd behavior.
+- Two-second death hold followed by one-second sink/fade.
+
+Material note: the code sets optional `Opacity` and `Fade` scalar parameters, but the current mannequin material may not expose them. The downward sink and final visibility removal remain the guaranteed fallback.
+
+## 3D Aim and Enemy Movement Correction
+
+Date: 2026-07-23
+
+Observed:
+
+- Attack intent carries the cursor's 3D Visibility impact point instead of a flattened XY direction.
+- Server clamps the shot endpoint to range `5000` and performs a 3D line-segment proximity test against live enemies.
+- Local tracer start/end presentation uses the actual cursor collision endpoint.
+- Three controller-free enemies entered `MOVE_Walking` with velocity `100`, valid collision components, and controller-free physics enabled.
+- All three reached the Objective at `Z=307.96`; movement was no longer stationary.
+- Continuous Wave verification passed with `12` deaths and three Wave clears.
+- Client logs recorded `12` death-pose freezes before `12` fade starts.
+- InvalidDirection verification produced exactly one server rejection and zero damage.
+- No fatal error or ensure was found.
+
+## Directional Target and Hit Pause Verification
+
+Date: 2026-07-23
+
+Observed:
+
+- Cursor impact selects direction; it no longer truncates the server target search.
+- The nearest alive enemy in the full range corridor becomes both the damage target and tracer endpoint.
+- If no directional enemy exists, the terrain cursor impact remains the tracer endpoint.
+- Four valid attacks applied four damage events and four replicated HP updates.
+- Three nonlethal hits each produced a movement resume after the configured `0.35` second pause.
+- The fourth hit killed the enemy and did not resume movement.
+- Continuous Wave and PlayerAttack Valid passed without fatal/ensure.
+
 ## Manual Follow-Up
+
+Authored gameplay UI style update (2026-07-23): `WBP_MDSMatchHUD`, `WBP_MDSObjectiveWorldUI`, and `WBP_MDSEnemyWorldUI` were compiled/saved twice through the idempotent Editor Python script. The latest replicated UI EngineShot shows cyan Match HUD text, gold Objective HP, and red Enemy HP labels at four actor-attached positions. All underlying viewport PASS checks were true and fatal/CommonUI errors were false. Production panel/art polish remains optional.
+
+Pose-delta evidence update (2026-07-22): `Run_Verify_CombatAnimationVisibleCapture.ps1 -Port 7922 -ClientWaitSeconds 26 -SkipBuild -SkipStage` produced six paired captures and `COMBAT ANIMATION POSE DELTA VERIFY RESULT: PASS`. Center-region changed samples were Attack `75`, Hit `58`, and Death `803`. This verifies rendered pose change, not artistic animation quality.
 
 1. Add authored Widget Blueprint TextBlocks if a custom layout is needed.
 2. Confirm displayed values match replicated GameState, ObjectiveActor, and debug snapshot sources during dedicated server/client play.

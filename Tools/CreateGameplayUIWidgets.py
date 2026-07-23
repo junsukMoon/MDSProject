@@ -10,22 +10,22 @@ WIDGET_SPECS = [
         "name": "WBP_MDSMatchHUD",
         "parent": "/Script/MDSProject.MDSMatchHUDWidget",
         "texts": [
-            ("WaveTextBlock", "Wave: -"),
-            ("EnemiesTextBlock", "Enemies: -"),
+            ("WaveTextBlock", "Wave: -", (0.20, 0.95, 1.00, 1.00), 28),
+            ("EnemiesTextBlock", "Enemies: -", (0.85, 1.00, 1.00, 1.00), 24),
         ],
     },
     {
         "name": "WBP_MDSObjectiveWorldUI",
         "parent": "/Script/MDSProject.MDSObjectiveWorldWidget",
         "texts": [
-            ("ObjectiveHealthTextBlock", "Objective HP: -"),
+            ("ObjectiveHealthTextBlock", "Objective HP: -", (1.00, 0.78, 0.18, 1.00), 22),
         ],
     },
     {
         "name": "WBP_MDSEnemyWorldUI",
         "parent": "/Script/MDSProject.MDSEnemyWorldWidget",
         "texts": [
-            ("EnemyHealthTextBlock", "Enemy HP: -"),
+            ("EnemyHealthTextBlock", "Enemy HP: -", (1.00, 0.22, 0.16, 1.00), 20),
         ],
     },
 ]
@@ -76,11 +76,24 @@ def create_or_load_widget_blueprint(spec):
     return widget_blueprint
 
 
-def set_text_block_defaults(text_block, label):
+def set_text_block_defaults(text_block, label, color, font_size):
     text_block.set_editor_property("text", unreal.Text(label))
-    text_block.set_editor_property("color_and_opacity", unreal.SlateColor(unreal.LinearColor.WHITE))
-    text_block.set_editor_property("shadow_offset", unreal.Vector2D(1.0, 1.0))
-    text_block.set_editor_property("shadow_color_and_opacity", unreal.LinearColor.BLACK)
+    text_block.set_editor_property("color_and_opacity", unreal.SlateColor(unreal.LinearColor(*color)))
+    text_block.set_editor_property("shadow_offset", unreal.Vector2D(2.0, 2.0))
+    text_block.set_editor_property("shadow_color_and_opacity", unreal.LinearColor(0.0, 0.0, 0.0, 0.9))
+    text_block.set_editor_property("justification", unreal.TextJustify.CENTER)
+
+    font = text_block.get_editor_property("font")
+    font.set_editor_property("size", font_size)
+    text_block.set_editor_property("font", font)
+
+    slot = text_block.get_editor_property("slot")
+    if isinstance(slot, unreal.VerticalBoxSlot):
+        slot.set_editor_property("padding", unreal.Margin(10.0, 4.0, 10.0, 4.0))
+        slot.set_editor_property("horizontal_alignment", unreal.HorizontalAlignment.H_ALIGN_CENTER)
+        slot.set_editor_property("vertical_alignment", unreal.VerticalAlignment.V_ALIGN_CENTER)
+
+    log(f"Styled {text_block.get_name()} color={color} font_size={font_size}")
 
 
 def ensure_widget_tree(widget_blueprint, spec):
@@ -96,7 +109,7 @@ def ensure_widget_tree(widget_blueprint, spec):
             raise RuntimeError(f"Unable to add Root widget to {spec['name']}")
         log(f"Added Root VerticalBox to {spec['name']}")
 
-    for text_name, label in spec["texts"]:
+    for text_name, label, color, font_size in spec["texts"]:
         text_block = unreal.EditorUtilityLibrary.find_source_widget_by_name(widget_blueprint, text_name)
         if text_block is None:
             text_block = unreal.EditorUtilityLibrary.add_source_widget(
@@ -111,7 +124,7 @@ def ensure_widget_tree(widget_blueprint, spec):
         else:
             log(f"Found TextBlock {text_name} in {spec['name']}")
 
-        set_text_block_defaults(text_block, label)
+        set_text_block_defaults(text_block, label, color, font_size)
 
 
 def compile_and_save_widget_blueprint(widget_blueprint, spec):
