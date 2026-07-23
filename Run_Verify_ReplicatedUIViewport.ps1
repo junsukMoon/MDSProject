@@ -237,7 +237,7 @@ try {
     Write-Host "Launching server with actor baseline UI source:"
     Write-Host "  $ServerExe"
     $ServerProcess = Start-Process -FilePath $ServerExe `
-        -ArgumentList @("/Game/TopDown/Lvl_TopDown", "-NullRHI", "-unattended", "-stdout", "-FullStdOutLogOutput", "-forcelogflush", "-MDSActorBaseline", "MDSActorBaselineCount=$ActorEnemyCount", "MDSActorBaselineMoveSpeed=$ActorEnemyMoveSpeed", "-port=$Port") `
+        -ArgumentList @("/Game/TopDown/Lvl_TopDown", "-NullRHI", "-unattended", "-stdout", "-FullStdOutLogOutput", "-forcelogflush", "-NoMDSWaveLoop", "-MDSActorBaseline", "MDSActorBaselineCount=$ActorEnemyCount", "MDSActorBaselineMoveSpeed=$ActorEnemyMoveSpeed", "-port=$Port") `
         -WorkingDirectory $ServerDir `
         -RedirectStandardOutput $ServerLog `
         -PassThru `

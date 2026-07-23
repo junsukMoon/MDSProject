@@ -101,6 +101,7 @@ try {
         "-stdout",
         "-FullStdOutLogOutput",
         "-forcelogflush",
+        "-NoMDSWaveLoop",
         "-port=$Port"
     )
 

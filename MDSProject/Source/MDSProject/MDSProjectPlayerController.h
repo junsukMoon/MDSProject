@@ -7,6 +7,7 @@
 #include "GameFramework/PlayerController.h"
 #include "MDSProjectPlayerController.generated.h"
 
+class UAnimMontage;
 class UNiagaraSystem;
 class UInputMappingContext;
 class UInputAction;
@@ -26,38 +27,22 @@ class AMDSProjectPlayerController : public APlayerController
 	GENERATED_BODY()
 
 protected:
-
-	/** Time Threshold to know if it was a short press */
+	// Retained for existing Blueprint serialization compatibility; desktop/touch move bindings are intentionally disabled.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
-	float ShortPressThreshold;
+	float ShortPressThreshold = 0.3f;
 
-	/** FX Class that we will spawn when clicking */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
 	UNiagaraSystem* FXCursor;
 
 	/** MappingContext */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
 	UInputMappingContext* DefaultMappingContext;
-	
-	/** Jump Input Action */
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
 	UInputAction* SetDestinationClickAction;
 
-	/** Jump Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
 	UInputAction* SetDestinationTouchAction;
-
-	/** True if the controlled character should navigate to the mouse cursor. */
-	uint32 bMoveToMouseCursor : 1;
-
-	/** Set to true if we're using touch input */
-	uint32 bIsTouch : 1;
-
-	/** Saved location of the character movement destination */
-	FVector CachedDestination;
-
-	/** Time that the click input has been pressed */
-	float FollowTime = 0.0f;
 
 public:
 
@@ -66,16 +51,12 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void PlayerTick(float DeltaTime) override;
 
 	/** Initialize input bindings */
 	virtual void SetupInputComponent() override;
 	
 	/** Input handlers */
-	void OnInputStarted();
-	void OnSetDestinationTriggered();
-	void OnSetDestinationReleased();
-	void OnTouchTriggered();
-	void OnTouchReleased();
 	void ToggleDebugOverlay();
 	void OnAttackPressed();
 
@@ -83,17 +64,32 @@ private:
 	UMDSDebugOverlayWidget* GetOrCreateDebugOverlay();
 	UMDSMatchHUDWidget* GetOrCreateMatchHUD();
 	void RequestReplicatedUIViewportScreenshot();
-	void ServerProcessAttack(AActor* RequestedTarget);
+	void ServerProcessDirectionalAttack(FVector_NetQuantize RequestedAimPoint);
+	void ApplyKeyboardMovementInput();
+	FVector GetAimPointFromCursor() const;
+	FVector ResolvePredictedShotEnd(const FVector& AimPoint) const;
+	float GetAttackFacingDuration() const;
 	void ConfigureAttackFromCommandLine();
 	void StartAutoAttackVerification();
+	void StartAttackRejectVerification();
+	void TriggerAttackRejectVerification();
 	void TryAutoAttackNearestEnemy();
 	class AMDSCombatEnemyActor* FindNearestAutoAttackEnemy(float& OutDistance) const;
 	void RequestLocalAttackPresentation(FName PresentationSource);
+	void PlayControlledPawnAttackAnimationPresentation(FName PresentationSource);
+	void ScheduleCombatAnimationVisibleScreenshot(FName PresentationType, float DelaySeconds);
+	void RequestCombatAnimationVisibleScreenshot(FName PresentationType);
+	void StartCombatAnimationPoseDeltaBaselineCapture();
 	void StartPresentationOnlyVerification();
 	void TriggerPresentationOnlyAttackMarker();
+	void StartAutoMoveVerification();
+	void BeginAutoMoveVerification();
+	void TickAutoMoveVerification();
+	void StartMovementSnapshotVerification();
+	void LogMovementVerificationSnapshots();
 
 	UFUNCTION(Server, Reliable)
-	void ServerRequestAttack(AActor* RequestedTarget);
+	void ServerRequestAttack(FVector_NetQuantize RequestedAimPoint);
 
 	UPROPERTY(EditDefaultsOnly, Category = "MDS|UI", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UMDSDebugOverlayWidget> DebugOverlayWidgetClass;
@@ -105,10 +101,13 @@ private:
 	float AttackDamage = 25.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "MDS|Combat", meta = (AllowPrivateAccess = "true", ClampMin = "1.0"))
-	float AttackRange = 450.0f;
+	float AttackRange = 5000.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "MDS|Combat", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
 	float AttackCooldownSeconds = 0.5f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "MDS|Combat Presentation", meta = (AllowPrivateAccess = "true"))
+	TSoftObjectPtr<UAnimMontage> AttackPresentationMontage;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMDSDebugOverlayWidget> DebugOverlayWidget;
@@ -117,11 +116,26 @@ private:
 	TObjectPtr<UMDSMatchHUDWidget> MatchHUDWidget;
 
 	FTimerHandle ReplicatedUIViewportScreenshotTimerHandle;
+	FTimerHandle AttackVisibleScreenshotTimerHandle;
+	FTimerHandle AttackPoseBaselineTimerHandle;
+	FTimerHandle HitPoseBaselineTimerHandle;
+	FTimerHandle DeathPoseBaselineTimerHandle;
 	FTimerHandle AutoAttackTimerHandle;
+	FTimerHandle AttackRejectVerificationTimerHandle;
 	FTimerHandle PresentationOnlyAttackTimerHandle;
+	FTimerHandle AutoMoveStartTimerHandle;
+	FTimerHandle MovementSnapshotTimerHandle;
+	TMap<TWeakObjectPtr<AActor>, FVector> MovementVerificationStartLocations;
 	double LastServerAttackTimeSeconds = -1000000.0;
+	double AutoMoveEndTimeSeconds = 0.0;
 	int32 AutoAttackAttemptsRemaining = 0;
+	FString AttackRejectVerificationScenario;
 	float AutoAttackRetryIntervalSeconds = 0.75f;
+	float AutoMoveDurationSeconds = 3.0f;
+	FVector AutoMoveWorldDirection = FVector::ForwardVector;
+	bool bAttackVisibleScreenshotRequested = false;
+	bool bAutoMoveDiagnosticSampleLogged = false;
+	bool bAutoMoveVerificationActive = false;
 };
 
 

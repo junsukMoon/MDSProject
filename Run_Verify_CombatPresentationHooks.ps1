@@ -3,7 +3,8 @@ param(
     [int]$ServerWaitSeconds = 15,
     [int]$ClientWaitSeconds = 18,
     [switch]$SkipBuild,
-    [switch]$SkipStage
+    [switch]$SkipStage,
+    [switch]$VerifyAnimNotify
 )
 
 $ErrorActionPreference = "Stop"
@@ -35,7 +36,7 @@ function Select-CombatPresentationPatterns {
         return @()
     }
 
-    Select-String -Path $Path -Pattern "MDS CombatPresentation|PresentationOnly|AutoAttackIntent|ServerAttackResolved|ServerAttackRejected|Enemy damage applied by PlayerAttack|Enemy HP replicated on client|Enemy death handled on server|Wave enemy death consumed on server|Combat enemy wave spawn created|Join succeeded|Login request|Fatal error|LogWindows: Error:" |
+    Select-String -Path $Path -Pattern "MDS CombatPresentation|MDS CombatAnimationPlayback|MDS CombatAnimNotify|PresentationOnly|AutoAttackIntent|ServerAttackResolved|ServerAttackRejected|Enemy damage applied by PlayerAttack|Enemy HP replicated on client|Enemy death handled on server|Wave enemy death consumed on server|Combat enemy wave spawn created|Join succeeded|Login request|Fatal error|LogWindows: Error:" |
         Select-Object -Last 180
 }
 
@@ -99,8 +100,12 @@ function Invoke-CombatPresentationScenario {
         $ServerDir = Split-Path -Parent $ServerExe
         $ClientDir = Split-Path -Parent $ClientExe
 
-        $ServerArgs = @("/Game/TopDown/Lvl_TopDown", "-NullRHI", "-unattended", "-stdout", "-FullStdOutLogOutput", "-forcelogflush", "-port=$ListenPort")
+        $ServerArgs = @("/Game/TopDown/Lvl_TopDown", "-NullRHI", "-unattended", "-stdout", "-FullStdOutLogOutput", "-forcelogflush", "-NoMDSWaveLoop", "-MDSCombatPresentationLog", "-port=$ListenPort")
         $ClientArgs = @("127.0.0.1:$ListenPort", "-NullRHI", "-unattended", "-nosound", "-NoSplash", "-stdout", "-FullStdOutLogOutput", "-forcelogflush", "-MDSCombatPresentationLog")
+
+		if ($VerifyAnimNotify) {
+			$ClientArgs += "-MDSCombatAnimNotifyVerify"
+		}
 
         if ($Name -eq "Valid") {
             $ServerArgs += @("-MDSAutoStartWave", "MDSWaveEnemyCount=1", "MDSActorBaselineMoveSpeed=0", "MDSAttackRange=5000", "MDSAttackDamage=25", "MDSAttackCooldown=0.5")
@@ -159,46 +164,82 @@ function Invoke-CombatPresentationScenario {
         $ServerText = if (Test-Path -LiteralPath $ServerLog) { Get-Content -LiteralPath $ServerLog -Raw -ErrorAction SilentlyContinue } else { "" }
         $ClientText = if (Test-Path -LiteralPath $ClientLog) { Get-Content -LiteralPath $ClientLog -Raw -ErrorAction SilentlyContinue } else { "" }
 
-        $FatalError = ($ServerText -match "Fatal error|LogWindows: Error:") -or ($ClientText -match "Fatal error|LogWindows: Error:")
+		$KnownEventLogWarning = "LogWindows: Error: Failed to open the Windows Event Log for writing (5)"
+		$FilteredServerText = $ServerText.Replace($KnownEventLogWarning, "")
+		$FilteredClientText = $ClientText.Replace($KnownEventLogWarning, "")
+		$FatalError = ($FilteredServerText -match "Fatal error|LogWindows: Error:") -or ($FilteredClientText -match "Fatal error|LogWindows: Error:")
         $ConnectionOk = ($ServerText -match "Login request|Join succeeded") -or ($ClientText -match "Join succeeded|Welcomed by server")
         $ServerPresentationCount = Get-MatchCount -Text $ServerText -Pattern "MDS CombatPresentation"
+        $ServerAnimationPlaybackCount = Get-MatchCount -Text $ServerText -Pattern "MDS CombatAnimationPlayback"
         $AttackPresentationCount = Get-MatchCount -Text $ClientText -Pattern "MDS CombatPresentation \| AttackPresentationRequested \| Controller="
         $AttackTimingMarkerCount = Get-MatchCount -Text $ClientText -Pattern "MDS CombatPresentation \| AttackTimingMarker \| Controller="
         $HitPresentationCount = Get-MatchCount -Text $ClientText -Pattern "EnemyHitPresentationRequested"
         $DeathPresentationCount = Get-MatchCount -Text $ClientText -Pattern "EnemyDeathPresentationRequested"
+        $AttackAnimationPlaybackCount = Get-MatchCount -Text $ClientText -Pattern "AttackMontagePlaybackAttempted"
+        $AttackAnimationPlaybackSuccessCount = Get-MatchCount -Text $ClientText -Pattern "AttackMontagePlaybackAttempted .* PlaybackSucceeded=true"
+        $HitAnimationPlaybackCount = Get-MatchCount -Text $ClientText -Pattern "EnemyHitAnimationPlaybackAttempted"
+        $HitAnimationPlaybackSuccessCount = Get-MatchCount -Text $ClientText -Pattern "EnemyHitAnimationPlaybackAttempted .* PlaybackSucceeded=true"
+        $DeathAnimationPlaybackCount = Get-MatchCount -Text $ClientText -Pattern "EnemyDeathAnimationPlaybackAttempted"
+        $DeathAnimationPlaybackSuccessCount = Get-MatchCount -Text $ClientText -Pattern "EnemyDeathAnimationPlaybackAttempted .* PlaybackSucceeded=true"
         $ValidAttackCount = Get-MatchCount -Text $ServerText -Pattern "MDS Combat \| ServerAttackResolved .* Valid=true"
+        $RejectedAttackCount = Get-MatchCount -Text $ServerText -Pattern "MDS Combat \| ServerAttackRejected"
         $DamageCount = Get-MatchCount -Text $ServerText -Pattern "Enemy damage applied by PlayerAttack"
         $ClientReplicationCount = Get-MatchCount -Text $ClientText -Pattern "Enemy HP replicated on client"
         $PresentationOnlyMarkerCount = Get-MatchCount -Text $ClientText -Pattern "MDS Combat \| PresentationOnlyAttackMarker"
+		$ServerAnimNotifyCount = Get-MatchCount -Text $ServerText -Pattern "MDS CombatAnimNotify \| Fired"
+		$ClientAnimNotifyCount = Get-MatchCount -Text $ClientText -Pattern "MDS CombatAnimNotify \| Fired .* GameplayDamage=false \| ServerRequestSent=false"
+		$ExpectedAnimNotifyCount = if ($VerifyAnimNotify) { if ($Name -eq "Valid") { 4 } else { 1 } } else { 0 }
 
         $ServerDamageOrdered = Test-Ordered -Text $ServerText -FirstPattern "Enemy damage applied by PlayerAttack" -SecondPattern "MDS Combat \| ServerAttackResolved .* Valid=true"
         $FirstHitOrdered = Test-Ordered -Text $ClientText -FirstPattern "Enemy HP replicated on client: 75\.0 / 100\.0\. Dead=false" -SecondPattern "EnemyHitPresentationRequested .* EnemyHP=100\.0->75\.0"
+        $FirstHitAnimationOrdered = Test-Ordered -Text $ClientText -FirstPattern "Enemy HP replicated on client: 75\.0 / 100\.0\. Dead=false" -SecondPattern "EnemyHitAnimationPlaybackAttempted .* EnemyHP=100\.0->75\.0"
         $DeathOrdered = Test-Ordered -Text $ClientText -FirstPattern "Enemy HP replicated on client: 0\.0 / 100\.0\. Dead=true" -SecondPattern "EnemyDeathPresentationRequested"
+        $DeathAnimationOrdered = Test-Ordered -Text $ClientText -FirstPattern "Enemy HP replicated on client: 0\.0 / 100\.0\. Dead=true" -SecondPattern "EnemyDeathAnimationPlaybackAttempted .* EnemyHP=25\.0->0\.0"
 
         $ScenarioOk = $false
         if ($Name -eq "Valid") {
             $ScenarioOk = $ConnectionOk -and
                 ($ServerPresentationCount -eq 0) -and
-                ($AttackPresentationCount -ge 4) -and
-                ($AttackTimingMarkerCount -ge 4) -and
-                ($HitPresentationCount -ge 3) -and
+                ($ServerAnimationPlaybackCount -eq 0) -and
+                ($AttackPresentationCount -eq 4) -and
+                ($AttackTimingMarkerCount -eq 4) -and
+                ($HitPresentationCount -eq 3) -and
                 ($DeathPresentationCount -eq 1) -and
-                ($ValidAttackCount -ge 4) -and
-                ($DamageCount -ge 4) -and
-                ($ClientReplicationCount -ge 4) -and
+                ($AttackAnimationPlaybackCount -eq 4) -and
+                ($AttackAnimationPlaybackSuccessCount -eq $AttackAnimationPlaybackCount) -and
+                ($HitAnimationPlaybackCount -eq 3) -and
+                ($HitAnimationPlaybackSuccessCount -eq $HitAnimationPlaybackCount) -and
+                ($DeathAnimationPlaybackCount -eq 1) -and
+                ($DeathAnimationPlaybackSuccessCount -eq $DeathAnimationPlaybackCount) -and
+                ($ValidAttackCount -eq 4) -and
+                ($RejectedAttackCount -eq 0) -and
+                ($DamageCount -eq 4) -and
+                ($ClientReplicationCount -eq 4) -and
+				($ServerAnimNotifyCount -eq 0) -and
+				($ClientAnimNotifyCount -eq $ExpectedAnimNotifyCount) -and
                 $ServerDamageOrdered -and
                 $FirstHitOrdered -and
+                $FirstHitAnimationOrdered -and
                 $DeathOrdered -and
+                $DeathAnimationOrdered -and
                 -not $FatalError
         } elseif ($Name -eq "PresentationOnly") {
             $ScenarioOk = $ConnectionOk -and
                 ($ServerPresentationCount -eq 0) -and
+                ($ServerAnimationPlaybackCount -eq 0) -and
                 ($PresentationOnlyMarkerCount -eq 1) -and
                 ($AttackPresentationCount -eq 1) -and
                 ($AttackTimingMarkerCount -eq 1) -and
+                ($AttackAnimationPlaybackCount -eq 1) -and
+                ($AttackAnimationPlaybackSuccessCount -eq $AttackAnimationPlaybackCount) -and
+                ($HitAnimationPlaybackCount -eq 0) -and
+                ($DeathAnimationPlaybackCount -eq 0) -and
                 ($ValidAttackCount -eq 0) -and
+                ($RejectedAttackCount -eq 0) -and
                 ($DamageCount -eq 0) -and
                 ($ClientReplicationCount -eq 0) -and
+				($ServerAnimNotifyCount -eq 0) -and
+				($ClientAnimNotifyCount -eq $ExpectedAnimNotifyCount) -and
                 -not $FatalError
         }
 
@@ -210,17 +251,30 @@ function Invoke-CombatPresentationScenario {
 
         Write-Host "Connection found: $ConnectionOk"
         Write-Host "Server presentation hook count: $ServerPresentationCount"
+        Write-Host "Server animation playback count: $ServerAnimationPlaybackCount"
         Write-Host "Attack presentation count: $AttackPresentationCount"
         Write-Host "Attack timing marker count: $AttackTimingMarkerCount"
         Write-Host "Hit presentation count: $HitPresentationCount"
         Write-Host "Death presentation count: $DeathPresentationCount"
+        Write-Host "Attack animation playback count: $AttackAnimationPlaybackCount"
+        Write-Host "Attack animation playback success count: $AttackAnimationPlaybackSuccessCount"
+        Write-Host "Hit animation playback count: $HitAnimationPlaybackCount"
+        Write-Host "Hit animation playback success count: $HitAnimationPlaybackSuccessCount"
+        Write-Host "Death animation playback count: $DeathAnimationPlaybackCount"
+        Write-Host "Death animation playback success count: $DeathAnimationPlaybackSuccessCount"
         Write-Host "Presentation-only marker count: $PresentationOnlyMarkerCount"
         Write-Host "Valid attack count: $ValidAttackCount"
+        Write-Host "Rejected attack count: $RejectedAttackCount"
         Write-Host "PlayerAttack damage count: $DamageCount"
         Write-Host "Client Enemy HP replication count: $ClientReplicationCount"
+		Write-Host "Server AnimNotify fired count: $ServerAnimNotifyCount"
+		Write-Host "Client AnimNotify fired count: $ClientAnimNotifyCount"
+		Write-Host "Expected client AnimNotify fired count: $ExpectedAnimNotifyCount"
         Write-Host "Server damage before resolved log: $ServerDamageOrdered"
         Write-Host "First hit presentation after HP replication: $FirstHitOrdered"
+        Write-Host "First hit animation after HP replication: $FirstHitAnimationOrdered"
         Write-Host "Death presentation after HP replication: $DeathOrdered"
+        Write-Host "Death animation after HP replication: $DeathAnimationOrdered"
         Write-Host "Fatal error found: $FatalError"
 
         return $ScenarioOk
@@ -289,8 +343,16 @@ $PresentationOnlyPassed = Invoke-CombatPresentationScenario -Name "PresentationO
 
 if ($ValidPassed -and $PresentationOnlyPassed) {
     Write-Host "COMBAT PRESENTATION VERIFY RESULT: PASS"
+    Write-Host "COMBAT ANIMATION PLAYBACK ATTEMPT VERIFY RESULT: PASS"
+	if ($VerifyAnimNotify) {
+		Write-Host "COMBAT ANIMNOTIFY VERIFY RESULT: PASS"
+	}
     exit 0
 }
 
 Write-Host "COMBAT PRESENTATION VERIFY RESULT: INCOMPLETE"
+Write-Host "COMBAT ANIMATION PLAYBACK ATTEMPT VERIFY RESULT: INCOMPLETE"
+if ($VerifyAnimNotify) {
+	Write-Host "COMBAT ANIMNOTIFY VERIFY RESULT: INCOMPLETE"
+}
 exit 2

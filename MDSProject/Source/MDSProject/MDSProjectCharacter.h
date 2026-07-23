@@ -36,6 +36,16 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 
 	void RequestLocalAttackPresentation(FName PresentationSource);
+	void ApplyMovementInput(const FVector2D& MovementInput);
+	void BeginTemporaryFireFacing(const FVector& AimDirection, float DurationSeconds);
+	void PlayShotTracerPresentation(const FVector& TraceEnd);
+
+	UFUNCTION(NetMulticast, Unreliable)
+	void MulticastPlayRemoteAttackPresentation(
+		FName PresentationSource,
+		FVector_NetQuantizeNormal AimDirection,
+		FVector_NetQuantize TraceEnd,
+		float DurationSeconds);
 
 	/** Returns the camera component **/
 	FORCEINLINE class UCameraComponent* GetTopDownCameraComponent() const { return TopDownCameraComponent; }
@@ -44,8 +54,24 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 
 protected:
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
 	UFUNCTION(BlueprintImplementableEvent, Category = "MDS|Combat Presentation")
 	void BP_OnLocalAttackPresentationRequested(FName PresentationSource);
 
+private:
+	UPROPERTY(EditDefaultsOnly, Category = "MDS|Input", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> MoveAction;
+
+	void OnMoveInput(const struct FInputActionValue& Value);
+	void PlayAttackMontagePresentation(FName PresentationSource);
+	void RestoreMovementFacing();
+
+	FVector MovementVerificationStartLocation = FVector::ZeroVector;
+	FVector LockedFireFacingDirection = FVector::ForwardVector;
+	double LastMovementVerificationLogTimeSeconds = -1000000.0;
+	bool bMovementVerificationInitialized = false;
+	bool bFireFacingLocked = false;
+	FTimerHandle FireFacingTimerHandle;
 };
 

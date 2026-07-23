@@ -29,8 +29,20 @@ protected:
 
 private:
 	void InitializeWaveDisplayState();
+	void ConfigureWaveLoopFromCommandLine();
 	void TryAutoStartWaveFromCommandLine();
+	void ScheduleWaveStart(int32 WaveIndex, float DelaySeconds);
+	void StartScheduledWave();
 	void CompleteWaveIfCleared();
+	int32 GetEnemyCountForWave(int32 WaveIndex) const;
+
+	FTimerHandle WaveStartTimerHandle;
+	int32 ScheduledWaveIndex = 0;
+	int32 MaxWaveCount = 3;
+	int32 InitialWaveEnemyCount = 3;
+	int32 EnemyIncrementPerWave = 1;
+	float WaveIntermissionSeconds = 3.0f;
+	bool bContinuousWaveLoopEnabled = true;
 };
 
 
