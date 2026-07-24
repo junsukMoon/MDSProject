@@ -36,9 +36,16 @@ protected:
 	UFUNCTION()
 	void OnRep_CurrentHealth(float PreviousHealth);
 
+	UFUNCTION()
+	void OnRep_ObjectiveAttackState();
+
 private:
 	void HandleDeathOnce(FName DamageSource);
 	void HandleObjectiveArrivalOnce();
+	void ApplyObjectiveAttackDamage();
+	void StartObjectiveAttackPresentation();
+	void PlayObjectiveAttackPresentation();
+	void StopObjectiveAttackPresentation();
 	void PauseMovementForHitReaction();
 	void ResumeMovementAfterHitReaction();
 	void InitializePresentationMesh();
@@ -69,6 +76,9 @@ private:
 	TSoftClassPtr<UAnimInstance> EnemyPresentationAnimClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Combat Enemy|Presentation")
+	TSoftObjectPtr<UAnimSequenceBase> ObjectiveAttackAnimation;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Combat Enemy|Presentation")
 	TSoftObjectPtr<UAnimSequenceBase> HitReactionAnimation;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Combat Enemy|Presentation")
@@ -79,6 +89,9 @@ private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentHealth, VisibleInstanceOnly, Category = "Combat Enemy")
 	float CurrentHealth = 100.0f;
+
+	UPROPERTY(ReplicatedUsing = OnRep_ObjectiveAttackState, VisibleInstanceOnly, Category = "Combat Enemy")
+	bool bIsAttackingObjective = false;
 
 	float MoveSpeed = 320.0f;
 	float ArrivalDistance = 150.0f;
@@ -96,6 +109,8 @@ private:
 	FTimerHandle DeathFadeDelayTimerHandle;
 	FTimerHandle DeathPoseFreezeTimerHandle;
 	FTimerHandle HitMovementPauseTimerHandle;
+	FTimerHandle ObjectiveDamageTimerHandle;
+	FTimerHandle ObjectiveAttackPresentationTimerHandle;
 	FTimerHandle HitVisibleScreenshotTimerHandle;
 	FTimerHandle DeathVisibleScreenshotTimerHandle;
 	int32 WorldUITrackingLogSamplesRemaining = 0;

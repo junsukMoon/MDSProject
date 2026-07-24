@@ -31,6 +31,8 @@ constexpr float DeathBodyHoldSeconds = 2.0f;
 constexpr float DeathFadeDurationSeconds = 1.0f;
 constexpr float DeathSinkDistance = 120.0f;
 constexpr float HitMovementPauseSeconds = 0.35f;
+constexpr float ObjectiveAttackHitDelaySeconds = 0.45f;
+constexpr float ObjectiveAttackIntervalSeconds = 1.0f;
 const FName PresentationSlotName = TEXT("DefaultSlot");
 
 bool ShouldLogWorldUITracking()
@@ -126,6 +128,7 @@ AMDSCombatEnemyActor::AMDSCombatEnemyActor()
 
 	EnemyPresentationMesh = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(MDSAssetPaths::EnemyPresentationMesh));
 	EnemyPresentationAnimClass = TSoftClassPtr<UAnimInstance>(FSoftObjectPath(MDSAssetPaths::EnemyPresentationAnimClass));
+	ObjectiveAttackAnimation = TSoftObjectPtr<UAnimSequenceBase>(FSoftObjectPath(MDSAssetPaths::EnemyObjectiveAttackAnimation));
 	HitReactionAnimation = TSoftObjectPtr<UAnimSequenceBase>(FSoftObjectPath(MDSAssetPaths::HitReactionAnimation));
 	DeathAnimation = TSoftObjectPtr<UAnimSequenceBase>(FSoftObjectPath(MDSAssetPaths::DeathAnimation));
 }
@@ -333,6 +336,7 @@ void AMDSCombatEnemyActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AMDSCombatEnemyActor, CurrentHealth);
+	DOREPLIFETIME(AMDSCombatEnemyActor, bIsAttackingObjective);
 }
 
 void AMDSCombatEnemyActor::InitializeCombatEnemy(AMDSObjectiveActor* InObjectiveActor, const float InMoveSpeed, const float InArrivalDistance, const float InObjectiveDamageAmount)
@@ -348,6 +352,7 @@ void AMDSCombatEnemyActor::InitializeCombatEnemy(AMDSObjectiveActor* InObjective
 	ArrivalDistance = FMath::Max(1.0f, InArrivalDistance);
 	ObjectiveDamageAmount = FMath::Max(0.0f, InObjectiveDamageAmount);
 	bHasArrivedAtObjective = false;
+	bIsAttackingObjective = false;
 	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
 	{
 		Movement->bRunPhysicsWithNoController = true;
@@ -479,6 +484,10 @@ void AMDSCombatEnemyActor::HandleDeathOnce(const FName DamageSource)
 	}
 
 	bDeathHandled = true;
+	bIsAttackingObjective = false;
+	GetWorldTimerManager().ClearTimer(ObjectiveDamageTimerHandle);
+	StopObjectiveAttackPresentation();
+	ForceNetUpdate();
 	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
 	{
 		Movement->StopMovementImmediately();
@@ -522,15 +531,108 @@ void AMDSCombatEnemyActor::HandleObjectiveArrivalOnce()
 		Movement->DisableMovement();
 	}
 
-	bool bDamageApplied = false;
 	if (ObjectiveActor)
 	{
-		bDamageApplied = ObjectiveActor->ApplyObjectiveDamage(ObjectiveDamageAmount, TEXT("CombatEnemyArrival"));
+		FVector ToObjective = ObjectiveActor->GetActorLocation() - GetActorLocation();
+		ToObjective.Z = 0.0f;
+		if (!ToObjective.IsNearlyZero())
+		{
+			SetActorRotation(ToObjective.Rotation());
+		}
 	}
 
-	UE_LOG(LogMDSCombatEnemy, Log, TEXT("Combat enemy arrived at objective. DamageApplied=%s Location=%s."),
+	bIsAttackingObjective = true;
+	ForceNetUpdate();
+	GetWorldTimerManager().SetTimer(
+		ObjectiveDamageTimerHandle,
+		this,
+		&AMDSCombatEnemyActor::ApplyObjectiveAttackDamage,
+		ObjectiveAttackIntervalSeconds,
+		true,
+		ObjectiveAttackHitDelaySeconds);
+
+	if (GetNetMode() == NM_Standalone || GetNetMode() == NM_ListenServer)
+	{
+		StartObjectiveAttackPresentation();
+	}
+
+	UE_LOG(LogMDSCombatEnemy, Log,
+		TEXT("Combat enemy arrived and started objective attack. Location=%s FirstHitDelay=%.2f AttackInterval=%.2f DamagePerHit=%.1f."),
+		*GetActorLocation().ToCompactString(),
+		ObjectiveAttackHitDelaySeconds,
+		ObjectiveAttackIntervalSeconds,
+		ObjectiveDamageAmount);
+}
+
+void AMDSCombatEnemyActor::ApplyObjectiveAttackDamage()
+{
+	if (!HasAuthority() || !bIsAttackingObjective || IsDead() || !ObjectiveActor || ObjectiveActor->GetCurrentHealth() <= 0.0f)
+	{
+		bIsAttackingObjective = false;
+		GetWorldTimerManager().ClearTimer(ObjectiveDamageTimerHandle);
+		ForceNetUpdate();
+		return;
+	}
+
+	const bool bDamageApplied = ObjectiveActor->ApplyObjectiveDamage(ObjectiveDamageAmount, TEXT("CombatEnemyAttack"));
+	UE_LOG(LogMDSCombatEnemy, Log,
+		TEXT("Combat enemy objective attack impact. Enemy=%s DamageApplied=%s Damage=%.1f ObjectiveHP=%.1f."),
+		*GetNameSafe(this),
 		bDamageApplied ? TEXT("true") : TEXT("false"),
-		*GetActorLocation().ToCompactString());
+		ObjectiveDamageAmount,
+		ObjectiveActor->GetCurrentHealth());
+
+	if (!bDamageApplied)
+	{
+		bIsAttackingObjective = false;
+		GetWorldTimerManager().ClearTimer(ObjectiveDamageTimerHandle);
+		ForceNetUpdate();
+	}
+}
+
+void AMDSCombatEnemyActor::OnRep_ObjectiveAttackState()
+{
+	if (bIsAttackingObjective && !IsDead())
+	{
+		StartObjectiveAttackPresentation();
+	}
+	else
+	{
+		StopObjectiveAttackPresentation();
+	}
+}
+
+void AMDSCombatEnemyActor::StartObjectiveAttackPresentation()
+{
+	if (GetNetMode() == NM_DedicatedServer || !bIsAttackingObjective || IsDead())
+	{
+		return;
+	}
+
+	PlayObjectiveAttackPresentation();
+	GetWorldTimerManager().SetTimer(
+		ObjectiveAttackPresentationTimerHandle,
+		this,
+		&AMDSCombatEnemyActor::PlayObjectiveAttackPresentation,
+		ObjectiveAttackIntervalSeconds,
+		true);
+}
+
+void AMDSCombatEnemyActor::PlayObjectiveAttackPresentation()
+{
+	if (GetNetMode() == NM_DedicatedServer || !bIsAttackingObjective || IsDead())
+	{
+		StopObjectiveAttackPresentation();
+		return;
+	}
+
+	UAnimSequenceBase* AttackAnimationAsset = ObjectiveAttackAnimation.LoadSynchronous();
+	PlayEnemyAnimationPresentation(AttackAnimationAsset, TEXT("ObjectiveAttack"), CurrentHealth, CurrentHealth);
+}
+
+void AMDSCombatEnemyActor::StopObjectiveAttackPresentation()
+{
+	GetWorldTimerManager().ClearTimer(ObjectiveAttackPresentationTimerHandle);
 }
 
 void AMDSCombatEnemyActor::RequestHitPresentation(const float PreviousHealth)
@@ -562,6 +664,7 @@ void AMDSCombatEnemyActor::RequestDeathPresentation(const float PreviousHealth)
 	}
 
 	bDeathPresentationHandled = true;
+	StopObjectiveAttackPresentation();
 
 	UAnimSequenceBase* DeathAnimationAsset = DeathAnimation.LoadSynchronous();
 	PlayEnemyAnimationPresentation(DeathAnimationAsset, TEXT("Death"), PreviousHealth, CurrentHealth);

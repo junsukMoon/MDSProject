@@ -10,6 +10,7 @@ inline constexpr TCHAR DefaultMappingContext[] = TEXT("/Game/TopDown/Input/IMC_D
 inline constexpr TCHAR AttackPresentationMontage[] = TEXT("/Game/Characters/Mannequins/Anims/Pistol/MDS_Pistol_Fire_Montage.MDS_Pistol_Fire_Montage");
 inline constexpr TCHAR EnemyPresentationMesh[] = TEXT("/Game/Characters/Mannequins/Meshes/SKM_Manny_Simple.SKM_Manny_Simple");
 inline constexpr TCHAR EnemyPresentationAnimClass[] = TEXT("/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C");
+inline constexpr TCHAR EnemyObjectiveAttackAnimation[] = TEXT("/Game/Characters/Mannequins/Anims/Unarmed/Attack/MM_Attack_01.MM_Attack_01");
 inline constexpr TCHAR HitReactionAnimation[] = TEXT("/Game/Characters/Mannequins/Anims/Rifle/HitReact/MM_HitReact_Front_Lgt_01.MM_HitReact_Front_Lgt_01");
 inline constexpr TCHAR DeathAnimation[] = TEXT("/Game/Characters/Mannequins/Anims/Death/MM_Death_Front_01.MM_Death_Front_01");
 
