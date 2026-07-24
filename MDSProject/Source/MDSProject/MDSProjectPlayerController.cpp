@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "MDSProjectPlayerController.h"
+#include "MDSAssetPaths.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -33,10 +34,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogMDSPlayerCombat, Log, All);
 
 namespace
 {
-const TCHAR* DefaultMappingContextPath = TEXT("/Game/TopDown/Input/IMC_Default.IMC_Default");
-const TCHAR* DebugOverlayWidgetClassPath = TEXT("/Game/MDS/UI/WBP_MDSDebugOverlay.WBP_MDSDebugOverlay_C");
-const TCHAR* MatchHUDWidgetClassPath = TEXT("/Game/MDS/UI/WBP_MDSMatchHUD.WBP_MDSMatchHUD_C");
-const TCHAR* AttackPresentationMontagePath = TEXT("/Game/Characters/Mannequins/Anims/Pistol/MDS_Pistol_Fire_Montage.MDS_Pistol_Fire_Montage");
 constexpr float DirectionalAttackHitRadius = 100.0f;
 constexpr float AttackFacingFallbackDuration = 0.2f;
 
@@ -108,13 +105,13 @@ AMDSProjectPlayerController::AMDSProjectPlayerController()
 	bShowMouseCursor = true;
 	DefaultMouseCursor = EMouseCursor::Default;
 
-	static ConstructorHelpers::FObjectFinder<UInputMappingContext> DefaultMappingContextFinder(DefaultMappingContextPath);
+	static ConstructorHelpers::FObjectFinder<UInputMappingContext> DefaultMappingContextFinder(MDSAssetPaths::DefaultMappingContext);
 	if (DefaultMappingContextFinder.Succeeded())
 	{
 		DefaultMappingContext = DefaultMappingContextFinder.Object;
 	}
 
-	AttackPresentationMontage = TSoftObjectPtr<UAnimMontage>(FSoftObjectPath(AttackPresentationMontagePath));
+	AttackPresentationMontage = TSoftObjectPtr<UAnimMontage>(FSoftObjectPath(MDSAssetPaths::AttackPresentationMontage));
 }
 
 void AMDSProjectPlayerController::BeginPlay()
@@ -243,7 +240,7 @@ void AMDSProjectPlayerController::SetupInputComponent()
 	{
 		if (!DefaultMappingContext)
 		{
-			DefaultMappingContext = LoadObject<UInputMappingContext>(nullptr, DefaultMappingContextPath);
+			DefaultMappingContext = LoadObject<UInputMappingContext>(nullptr, MDSAssetPaths::DefaultMappingContext);
 		}
 
 		// Add Input Mapping Context
@@ -1031,7 +1028,7 @@ UMDSDebugOverlayWidget* AMDSProjectPlayerController::GetOrCreateDebugOverlay()
 
 	if (!DebugOverlayWidgetClass)
 	{
-		const FSoftClassPath WidgetClassPath(DebugOverlayWidgetClassPath);
+		const FSoftClassPath WidgetClassPath(MDSAssetPaths::DebugOverlayWidgetClass);
 		if (UClass* LoadedWidgetClass = WidgetClassPath.TryLoadClass<UMDSDebugOverlayWidget>())
 		{
 			DebugOverlayWidgetClass = LoadedWidgetClass;
@@ -1083,7 +1080,7 @@ UMDSMatchHUDWidget* AMDSProjectPlayerController::GetOrCreateMatchHUD()
 	}
 	else
 	{
-		const FSoftClassPath WidgetClassPath(MatchHUDWidgetClassPath);
+		const FSoftClassPath WidgetClassPath(MDSAssetPaths::MatchHUDWidgetClass);
 		if (UClass* LoadedWidgetClass = WidgetClassPath.TryLoadClass<UMDSMatchHUDWidget>())
 		{
 			MatchHUDWidgetClass = LoadedWidgetClass;
