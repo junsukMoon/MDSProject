@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "MDSProjectCharacter.h"
+#include "MDSAssetPaths.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "UObject/ConstructorHelpers.h"
@@ -25,9 +26,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogMDSCharacterMovement, Log, All);
 
 namespace
 {
-const TCHAR* MoveActionPath = TEXT("/Game/TopDown/Input/Actions/IA_Move.IA_Move");
-const TCHAR* AttackPresentationMontagePath = TEXT("/Game/Characters/Mannequins/Anims/Pistol/MDS_Pistol_Fire_Montage.MDS_Pistol_Fire_Montage");
-
 bool ShouldLogCharacterCombatPresentation()
 {
 	return FParse::Param(FCommandLine::Get(), TEXT("MDSCombatPresentationLog"));
@@ -108,7 +106,7 @@ AMDSProjectCharacter::AMDSProjectCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
 
-	static ConstructorHelpers::FObjectFinder<UInputAction> MoveActionFinder(MoveActionPath);
+	static ConstructorHelpers::FObjectFinder<UInputAction> MoveActionFinder(MDSAssetPaths::MoveAction);
 	if (MoveActionFinder.Succeeded())
 	{
 		MoveAction = MoveActionFinder.Object;
@@ -306,7 +304,7 @@ void AMDSProjectCharacter::MulticastPlayRemoteAttackPresentation_Implementation(
 
 void AMDSProjectCharacter::PlayAttackMontagePresentation(const FName PresentationSource)
 {
-	UAnimMontage* Montage = LoadObject<UAnimMontage>(nullptr, AttackPresentationMontagePath);
+	UAnimMontage* Montage = LoadObject<UAnimMontage>(nullptr, MDSAssetPaths::AttackPresentationMontage);
 	const float PlaybackDuration = Montage ? PlayAnimMontage(Montage) : 0.0f;
 
 	if (ShouldLogCharacterCombatPresentation())

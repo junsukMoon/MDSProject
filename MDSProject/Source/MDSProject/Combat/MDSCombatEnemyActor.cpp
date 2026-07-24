@@ -1,5 +1,6 @@
 #include "Combat/MDSCombatEnemyActor.h"
 
+#include "MDSAssetPaths.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "Animation/AnimSequenceBase.h"
@@ -24,11 +25,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogMDSCombatEnemy, Log, All);
 
 namespace
 {
-const TCHAR* EnemyWorldWidgetClassPath = TEXT("/Game/MDS/UI/WBP_MDSEnemyWorldUI.WBP_MDSEnemyWorldUI_C");
-const TCHAR* EnemyPresentationMeshPath = TEXT("/Game/Characters/Mannequins/Meshes/SKM_Manny_Simple.SKM_Manny_Simple");
-const TCHAR* EnemyPresentationAnimClassPath = TEXT("/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C");
-const TCHAR* HitReactionAnimationPath = TEXT("/Game/Characters/Mannequins/Anims/Rifle/HitReact/MM_HitReact_Front_Lgt_01.MM_HitReact_Front_Lgt_01");
-const TCHAR* DeathAnimationPath = TEXT("/Game/Characters/Mannequins/Anims/Death/MM_Death_Front_01.MM_Death_Front_01");
 constexpr int32 WorldUITrackingSampleCount = 4;
 constexpr float WorldUITrackingSampleIntervalSeconds = 1.0f;
 constexpr float DeathBodyHoldSeconds = 2.0f;
@@ -128,10 +124,10 @@ AMDSCombatEnemyActor::AMDSCombatEnemyActor()
 	EnemyWorldWidgetComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 120.0f));
 	EnemyWorldWidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-	EnemyPresentationMesh = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(EnemyPresentationMeshPath));
-	EnemyPresentationAnimClass = TSoftClassPtr<UAnimInstance>(FSoftObjectPath(EnemyPresentationAnimClassPath));
-	HitReactionAnimation = TSoftObjectPtr<UAnimSequenceBase>(FSoftObjectPath(HitReactionAnimationPath));
-	DeathAnimation = TSoftObjectPtr<UAnimSequenceBase>(FSoftObjectPath(DeathAnimationPath));
+	EnemyPresentationMesh = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(MDSAssetPaths::EnemyPresentationMesh));
+	EnemyPresentationAnimClass = TSoftClassPtr<UAnimInstance>(FSoftObjectPath(MDSAssetPaths::EnemyPresentationAnimClass));
+	HitReactionAnimation = TSoftObjectPtr<UAnimSequenceBase>(FSoftObjectPath(MDSAssetPaths::HitReactionAnimation));
+	DeathAnimation = TSoftObjectPtr<UAnimSequenceBase>(FSoftObjectPath(MDSAssetPaths::DeathAnimation));
 }
 
 void AMDSCombatEnemyActor::BeginPlay()
@@ -161,7 +157,7 @@ void AMDSCombatEnemyActor::BeginPlay()
 		}
 		else
 		{
-			const FSoftClassPath WidgetClassPath(EnemyWorldWidgetClassPath);
+			const FSoftClassPath WidgetClassPath(MDSAssetPaths::EnemyWorldWidgetClass);
 			if (UClass* LoadedWidgetClass = WidgetClassPath.TryLoadClass<UMDSEnemyWorldWidget>())
 			{
 				EnemyWorldWidgetComponent->SetWidgetClass(LoadedWidgetClass);

@@ -6,6 +6,7 @@
 #include "MDSObjectiveActor.generated.h"
 
 class USceneComponent;
+class UStaticMeshComponent;
 class UWidgetComponent;
 
 UCLASS()
@@ -35,6 +36,27 @@ private:
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Objective")
 	TObjectPtr<USceneComponent> SceneRoot;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Objective|Presentation")
+	TObjectPtr<USceneComponent> ObjectiveVisualRoot;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Objective|Presentation")
+	TObjectPtr<UStaticMeshComponent> FoundationMeshComponent;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Objective|Presentation")
+	TObjectPtr<UStaticMeshComponent> MainBuildingMeshComponent;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Objective|Presentation")
+	TObjectPtr<UStaticMeshComponent> MainRoofMeshComponent;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Objective|Presentation")
+	TObjectPtr<UStaticMeshComponent> TowerMeshComponent;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Objective|Presentation")
+	TObjectPtr<UStaticMeshComponent> TowerRoofMeshComponent;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Objective|Presentation")
+	TObjectPtr<UStaticMeshComponent> EntranceMeshComponent;
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Objective|UI")
 	TObjectPtr<UWidgetComponent> ObjectiveWorldWidgetComponent;
