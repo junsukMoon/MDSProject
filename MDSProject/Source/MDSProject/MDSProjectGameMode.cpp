@@ -4,6 +4,7 @@
 
 #include "ActorAI/MDSActorEnemySpawnSubsystem.h"
 #include "MDSProjectPlayerController.h"
+#include "MDSProjectPlayerState.h"
 #include "MDSProjectGameState.h"
 #include "GameFramework/Pawn.h"
 #include "Misc/CommandLine.h"
@@ -24,6 +25,7 @@ AMDSProjectGameMode::AMDSProjectGameMode()
 	}
 
 	PlayerControllerClass = AMDSProjectPlayerController::StaticClass();
+	PlayerStateClass = AMDSProjectPlayerState::StaticClass();
 }
 
 void AMDSProjectGameMode::BeginPlay()

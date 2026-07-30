@@ -2,6 +2,8 @@
 
 #include "MDSProjectCharacter.h"
 #include "MDSAssetPaths.h"
+#include "MDSProjectPlayerState.h"
+#include "AbilitySystemComponent.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "UObject/ConstructorHelpers.h"
@@ -23,6 +25,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogMDSCombatPresentation, Log, All);
 DEFINE_LOG_CATEGORY_STATIC(LogMDSCharacterMovement, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogMDSAbilitySystem, Log, All);
 
 namespace
 {
@@ -145,6 +148,52 @@ void AMDSProjectCharacter::BeginPlay()
 		LastMovementVerificationLogTimeSeconds = -1000000.0;
 		bMovementVerificationInitialized = true;
 	}
+}
+
+void AMDSProjectCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+
+	InitializeAbilitySystemActorInfo();
+}
+
+void AMDSProjectCharacter::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+
+	InitializeAbilitySystemActorInfo();
+}
+
+UAbilitySystemComponent* AMDSProjectCharacter::GetAbilitySystemComponent() const
+{
+	if (CachedAbilitySystemComponent.IsValid())
+	{
+		return CachedAbilitySystemComponent.Get();
+	}
+
+	const AMDSProjectPlayerState* MDSPlayerState = GetPlayerState<AMDSProjectPlayerState>();
+	return MDSPlayerState ? MDSPlayerState->GetAbilitySystemComponent() : nullptr;
+}
+
+void AMDSProjectCharacter::InitializeAbilitySystemActorInfo()
+{
+	AMDSProjectPlayerState* MDSPlayerState = GetPlayerState<AMDSProjectPlayerState>();
+	UAbilitySystemComponent* AbilitySystem = MDSPlayerState ? MDSPlayerState->GetAbilitySystemComponent() : nullptr;
+	if (!AbilitySystem)
+	{
+		CachedAbilitySystemComponent.Reset();
+		return;
+	}
+
+	AbilitySystem->InitAbilityActorInfo(MDSPlayerState, this);
+	CachedAbilitySystemComponent = AbilitySystem;
+
+	UE_LOG(LogMDSAbilitySystem, Log,
+		TEXT("MDS AbilitySystem initialized. Owner=%s Avatar=%s NetMode=%s LocalRole=%s."),
+		*GetNameSafe(MDSPlayerState),
+		*GetNameSafe(this),
+		GetMDSCharacterNetModeName(GetNetMode()),
+		GetMDSCharacterRoleName(GetLocalRole()));
 }
 
 void AMDSProjectCharacter::Tick(float DeltaSeconds)
