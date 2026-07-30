@@ -12,12 +12,37 @@
 - Replication
 - Authority / Ownership
 - Objective gameplay
-- Mass Entity / Mass AI
+- Gameplay Ability System
+- Round / Wave gameplay
+- Round Settlement / Shop / Level Up Choice
 - Debug UI / Debug output
 - Profiling
 - AI-assisted development workflow
 
-이 프로젝트는 완성형 게임이 아닙니다. 기술 시연과 면접 설명에 필요한 범위로 유지합니다.
+프로젝트 정의:
+
+```text
+GAS 기반 Dedicated Server 성 방어 로그라이트 슈터
+```
+
+이 프로젝트는 상용 완성형 게임이 아니라, 기술 시연과 면접 설명에 필요한 범위로 제한한 소규모 플레이 가능한 버티컬 슬라이스입니다.
+
+Mass Entity, Mover, Motion Matching, Mutable은 MVP 필수 구현이 아니라 향후 확장 및 비교 학습 대상으로 유지합니다.
+
+---
+
+## Language Policy
+
+- Markdown 문서 본문은 가능한 한 한글로 작성합니다.
+- Codex의 계획, 승인 보고서, 검증 보고서도 한글로 작성합니다.
+- 기존 문서 파일명과 경로는 임의로 바꾸지 않습니다.
+- C++ 클래스명, 함수명, 변수명은 영어로 유지합니다.
+- Unreal Engine API 이름과 플러그인 이름은 원문 영어를 사용합니다.
+- Gameplay Ability, Gameplay Effect, Gameplay Tag 이름은 영어로 유지합니다.
+- 처음 등장하는 전문 용어는 가능한 경우 한글 설명과 영어 원문을 함께 적습니다.
+- 모든 Markdown 파일은 UTF-8 인코딩을 유지합니다.
+- 기존 영어 문서를 한글화할 때 기술적 의미와 요구사항을 삭제하거나 축약하지 않습니다.
+- 다른 문서에서 참조 중인 제목, 링크 앵커, 파일 경로가 깨지지 않도록 확인합니다.
 
 ---
 
@@ -93,6 +118,8 @@ C++ 변경 시 다음 문서를 따릅니다.
 
 Mass 작업은 incremental하게 진행합니다.
 
+Mass Entity는 현재 MVP 필수 구현이 아니라 향후 확장 및 Actor 기반 적과의 비교 학습 대상입니다.
+
 명시 승인 없이 Mass spawn, movement, arrival detection, objective damage를 한 작업에 섞지 않습니다.
 
 권장 순서:
@@ -113,16 +140,16 @@ Mass 작업은 incremental하게 진행합니다.
 구현 전 계획은 다음 형식을 사용합니다.
 
 ```text
-Plan
+계획
 
-Objective:
-Files Read:
-Current Structure Observed:
-Proposed Changes:
-Files Expected to Change:
-Risks:
-Verification Plan:
-Approval Needed:
+목표:
+읽은 파일:
+현재 구조:
+제안 변경:
+변경 예상 파일:
+위험 요소:
+검증 계획:
+승인이 필요한 사항:
 ```
 
 ---
@@ -132,16 +159,16 @@ Approval Needed:
 구현 후 보고는 다음 형식을 사용합니다.
 
 ```text
-Approval Report
+승인 보고서
 
-Objective:
-Plan Executed:
-Changed Files:
-Implementation Summary:
-Verification:
-Manual Test Steps:
-Risks / Notes:
-Next Suggested Task:
+목표:
+실행한 계획:
+변경 파일:
+구현 요약:
+검증:
+수동 테스트 절차:
+위험 요소 / 참고:
+다음 제안 작업:
 ```
 
 ---
@@ -178,9 +205,15 @@ Next Suggested Task:
 - Skill tree
 - Large UI framework
 - Complex animation system
-- Full GAS expansion
+- MVP 범위를 벗어나는 Full GAS expansion
 
-이 프로젝트를 완성형 게임으로 확장하지 않습니다.
+즉시 적용형 라운드 상점은 Inventory가 아닙니다.
+
+전투 중 레벨업 3지선다는 Skill tree 또는 영구 성장 시스템이 아닙니다.
+
+라운드 정산 통계는 근거 없는 종합 Score 시스템이 아닙니다.
+
+이 프로젝트를 상용 완성형 게임 범위로 확장하지 않습니다.
 
 ---
 
@@ -195,4 +228,6 @@ Next Suggested Task:
 - `Docs/Coding_Standards.md`
 - `Docs/Unreal_Rules.md`
 - `Docs/Mass_Rules.md`
-- `Docs/Requirements.md`
+- `Docs/01_Requirements.md`
+- `Docs/GAS_Architecture.md`
+- `Docs/Round_Settlement_Design.md`

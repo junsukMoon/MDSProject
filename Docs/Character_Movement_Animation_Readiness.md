@@ -2,6 +2,8 @@
 
 이 문서는 MDS v2 MVP의 캐릭터 이동/애니메이션 기준을 정의합니다.
 
+전투 중 레벨업에서는 CMC 이동, Montage와 전투 animation timing을 명시적으로 중단하고 복귀해야 합니다. UI와 네트워크는 계속 동작하며, 재개 순간 AnimNotify 또는 Gameplay Event가 중복 실행되면 안 됩니다.
+
 ## MVP Position
 
 MDS v2는 Dedicated Server Objective Combat Demo입니다. 캐릭터/애니메이션 레이어는 전투 데모를 설명 가능하게 만드는 최소 범위로 포함합니다.

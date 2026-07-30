@@ -1,40 +1,40 @@
-# Task Template
+# 작업 템플릿
 
 새 작업을 요청할 때 사용할 수 있는 템플릿입니다.
 
 ```text
-Task:
+작업:
 
-Objective:
+목표:
 
-Allowed Files:
+허용 파일:
 
-Forbidden Scope:
+금지 범위:
 
-Assumptions:
+가정:
 
-Required Verification:
+필수 검증:
 
-Notes:
+참고:
 ```
 
 ## 예시
 
 ```text
-Task:
+작업:
 Mass arrival detection만 추가해줘.
 
-Objective:
+목표:
 Mass entity가 Objective 근처에 도착했는지 감지한다.
 
-Allowed Files:
+허용 파일:
 MDSProject/Source/MDSProject/MassAI/*
 
-Forbidden Scope:
+금지 범위:
 Objective damage integration은 하지 않는다.
 UI framework는 추가하지 않는다.
 
-Required Verification:
+필수 검증:
 arrival count log 확인.
 Objective HP가 변하지 않는지 확인.
 ```
