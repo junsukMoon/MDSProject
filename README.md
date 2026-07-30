@@ -1,8 +1,10 @@
 # MDSProject
 
-`MDSProject`는 UE5 기술 포트폴리오용 멀티플레이어 방어 샌드박스입니다.
+`MDSProject`는 UE5 기술 포트폴리오용 GAS 기반 Dedicated Server 성 방어 로그라이트 슈터입니다.
 
-목표는 완성형 게임을 만드는 것이 아니라, 면접에서 설명 가능한 기술 데모를 만드는 것입니다.
+목표는 상용 완성형 게임이 아니라, 전투부터 라운드 정산·상점·다음 라운드까지 이어지는 소규모 플레이 가능한 버티컬 슬라이스를 만드는 것입니다.
+
+현재 저장소에는 검증된 Dedicated Server Objective Combat 기반선이 있습니다. GAS, PlayerState 기반 진행, 전투 중 레벨업, 라운드 정산과 상점은 새 목표 구조이며 아직 구현·검증 완료로 간주하지 않습니다.
 
 핵심 주제:
 
@@ -11,11 +13,41 @@
 - Authority / Ownership
 - Objective gameplay
 - Server-authoritative combat
-- Wave progression
+- Gameplay Ability System
+- Round / Wave progression
+- Currency / Experience / Level Up
+- Round Settlement / Shop
 - Character Movement / Animation baseline
 - Debug output
 - Runtime Review / Verification Evidence
 - AI-assisted development workflow
+
+## 최종 MVP 방향
+
+```text
+Match Start
+-> Round Combat
+-> Wave Spawn
+-> GAS Combat
+-> Server Kill / Reward
+-> In-Combat Level Up Suspension and Choice
+-> Combat Resume
+-> Round Settlement + Shop
+-> Ready / Timeout
+-> Next Round or Finished
+```
+
+레벨업은 라운드 종료 후가 아니라 전투 중 경험치 충족 즉시 발생합니다. 서버가 짧은 감속 후 gameplay simulation을 정지하고 3지선다를 처리한 뒤 복귀 감속을 거쳐 같은 Round/Wave를 재개합니다. Dedicated Server World Pause는 사용하지 않습니다.
+
+Round는 전투부터 정산·상점·준비까지의 전체 단위이며, Wave는 Round 안에서 생성되는 몬스터 묶음입니다.
+
+상세 설계:
+
+```text
+Docs/MDS_v2_Structure_Spec.md
+Docs/GAS_Architecture.md
+Docs/Round_Settlement_Design.md
+```
 
 ## Interview Demo
 
@@ -257,7 +289,7 @@ Docs/11_Runtime_Review_Evidence.md
 
 ## 제외 범위
 
-이 프로젝트는 기술 데모이므로 다음 시스템은 의도적으로 제외합니다.
+이 프로젝트는 기술 포트폴리오 버티컬 슬라이스이므로 다음 시스템은 의도적으로 제외합니다.
 
 - Inventory
 - Quest system
@@ -268,7 +300,7 @@ Docs/11_Runtime_Review_Evidence.md
 - Skill tree
 - Large UI framework
 - Complex animation system
-- Full GAS expansion
+- 전투 실행 계층의 승인 범위를 넘어서는 Full GAS expansion
 - Full production-quality game content
 - Full Mover migration
 - Production Motion Matching implementation

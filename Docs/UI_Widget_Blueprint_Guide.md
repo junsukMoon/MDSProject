@@ -24,6 +24,27 @@ Debug overlay:
 Debug overlay는 gameplay truth source가 아니며, HP / Damage / Wave state를 직접 변경하지 않습니다.
 Match HUD, Objective World UI, Enemy World UI를 대체하지 않습니다.
 
+## 신규 Gameplay UI 구조
+
+```text
+WBP_MDSRoundSettlement
+- WBP_MDSRoundResultPanel
+- WBP_MDSShopPanel
+- NextRoundReadyButton
+```
+
+전투 중 레벨업은 `WBP_MDSLevelUpChoiceModal`을 Match HUD 위에 독립 Modal로 표시합니다. 라운드 정산의 하위 처리 단계가 아닙니다.
+
+UI는 서버가 복제한 전환 상태를 표시할 뿐 Time Dilation, gameplay actor, Projectile, Ability 또는 damage를 직접 정지시키지 않습니다.
+
+정산 화면은 왼쪽 결과와 오른쪽 상점을 동시에 표시합니다. 상점 상품은 Inventory item이 아니며 구매 버튼은 서버 검증 요청만 전달합니다.
+
+데이터 원본:
+
+- GameState: Match Phase, Round/Wave, 팀 결과, 전환 상태와 정산 시간
+- PlayerState: 개인 결과, 재화, 경험치, Level, 후보, 강화와 준비
+- Objective: replicated HP
+
 ## 생성 절차
 
 1. Unreal Editor에서 Widget Blueprint를 생성합니다.

@@ -93,8 +93,10 @@ main
 
 ## 주의사항
 
+- 이 문서는 당시 작업과 검증의 이력입니다. 현재 최종 방향은 `Docs/00_Project_Goal.md`와 `Docs/MDS_v2_Structure_Spec.md`를 우선합니다.
+
 - `-NullRHI` profiling은 viewport/GPU 성능 주장이 아닙니다.
-- 프로젝트는 완성형 게임이 아니라 기술 샌드박스입니다.
+- 당시 프로젝트 범위는 완성형 게임이 아닌 기술 샌드박스였습니다. 현재는 기술 포트폴리오 범위를 유지하는 소규모 플레이 가능한 버티컬 슬라이스로 확장되었습니다.
 - visible demo는 replicated Objective HP 검증에 초점을 둡니다.
 - 최신 runtime review evidence는 `Docs/11_Runtime_Review_Evidence.md`에 정리되어 있습니다.
 

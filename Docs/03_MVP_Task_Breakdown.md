@@ -12,6 +12,70 @@
 6. 검증
 7. approval report
 
+## 현재 목표와 문서 우선순위
+
+이 문서의 기존 Phase 0~9 기록은 Dedicated Server Objective Combat 기반선을 구축하고 검증한 이력입니다. 새 MVP의 구현 순서는 아래 `Revised Phase Overview`를 기준으로 합니다.
+
+상위 설계 기준:
+
+- `Docs/MDS_v2_Structure_Spec.md`
+- `Docs/GAS_Architecture.md`
+- `Docs/Round_Settlement_Design.md`
+
+기존 단계에 있는 `kill reward`, `score/reward system`, `win/loss UI`, `Full GAS expansion` 제외 문구는 당시 작업 범위를 뜻합니다. 새 MVP에서는 다음을 구분합니다.
+
+- 서버 확정 처치에 따른 매치 전용 재화·경험치는 포함합니다.
+- 근거 없는 종합 Score는 계속 제외합니다.
+- 매 Round 정산 UI는 포함합니다.
+- 전투 실행 계층의 제한된 GAS는 포함하지만 MVP 밖의 Full GAS expansion은 제외합니다.
+- 즉시 적용형 상점은 Inventory가 아닙니다.
+- 전투 중 3지선다는 Skill Tree가 아닙니다.
+
+## Revised Phase Overview
+
+| Phase | 이름 | 목적 |
+| --- | --- | --- |
+| R0 | Documentation Alignment | 언어, 범위, Round/Wave와 책임 확정 |
+| R1 | GAS Build Setup | `GameplayAbilities`, `GameplayTags`, `GameplayTasks` 설정만 검증 |
+| R2 | PlayerState / Player ASC | 소유권, 초기화, Replication |
+| R3 | Player Fire Ability | 기존 직접 RPC 전투를 중복 damage 없이 단계 전환 |
+| R4 | Enemy ASC / Attack | 적 전투 실행 계층 전환 |
+| R5 | Match Phase / Round / Wave | Round와 Wave 상태 분리 |
+| R6 | Reward / Experience / Level | 서버 처치 귀속과 개인 진행 |
+| R7 | Combat Suspension | gameplay actor, Projectile, Timer와 Effect 정지 계약 |
+| R8 | In-Combat Level Up UI | 감속, 3지선다, 강화, 재개 |
+| R9 | Round Result Data | 팀 공통 및 개인 결과 분리 |
+| R10 | Settlement / Shop UI | 결과와 즉시 적용형 상점 |
+| R11 | Ready / Timeout / Finished | 다음 Round와 마지막 Round |
+| R12 | Dedicated Server Verification | 다중 클라이언트와 profiling |
+
+### R7 전투 중단 분해 원칙
+
+한 작업에 모든 정지 대상을 묶지 않습니다.
+
+1. Phase와 Ability 차단
+2. 플레이어와 적 이동·AI
+3. Projectile transform, velocity, collision과 lifetime
+4. Objective damage와 Wave/spawn
+5. Timer와 Duration/Periodic Effect
+6. 다중 클라이언트 동기화
+
+Dedicated Server World Pause를 사용하지 않습니다.
+
+### R8 전투 중 레벨업 순서
+
+1. 서버 레벨업 확정
+2. 진입 감속
+3. `CombatSuspended`
+4. `WBP_MDSLevelUpChoiceModal`
+5. 서버 선택 검증
+6. Infinite upgrade Gameplay Effect
+7. 미처리 선택 반복
+8. 복귀 감속
+9. 같은 Round/Wave 재개
+
+여러 플레이어 또는 여러 레벨의 모든 필수 선택이 끝난 뒤 한 번만 재개합니다.
+
 ## Phase Overview
 
 | Phase | 이름 | 목적 |

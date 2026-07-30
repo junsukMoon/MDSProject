@@ -1,25 +1,25 @@
-# Approval Report Template
+# 승인 보고서 템플릿
 
 작업 완료 후 사용할 보고 템플릿입니다.
 
 ```text
-Approval Report
+승인 보고서
 
-Objective:
+목표:
 
-Plan Executed:
+실행한 계획:
 
-Changed Files:
+변경 파일:
 
-Implementation Summary:
+구현 요약:
 
-Verification:
+검증:
 
-Manual Test Steps:
+수동 테스트 절차:
 
-Risks / Notes:
+위험 요소 / 참고:
 
-Next Suggested Task:
+다음 제안 작업:
 ```
 
 ## 작성 규칙
@@ -27,4 +27,4 @@ Next Suggested Task:
 - 실제로 변경한 파일만 적습니다.
 - 실제로 실행한 검증만 성공으로 보고합니다.
 - 실행하지 못한 검증은 이유를 설명합니다.
-- 남은 risk와 다음 작업을 구체적으로 적습니다.
+- 남은 위험 요소와 다음 작업을 구체적으로 적습니다.

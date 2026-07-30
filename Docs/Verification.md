@@ -2,6 +2,56 @@
 
 이 문서는 `MDSProject`의 검증 기준을 정의합니다.
 
+현재 MVP의 상위 검증 기준은 GAS 기반 Dedicated Server 전투, Round/Wave 분리, 전투 중 레벨업 중단, 정산·상점과 다음 Round 준비입니다. 기존 Objective Combat, Mass와 profiling 섹션은 검증 이력 또는 향후 확장 기준으로 유지합니다.
+
+## 문서 정합성 검사
+
+- Markdown UTF-8, 파일명, 경로와 내부 링크를 확인합니다.
+- Round/Wave, Inventory/상점, Skill Tree/3지선다, 종합 Score/측정 통계의 경계를 확인합니다.
+- 과거 검증 결과가 새 기능의 완료 증거로 표현되지 않는지 확인합니다.
+- 코드, 설정과 `.uasset`이 문서 작업에 포함되지 않았는지 확인합니다.
+
+## GAS 검사
+
+- 서버만 authoritative Gameplay Effect를 적용합니다.
+- ASC 소유자와 Avatar 초기화가 서버와 클라이언트에서 일치합니다.
+- 소유권이 없는 요청은 state를 변경하지 않습니다.
+- `State.RoundSettlement`, `State.LevelUpSelection`, `State.CombatSuspended` 동안 전투 Ability가 차단됩니다.
+- AnimNotify, Gameplay Event, Gameplay Cue와 UI가 gameplay truth를 직접 변경하지 않습니다.
+- 기존 직접 RPC와 GAS Ability가 damage를 중복 적용하지 않습니다.
+
+## 전투 중 레벨업 검사
+
+```text
+Experience threshold
+-> transition-in slow motion
+-> CombatSuspended
+-> Level Up choice
+-> server validation and upgrade
+-> transition-out slow motion
+-> combat resume
+```
+
+- 서버가 레벨업과 중단을 확정하고 모든 클라이언트가 같은 단계를 관찰합니다.
+- 정지 중 player/enemy transform, AI, Projectile, HP, damage, spawn과 Wave 값이 변하지 않습니다.
+- Projectile velocity, collision, lifetime과 Timer를 보존합니다.
+- 전투 Duration/Periodic Effect가 설계대로 보존됩니다.
+- 선택 RPC, Replication과 연결 해제 감지는 계속 동작합니다.
+- 여러 레벨과 여러 플레이어의 모든 필수 선택 이후 한 번만 재개합니다.
+- 재개 시 누적 이동, 즉시 만료, 중복 충돌, damage와 AnimNotify 중복이 없습니다.
+- Dedicated Server World Pause를 사용하지 않습니다.
+
+## 라운드 정산 및 상점 검사
+
+- `RoundIndex`와 `WaveIndex`가 별도 state로 복제됩니다.
+- GameMode가 Round 결과를 확정하고 GameState/PlayerState 결과가 일치합니다.
+- 정산 UI가 승인된 팀·개인 항목을 표시합니다.
+- 상점은 `RoundSettlement`에서만 구매를 허용하고 서버가 상품, 가격, 재화, 중복과 대상을 검증합니다.
+- 구매는 즉시 Effect를 적용하며 Inventory를 만들지 않습니다.
+- 모든 유효 플레이어 준비 또는 timeout 이후 다음 Round가 시작됩니다.
+- 연결 해제 플레이어가 집계를 막지 않습니다.
+- 마지막 Round는 같은 정산 UI와 종료 버튼을 사용합니다.
+
 검증은 정확하고 구체적이어야 합니다. 실행하지 않은 build, compile, PIE, dedicated server run, log check, profiling pass를 성공했다고 보고하지 않습니다.
 
 ## Build / Compile Checks
