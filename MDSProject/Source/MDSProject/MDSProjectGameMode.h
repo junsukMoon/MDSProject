@@ -6,6 +6,8 @@
 #include "GameFramework/GameModeBase.h"
 #include "MDSProjectGameMode.generated.h"
 
+class AMDSProjectPlayerState;
+
 /**
  *  Simple Game Mode for a top-down perspective game
  *  Sets the default gameplay framework classes
@@ -22,7 +24,7 @@ public:
 	AMDSProjectGameMode();
 
 	void StartWave(int32 WaveIndex, int32 TotalEnemies);
-	void HandleEnemyDeathForWave();
+	void HandleEnemyDeathForWave(AMDSProjectPlayerState* RewardRecipient);
 
 protected:
 	virtual void BeginPlay() override;
@@ -41,6 +43,8 @@ private:
 	int32 MaxWaveCount = 3;
 	int32 InitialWaveEnemyCount = 3;
 	int32 EnemyIncrementPerWave = 1;
+	int32 KillCurrencyReward = 10;
+	int32 KillExperienceReward = 25;
 	float WaveIntermissionSeconds = 3.0f;
 	bool bContinuousWaveLoopEnabled = true;
 };

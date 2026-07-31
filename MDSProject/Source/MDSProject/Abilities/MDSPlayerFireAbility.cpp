@@ -150,7 +150,10 @@ void UMDSPlayerFireAbility::ActivateAbility(
 	}
 
 	const float PreviousHealth = TargetEnemy->GetCurrentHealth();
-	const bool bDamageApplied = TargetEnemy->ApplyEnemyDamage(AttackDamage, TEXT("GA_Player_Fire"));
+	const bool bDamageApplied = TargetEnemy->ApplyEnemyDamage(
+		AttackDamage,
+		TEXT("GA_Player_Fire"),
+		MDSPlayerState);
 	const float NewHealth = TargetEnemy->GetCurrentHealth();
 
 	UE_LOG(LogMDSPlayerFireAbility, Log,

@@ -110,7 +110,7 @@ void AMDSProjectGameMode::StartWave(const int32 WaveIndex, const int32 TotalEnem
 	CompleteWaveIfCleared();
 }
 
-void AMDSProjectGameMode::HandleEnemyDeathForWave()
+void AMDSProjectGameMode::HandleEnemyDeathForWave(AMDSProjectPlayerState* RewardRecipient)
 {
 	if (!HasAuthority())
 	{
@@ -129,6 +129,16 @@ void AMDSProjectGameMode::HandleEnemyDeathForWave()
 	{
 		UE_LOG(LogMDSGameMode, Log, TEXT("Ignored enemy death for Wave because no wave is active."));
 		return;
+	}
+
+	if (RewardRecipient)
+	{
+		RewardRecipient->GrantMatchReward(KillCurrencyReward, KillExperienceReward);
+	}
+	else
+	{
+		UE_LOG(LogMDSGameMode, Log,
+			TEXT("Enemy death had no player reward recipient; Wave progress will still be consumed."));
 	}
 
 	const int32 PreviousEnemiesRemaining = MDSGameState->GetEnemiesRemaining();
@@ -197,19 +207,25 @@ void AMDSProjectGameMode::ConfigureWaveLoopFromCommandLine()
 	FParse::Value(FCommandLine::Get(), TEXT("MDSWaveInitialEnemyCount="), InitialWaveEnemyCount);
 	FParse::Value(FCommandLine::Get(), TEXT("MDSWaveEnemyIncrement="), EnemyIncrementPerWave);
 	FParse::Value(FCommandLine::Get(), TEXT("MDSWaveIntermission="), WaveIntermissionSeconds);
+	FParse::Value(FCommandLine::Get(), TEXT("MDSKillCurrency="), KillCurrencyReward);
+	FParse::Value(FCommandLine::Get(), TEXT("MDSKillExperience="), KillExperienceReward);
 
 	MaxWaveCount = FMath::Max(1, MaxWaveCount);
 	InitialWaveEnemyCount = FMath::Max(1, InitialWaveEnemyCount);
 	EnemyIncrementPerWave = FMath::Max(0, EnemyIncrementPerWave);
+	KillCurrencyReward = FMath::Max(0, KillCurrencyReward);
+	KillExperienceReward = FMath::Max(0, KillExperienceReward);
 	WaveIntermissionSeconds = FMath::Max(0.0f, WaveIntermissionSeconds);
 
 	UE_LOG(LogMDSGameMode, Log,
-		TEXT("Wave loop configured on server: Enabled=%s MaxWaves=%d InitialEnemies=%d EnemyIncrement=%d Intermission=%.2f."),
+		TEXT("Wave loop configured on server: Enabled=%s MaxWaves=%d InitialEnemies=%d EnemyIncrement=%d Intermission=%.2f KillCurrency=%d KillExperience=%d."),
 		bContinuousWaveLoopEnabled ? TEXT("true") : TEXT("false"),
 		MaxWaveCount,
 		InitialWaveEnemyCount,
 		EnemyIncrementPerWave,
-		WaveIntermissionSeconds);
+		WaveIntermissionSeconds,
+		KillCurrencyReward,
+		KillExperienceReward);
 }
 
 void AMDSProjectGameMode::ScheduleWaveStart(const int32 WaveIndex, const float DelaySeconds)

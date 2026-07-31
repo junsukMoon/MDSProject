@@ -387,7 +387,10 @@ void AMDSCombatEnemyActor::InitializeCombatEnemy(AMDSObjectiveActor* InObjective
 		ObjectiveDamageAmount);
 }
 
-bool AMDSCombatEnemyActor::ApplyEnemyDamage(const float DamageAmount, const FName DamageSource)
+bool AMDSCombatEnemyActor::ApplyEnemyDamage(
+	const float DamageAmount,
+	const FName DamageSource,
+	AMDSProjectPlayerState* RewardRecipient)
 {
 	if (!HasAuthority())
 	{
@@ -417,7 +420,7 @@ bool AMDSCombatEnemyActor::ApplyEnemyDamage(const float DamageAmount, const FNam
 		{
 			RequestDeathPresentation(PreviousHealth);
 		}
-		HandleDeathOnce(DamageSource);
+		HandleDeathOnce(DamageSource, RewardRecipient);
 	}
 	else
 	{
@@ -494,7 +497,7 @@ void AMDSCombatEnemyActor::OnRep_CurrentHealth(const float PreviousHealth)
 	}
 }
 
-void AMDSCombatEnemyActor::HandleDeathOnce(const FName DamageSource)
+void AMDSCombatEnemyActor::HandleDeathOnce(const FName DamageSource, AMDSProjectPlayerState* RewardRecipient)
 {
 	if (bDeathHandled)
 	{
@@ -533,7 +536,7 @@ void AMDSCombatEnemyActor::HandleDeathOnce(const FName DamageSource)
 	{
 		if (AMDSProjectGameMode* MDSGameMode = World->GetAuthGameMode<AMDSProjectGameMode>())
 		{
-			MDSGameMode->HandleEnemyDeathForWave();
+			MDSGameMode->HandleEnemyDeathForWave(RewardRecipient);
 		}
 	}
 }
