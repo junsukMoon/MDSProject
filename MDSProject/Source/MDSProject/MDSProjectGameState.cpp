@@ -19,10 +19,30 @@ void AMDSProjectGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 	DOREPLIFETIME(AMDSProjectGameState, CurrentRoundIndex);
 	DOREPLIFETIME(AMDSProjectGameState, bCombatSuspended);
 	DOREPLIFETIME(AMDSProjectGameState, LevelUpFlowState);
+	DOREPLIFETIME(AMDSProjectGameState, LastRoundResult);
 	DOREPLIFETIME(AMDSProjectGameState, CurrentWaveIndex);
 	DOREPLIFETIME(AMDSProjectGameState, EnemiesRemaining);
 	DOREPLIFETIME(AMDSProjectGameState, TotalEnemiesThisWave);
 	DOREPLIFETIME(AMDSProjectGameState, bWaveActive);
+}
+
+void AMDSProjectGameState::SetRoundResult(const FMDSRoundResult& InRoundResult)
+{
+	if (!HasWaveStateAuthority(TEXT("SetRoundResult")))
+	{
+		return;
+	}
+
+	LastRoundResult = InRoundResult;
+	UE_LOG(LogMDSGameState, Log,
+		TEXT("MDS RoundResult | TeamFinalized | Round=%d | ClearTime=%.2f | Enemies=%d | CastleDamage=%.1f | CastleHP=%.1f | CastlePercent=%.3f."),
+		LastRoundResult.RoundIndex,
+		LastRoundResult.ClearTime,
+		LastRoundResult.TotalEnemyCount,
+		LastRoundResult.CastleDamageTaken,
+		LastRoundResult.CastleHealthRemaining,
+		LastRoundResult.CastleHealthPercent);
+	ForceNetUpdate();
 }
 
 void AMDSProjectGameState::SetLevelUpFlowState(const EMDSLevelUpFlowState InFlowState)
@@ -181,11 +201,12 @@ void AMDSProjectGameState::OnRep_MatchState()
 		: 1.0f;
 	UGameplayStatics::SetGlobalTimeDilation(this, TimeDilation);
 	UE_LOG(LogMDSGameState, Log,
-		TEXT("Match state replicated on client: Phase=%s Round=%d CombatSuspended=%s LevelUpFlow=%s."),
+		TEXT("Match state replicated on client: Phase=%s Round=%d CombatSuspended=%s LevelUpFlow=%s ResultRound=%d."),
 		*UEnum::GetValueAsString(MatchPhase),
 		CurrentRoundIndex,
 		bCombatSuspended ? TEXT("true") : TEXT("false"),
-		*UEnum::GetValueAsString(LevelUpFlowState));
+		*UEnum::GetValueAsString(LevelUpFlowState),
+		LastRoundResult.RoundIndex);
 }
 
 bool AMDSProjectGameState::HasWaveStateAuthority(const TCHAR* Context) const

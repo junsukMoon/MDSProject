@@ -8,6 +8,7 @@
 #include "MDSProjectPlayerController.h"
 #include "MDSProjectPlayerState.h"
 #include "MDSProjectGameState.h"
+#include "Objective/MDSObjectiveActor.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerState.h"
 #include "Misc/CommandLine.h"
@@ -93,6 +94,7 @@ void AMDSProjectGameMode::StartWave(const int32 WaveIndex, const int32 TotalEnem
 	}
 
 	MDSGameState->SetWaveState(ClampedWaveIndex, SpawnedEnemyCount, SpawnedEnemyCount > 0, SpawnedEnemyCount);
+	BeginRoundResultTracking(ClampedWaveIndex, SpawnedEnemyCount);
 
 	UE_LOG(LogMDSGameMode, Log, TEXT("Round combat started on server: Round=%d Wave=%d RequestedEnemies=%d SpawnedEnemies=%d Active=%s."),
 		MDSGameState->GetCurrentRoundIndex(),
@@ -187,6 +189,8 @@ void AMDSProjectGameMode::BeginLevelUpFlow()
 	}
 
 	MDSGameState->SetLevelUpFlowState(EMDSLevelUpFlowState::TransitionIn);
+	LevelUpPauseStartTimeSeconds = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
+	bLevelUpPauseTimingActive = true;
 	GetWorldTimerManager().SetTimer(
 		LevelUpTransitionTimerHandle,
 		this,
@@ -256,6 +260,12 @@ void AMDSProjectGameMode::BeginLevelUpResume()
 
 void AMDSProjectGameMode::FinishLevelUpResume()
 {
+	if (bLevelUpPauseTimingActive)
+	{
+		const double CurrentTimeSeconds = GetWorld() ? GetWorld()->GetTimeSeconds() : LevelUpPauseStartTimeSeconds;
+		AccumulatedLevelUpPauseSeconds += FMath::Max(0.0, CurrentTimeSeconds - LevelUpPauseStartTimeSeconds);
+		bLevelUpPauseTimingActive = false;
+	}
 	if (AMDSProjectGameState* MDSGameState = GetGameState<AMDSProjectGameState>())
 	{
 		MDSGameState->SetLevelUpFlowState(EMDSLevelUpFlowState::None);
@@ -473,6 +483,7 @@ void AMDSProjectGameMode::CompleteWaveIfCleared()
 	}
 
 	MDSGameState->SetWaveActive(false);
+	FinalizeRoundResults();
 	MDSGameState->SetMatchState(EMDSMatchPhase::RoundSettlement, MDSGameState->GetCurrentRoundIndex());
 	UE_LOG(LogMDSGameMode, Log, TEXT("Round entered settlement on server: Round=%d Wave=%d."),
 		MDSGameState->GetCurrentRoundIndex(),
@@ -491,4 +502,78 @@ void AMDSProjectGameMode::CompleteWaveIfCleared()
 	}
 
 	ScheduleWaveStart(ClearedWaveIndex + 1, WaveIntermissionSeconds);
+}
+
+void AMDSProjectGameMode::BeginRoundResultTracking(const int32 RoundIndex, const int32 TotalEnemyCount)
+{
+	RoundStartTimeSeconds = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
+	AccumulatedLevelUpPauseSeconds = 0.0;
+	bLevelUpPauseTimingActive = false;
+	RoundTrackedEnemyCount = FMath::Max(0, TotalEnemyCount);
+	RoundStartCastleHealth = 0.0f;
+
+	for (TActorIterator<AMDSObjectiveActor> ObjectiveIt(GetWorld()); ObjectiveIt; ++ObjectiveIt)
+	{
+		RoundStartCastleHealth = ObjectiveIt->GetCurrentHealth();
+		break;
+	}
+
+	if (const AMDSProjectGameState* MDSGameState = GetGameState<AMDSProjectGameState>())
+	{
+		for (APlayerState* BasePlayerState : MDSGameState->PlayerArray)
+		{
+			if (AMDSProjectPlayerState* PlayerState = Cast<AMDSProjectPlayerState>(BasePlayerState))
+			{
+				PlayerState->BeginRoundTracking();
+			}
+		}
+	}
+
+	UE_LOG(LogMDSGameMode, Log,
+		TEXT("MDS RoundResult | TrackingStarted | Round=%d | Enemies=%d | CastleStartHP=%.1f."),
+		RoundIndex,
+		RoundTrackedEnemyCount,
+		RoundStartCastleHealth);
+}
+
+void AMDSProjectGameMode::FinalizeRoundResults()
+{
+	AMDSProjectGameState* MDSGameState = GetGameState<AMDSProjectGameState>();
+	if (!MDSGameState)
+	{
+		return;
+	}
+
+	float CastleHealthRemaining = 0.0f;
+	float CastleMaxHealth = 0.0f;
+	for (TActorIterator<AMDSObjectiveActor> ObjectiveIt(GetWorld()); ObjectiveIt; ++ObjectiveIt)
+	{
+		CastleHealthRemaining = ObjectiveIt->GetCurrentHealth();
+		CastleMaxHealth = ObjectiveIt->GetMaxHealth();
+		break;
+	}
+
+	FMDSRoundResult RoundResult;
+	RoundResult.RoundIndex = MDSGameState->GetCurrentRoundIndex();
+	const double CurrentTimeSeconds = GetWorld() ? GetWorld()->GetTimeSeconds() : RoundStartTimeSeconds;
+	const double ActiveLevelUpPauseSeconds = bLevelUpPauseTimingActive
+		? FMath::Max(0.0, CurrentTimeSeconds - LevelUpPauseStartTimeSeconds)
+		: 0.0;
+	RoundResult.ClearTime = FMath::Max(0.0f, static_cast<float>(
+		CurrentTimeSeconds - RoundStartTimeSeconds - AccumulatedLevelUpPauseSeconds - ActiveLevelUpPauseSeconds));
+	RoundResult.TotalEnemyCount = RoundTrackedEnemyCount;
+	RoundResult.CastleDamageTaken = FMath::Max(0.0f, RoundStartCastleHealth - CastleHealthRemaining);
+	RoundResult.CastleHealthRemaining = CastleHealthRemaining;
+	RoundResult.CastleHealthPercent = CastleMaxHealth > 0.0f
+		? FMath::Clamp(CastleHealthRemaining / CastleMaxHealth, 0.0f, 1.0f)
+		: 0.0f;
+	MDSGameState->SetRoundResult(RoundResult);
+
+	for (APlayerState* BasePlayerState : MDSGameState->PlayerArray)
+	{
+		if (AMDSProjectPlayerState* PlayerState = Cast<AMDSProjectPlayerState>(BasePlayerState))
+		{
+			PlayerState->FinalizeRoundResult();
+		}
+	}
 }

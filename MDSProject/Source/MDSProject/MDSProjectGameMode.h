@@ -39,6 +39,8 @@ private:
 	void ScheduleWaveStart(int32 WaveIndex, float DelaySeconds);
 	void StartScheduledWave();
 	void CompleteWaveIfCleared();
+	void BeginRoundResultTracking(int32 RoundIndex, int32 TotalEnemyCount);
+	void FinalizeRoundResults();
 	void BeginLevelUpFlow();
 	void EnterLevelUpSelection();
 	void BeginLevelUpResume();
@@ -56,7 +58,13 @@ private:
 	int32 KillCurrencyReward = 10;
 	int32 KillExperienceReward = 25;
 	float WaveIntermissionSeconds = 3.0f;
+	double RoundStartTimeSeconds = 0.0;
+	double LevelUpPauseStartTimeSeconds = 0.0;
+	double AccumulatedLevelUpPauseSeconds = 0.0;
+	float RoundStartCastleHealth = 0.0f;
+	int32 RoundTrackedEnemyCount = 0;
 	bool bContinuousWaveLoopEnabled = true;
+	bool bLevelUpPauseTimingActive = false;
 };
 
 
