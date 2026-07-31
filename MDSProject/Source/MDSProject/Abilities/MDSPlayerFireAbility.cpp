@@ -3,6 +3,7 @@
 #include "Combat/MDSCombatEnemyActor.h"
 #include "EngineUtils.h"
 #include "MDSProjectCharacter.h"
+#include "MDSProjectGameState.h"
 #include "MDSProjectPlayerState.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
@@ -39,6 +40,16 @@ void UMDSPlayerFireAbility::ActivateAbility(
 		UE_LOG(LogMDSPlayerFireAbility, Warning,
 			TEXT("MDS GAS Fire | Rejected | Reason=InvalidAuthorityContext | Owner=%s | Avatar=%s."),
 			*GetNameSafe(MDSPlayerState),
+			*GetNameSafe(RequestingCharacter));
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
+
+	const AMDSProjectGameState* MDSGameState = GetWorld() ? GetWorld()->GetGameState<AMDSProjectGameState>() : nullptr;
+	if (MDSGameState && MDSGameState->IsCombatSuspended())
+	{
+		UE_LOG(LogMDSPlayerFireAbility, Log,
+			TEXT("MDS GAS Fire | Rejected | Reason=CombatSuspended | Requester=%s."),
 			*GetNameSafe(RequestingCharacter));
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		return;

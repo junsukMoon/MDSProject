@@ -128,6 +128,7 @@ private:
 	bool bAttackVisibleScreenshotRequested = false;
 	bool bAutoMoveDiagnosticSampleLogged = false;
 	bool bAutoMoveVerificationActive = false;
+	bool bAutoAttackSuspensionLogged = false;
 };
 
 

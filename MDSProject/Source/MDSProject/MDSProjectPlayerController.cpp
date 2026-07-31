@@ -7,6 +7,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "MDSProjectCharacter.h"
 #include "MDSProjectPlayerState.h"
+#include "MDSProjectGameState.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "Engine/World.h"
@@ -287,6 +288,14 @@ void AMDSProjectPlayerController::OnAttackPressed()
 	{
 		return;
 	}
+	const AMDSProjectGameState* MDSGameState = GetWorld() ? GetWorld()->GetGameState<AMDSProjectGameState>() : nullptr;
+	if (MDSGameState && MDSGameState->IsCombatSuspended())
+	{
+		UE_LOG(LogMDSPlayerCombat, Log,
+			TEXT("MDS GAS Fire | LocalInputBlocked | Reason=CombatSuspended | Controller=%s."),
+			*GetNameSafe(this));
+		return;
+	}
 	if (ShouldCaptureCombatAnimationPoseDelta())
 	{
 		UE_LOG(LogMDSPlayerCombat, Log, TEXT("MDS CombatAnimationVisibleCapture | ManualAttackIgnored | Reason=PoseDeltaVerification."));
@@ -447,6 +456,20 @@ void AMDSProjectPlayerController::TryAutoAttackNearestEnemy()
 		GetWorldTimerManager().ClearTimer(AutoAttackTimerHandle);
 		return;
 	}
+
+	const AMDSProjectGameState* MDSGameState = GetWorld() ? GetWorld()->GetGameState<AMDSProjectGameState>() : nullptr;
+	if (MDSGameState && MDSGameState->IsCombatSuspended())
+	{
+		if (!bAutoAttackSuspensionLogged)
+		{
+			bAutoAttackSuspensionLogged = true;
+			UE_LOG(LogMDSPlayerCombat, Log,
+				TEXT("MDS GAS Fire | AutoAttackBlocked | Reason=CombatSuspended | Controller=%s."),
+				*GetNameSafe(this));
+		}
+		return;
+	}
+	bAutoAttackSuspensionLogged = false;
 
 	if (AutoAttackAttemptsRemaining <= 0)
 	{
