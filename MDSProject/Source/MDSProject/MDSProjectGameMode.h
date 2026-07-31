@@ -28,6 +28,7 @@ public:
 	void HandleEnemyDeathForWave(AMDSProjectPlayerState* RewardRecipient);
 	void SetCombatSuspended(bool bInCombatSuspended);
 	void HandleLevelUpChoice(AMDSProjectPlayerState* PlayerState, EMDSLevelUpUpgrade Upgrade);
+	void HandleShopPurchase(AMDSProjectPlayerState* PlayerState, FName ProductId);
 
 protected:
 	virtual void BeginPlay() override;
@@ -41,6 +42,7 @@ private:
 	void CompleteWaveIfCleared();
 	void BeginRoundResultTracking(int32 RoundIndex, int32 TotalEnemyCount);
 	void FinalizeRoundResults();
+	void PublishRoundShopOffers();
 	void BeginLevelUpFlow();
 	void EnterLevelUpSelection();
 	void BeginLevelUpResume();

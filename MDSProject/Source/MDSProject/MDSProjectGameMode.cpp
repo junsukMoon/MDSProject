@@ -223,6 +223,26 @@ void AMDSProjectGameMode::HandleLevelUpChoice(AMDSProjectPlayerState* PlayerStat
 	}
 }
 
+void AMDSProjectGameMode::HandleShopPurchase(AMDSProjectPlayerState* PlayerState, const FName ProductId)
+{
+	AMDSProjectGameState* MDSGameState = GetGameState<AMDSProjectGameState>();
+	if (!HasAuthority() || !MDSGameState || MDSGameState->GetMatchPhase() != EMDSMatchPhase::RoundSettlement
+		|| !PlayerState || ProductId.IsNone())
+	{
+		return;
+	}
+
+	const FMDSShopOffer* Offer = MDSGameState->GetActiveShopOffers().FindByPredicate(
+		[ProductId](const FMDSShopOffer& Candidate) { return Candidate.ProductId == ProductId; });
+	if (!Offer)
+	{
+		UE_LOG(LogMDSGameMode, Warning, TEXT("MDS Shop | PurchaseRejected | Reason=UnknownProduct | Product=%s."),
+			*ProductId.ToString());
+		return;
+	}
+	PlayerState->TryPurchaseShopOffer(*Offer);
+}
+
 bool AMDSProjectGameMode::DoAllPlayersHaveNoPendingLevelUpChoices() const
 {
 	const AMDSProjectGameState* MDSGameState = GetGameState<AMDSProjectGameState>();
@@ -484,6 +504,7 @@ void AMDSProjectGameMode::CompleteWaveIfCleared()
 
 	MDSGameState->SetWaveActive(false);
 	FinalizeRoundResults();
+	PublishRoundShopOffers();
 	MDSGameState->SetMatchState(EMDSMatchPhase::RoundSettlement, MDSGameState->GetCurrentRoundIndex());
 	UE_LOG(LogMDSGameMode, Log, TEXT("Round entered settlement on server: Round=%d Wave=%d."),
 		MDSGameState->GetCurrentRoundIndex(),
@@ -502,6 +523,31 @@ void AMDSProjectGameMode::CompleteWaveIfCleared()
 	}
 
 	ScheduleWaveStart(ClearedWaveIndex + 1, WaveIntermissionSeconds);
+}
+
+void AMDSProjectGameMode::PublishRoundShopOffers()
+{
+	AMDSProjectGameState* MDSGameState = GetGameState<AMDSProjectGameState>();
+	if (!MDSGameState)
+	{
+		return;
+	}
+
+	TArray<FMDSShopOffer> Offers;
+	auto AddOffer = [&Offers](const FName ProductId, const TCHAR* Name, const TCHAR* Description,
+		const int32 Price, const EMDSLevelUpUpgrade Upgrade)
+	{
+		FMDSShopOffer& Offer = Offers.AddDefaulted_GetRef();
+		Offer.ProductId = ProductId;
+		Offer.DisplayName = FText::FromString(Name);
+		Offer.EffectDescription = FText::FromString(Description);
+		Offer.Price = Price;
+		Offer.Upgrade = Upgrade;
+	};
+	AddOffer(TEXT("Shop.AttackPower"), TEXT("공격력 강화"), TEXT("공격력 +15%"), 20, EMDSLevelUpUpgrade::AttackPower);
+	AddOffer(TEXT("Shop.FireRate"), TEXT("발사속도 강화"), TEXT("발사속도 +15%"), 20, EMDSLevelUpUpgrade::FireRate);
+	AddOffer(TEXT("Shop.MoveSpeed"), TEXT("이동속도 강화"), TEXT("이동속도 +10%"), 15, EMDSLevelUpUpgrade::MoveSpeed);
+	MDSGameState->SetActiveShopOffers(Offers);
 }
 
 void AMDSProjectGameMode::BeginRoundResultTracking(const int32 RoundIndex, const int32 TotalEnemyCount)
