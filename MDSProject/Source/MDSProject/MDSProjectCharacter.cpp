@@ -17,6 +17,7 @@
 #include "GameplayTagContainer.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "GameFramework/WorldSettings.h"
 #include "EnhancedInputComponent.h"
 #include "InputAction.h"
 #include "InputActionValue.h"
@@ -31,6 +32,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogMDSAbilitySystem, Log, All);
 
 namespace
 {
+constexpr double ShotTracerRealDurationSeconds = 0.14;
+
 bool ShouldLogCharacterCombatPresentation()
 {
 	return FParse::Param(FCommandLine::Get(), TEXT("MDSCombatPresentationLog"));
@@ -250,6 +253,7 @@ void AMDSProjectCharacter::InitializeAbilitySystemActorInfo()
 void AMDSProjectCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	UpdateShotTracerPresentations();
 
 	if (bFireFacingLocked)
 	{
@@ -366,9 +370,56 @@ void AMDSProjectCharacter::PlayShotTracerPresentation(const FVector& TraceEnd)
 	}
 
 	const FVector TraceStart = TraceOrigin + ShotDirection * 55.0f;
-	DrawDebugLine(GetWorld(), TraceStart, TraceEnd, FColor(255, 220, 40), false, 0.14f, 0, 5.0f);
-	DrawDebugPoint(GetWorld(), TraceStart, 14.0f, FColor::Orange, false, 0.14f);
-	DrawDebugPoint(GetWorld(), TraceEnd, 10.0f, FColor::Yellow, false, 0.14f);
+	const double StartRealTimeSeconds = GetWorld()->GetRealTimeSeconds();
+	FShotTracerPresentation& ShotTracer = ActiveShotTracers.AddDefaulted_GetRef();
+	ShotTracer.TraceStart = TraceStart;
+	ShotTracer.TraceEnd = TraceEnd;
+	ShotTracer.StartRealTimeSeconds = StartRealTimeSeconds;
+	ShotTracer.ExpirationRealTimeSeconds = StartRealTimeSeconds + ShotTracerRealDurationSeconds;
+
+	DrawDebugLine(GetWorld(), TraceStart, TraceEnd, FColor(255, 220, 40), false, 0.0f, 0, 5.0f);
+	DrawDebugPoint(GetWorld(), TraceStart, 14.0f, FColor::Orange, false, 0.0f);
+	DrawDebugPoint(GetWorld(), TraceEnd, 10.0f, FColor::Yellow, false, 0.0f);
+
+	if (ShouldLogCharacterCombatPresentation())
+	{
+		UE_LOG(LogMDSCombatPresentation, Log,
+			TEXT("MDS CombatPresentation | ShotTracerStarted | Character=%s | RealDuration=%.2f | TimeDilation=%.2f."),
+			*GetNameSafe(this),
+			ShotTracerRealDurationSeconds,
+			GetWorld()->GetWorldSettings()->GetEffectiveTimeDilation());
+	}
+}
+
+void AMDSProjectCharacter::UpdateShotTracerPresentations()
+{
+	if (ActiveShotTracers.IsEmpty() || GetNetMode() == NM_DedicatedServer || !GetWorld())
+	{
+		return;
+	}
+
+	const double CurrentRealTimeSeconds = GetWorld()->GetRealTimeSeconds();
+	for (int32 TracerIndex = ActiveShotTracers.Num() - 1; TracerIndex >= 0; --TracerIndex)
+	{
+		const FShotTracerPresentation& ShotTracer = ActiveShotTracers[TracerIndex];
+		if (CurrentRealTimeSeconds >= ShotTracer.ExpirationRealTimeSeconds)
+		{
+			if (ShouldLogCharacterCombatPresentation())
+			{
+				UE_LOG(LogMDSCombatPresentation, Log,
+					TEXT("MDS CombatPresentation | ShotTracerExpired | Character=%s | RealDuration=%.3f | TimeDilation=%.2f."),
+					*GetNameSafe(this),
+					CurrentRealTimeSeconds - ShotTracer.StartRealTimeSeconds,
+					GetWorld()->GetWorldSettings()->GetEffectiveTimeDilation());
+			}
+			ActiveShotTracers.RemoveAtSwap(TracerIndex, 1, EAllowShrinking::No);
+			continue;
+		}
+
+		DrawDebugLine(GetWorld(), ShotTracer.TraceStart, ShotTracer.TraceEnd, FColor(255, 220, 40), false, 0.0f, 0, 5.0f);
+		DrawDebugPoint(GetWorld(), ShotTracer.TraceStart, 14.0f, FColor::Orange, false, 0.0f);
+		DrawDebugPoint(GetWorld(), ShotTracer.TraceEnd, 10.0f, FColor::Yellow, false, 0.0f);
+	}
 }
 
 void AMDSProjectCharacter::MulticastPlayRemoteAttackPresentation_Implementation(

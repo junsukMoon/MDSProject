@@ -18,6 +18,14 @@ class AMDSProjectCharacter : public ACharacter, public IAbilitySystemInterface
 	GENERATED_BODY()
 
 private:
+	struct FShotTracerPresentation
+	{
+		FVector TraceStart = FVector::ZeroVector;
+		FVector TraceEnd = FVector::ZeroVector;
+		double StartRealTimeSeconds = 0.0;
+		double ExpirationRealTimeSeconds = 0.0;
+	};
+
 
 	/** Top down camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
@@ -75,6 +83,7 @@ private:
 	void PlayAttackMontagePresentation(FName PresentationSource);
 	void RestoreMovementFacing();
 	void InitializeAbilitySystemActorInfo();
+	void UpdateShotTracerPresentations();
 
 	FVector MovementVerificationStartLocation = FVector::ZeroVector;
 	FVector LockedFireFacingDirection = FVector::ForwardVector;
@@ -82,6 +91,7 @@ private:
 	bool bMovementVerificationInitialized = false;
 	bool bFireFacingLocked = false;
 	bool bCombatSuspended = false;
+	TArray<FShotTracerPresentation> ActiveShotTracers;
 	TWeakObjectPtr<UAbilitySystemComponent> CachedAbilitySystemComponent;
 	FTimerHandle FireFacingTimerHandle;
 };
