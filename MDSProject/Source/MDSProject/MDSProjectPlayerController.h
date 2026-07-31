@@ -64,7 +64,6 @@ private:
 	UMDSDebugOverlayWidget* GetOrCreateDebugOverlay();
 	UMDSMatchHUDWidget* GetOrCreateMatchHUD();
 	void RequestReplicatedUIViewportScreenshot();
-	void ServerProcessDirectionalAttack(FVector_NetQuantize RequestedAimPoint);
 	void ApplyKeyboardMovementInput();
 	FVector GetAimPointFromCursor() const;
 	FVector ResolvePredictedShotEnd(const FVector& AimPoint) const;
@@ -97,14 +96,8 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "MDS|UI", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UMDSMatchHUDWidget> MatchHUDWidgetClass;
 
-	UPROPERTY(EditDefaultsOnly, Category = "MDS|Combat", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
-	float AttackDamage = 25.0f;
-
 	UPROPERTY(EditDefaultsOnly, Category = "MDS|Combat", meta = (AllowPrivateAccess = "true", ClampMin = "1.0"))
 	float AttackRange = 5000.0f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "MDS|Combat", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
-	float AttackCooldownSeconds = 0.5f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "MDS|Combat Presentation", meta = (AllowPrivateAccess = "true"))
 	TSoftObjectPtr<UAnimMontage> AttackPresentationMontage;
@@ -126,7 +119,6 @@ private:
 	FTimerHandle AutoMoveStartTimerHandle;
 	FTimerHandle MovementSnapshotTimerHandle;
 	TMap<TWeakObjectPtr<AActor>, FVector> MovementVerificationStartLocations;
-	double LastServerAttackTimeSeconds = -1000000.0;
 	double AutoMoveEndTimeSeconds = 0.0;
 	int32 AutoAttackAttemptsRemaining = 0;
 	FString AttackRejectVerificationScenario;

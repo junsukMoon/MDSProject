@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "MDSProjectCharacter.h"
+#include "MDSProjectPlayerState.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "Engine/World.h"
@@ -391,13 +392,6 @@ float AMDSProjectPlayerController::GetAttackFacingDuration() const
 void AMDSProjectPlayerController::ConfigureAttackFromCommandLine()
 {
 	bool bConfigured = false;
-	float ParsedAttackDamage = AttackDamage;
-	if (FParse::Value(FCommandLine::Get(), TEXT("MDSAttackDamage="), ParsedAttackDamage))
-	{
-		AttackDamage = FMath::Max(0.0f, ParsedAttackDamage);
-		bConfigured = true;
-	}
-
 	float ParsedAttackRange = AttackRange;
 	if (FParse::Value(FCommandLine::Get(), TEXT("MDSAttackRange="), ParsedAttackRange))
 	{
@@ -405,20 +399,11 @@ void AMDSProjectPlayerController::ConfigureAttackFromCommandLine()
 		bConfigured = true;
 	}
 
-	float ParsedAttackCooldownSeconds = AttackCooldownSeconds;
-	if (FParse::Value(FCommandLine::Get(), TEXT("MDSAttackCooldown="), ParsedAttackCooldownSeconds))
-	{
-		AttackCooldownSeconds = FMath::Max(0.0f, ParsedAttackCooldownSeconds);
-		bConfigured = true;
-	}
-
 	if (bConfigured || FParse::Param(FCommandLine::Get(), TEXT("MDSAutoAttackNearestEnemy")))
 	{
-		UE_LOG(LogMDSPlayerCombat, Log, TEXT("MDS Combat | AttackConfig | Controller=%s | Damage=%.1f | Range=%.1f | Cooldown=%.2f."),
+		UE_LOG(LogMDSPlayerCombat, Log, TEXT("MDS Combat | AttackPresentationConfig | Controller=%s | Range=%.1f."),
 			*GetNameSafe(this),
-			AttackDamage,
-			AttackRange,
-			AttackCooldownSeconds);
+			AttackRange);
 	}
 }
 
@@ -901,117 +886,30 @@ void AMDSProjectPlayerController::ServerRequestAttack_Implementation(const FVect
 		}
 	}
 
-	ServerProcessDirectionalAttack(ServerAimPoint);
-}
-
-void AMDSProjectPlayerController::ServerProcessDirectionalAttack(const FVector_NetQuantize RequestedAimPoint)
-{
-	APawn* RequestingPawn = GetPawn();
-	if (!RequestingPawn)
+	if (!GetPawn())
 	{
-		UE_LOG(LogMDSPlayerCombat, Warning, TEXT("MDS Combat | ServerAttackRejected | Reason=NoPawn | Controller=%s."),
+		UE_LOG(LogMDSPlayerCombat, Warning,
+			TEXT("MDS GAS Fire | ActivationRejected | Reason=NoPawn | Controller=%s."),
 			*GetNameSafe(this));
 		return;
 	}
 
-	const FVector TraceStart = RequestingPawn->GetActorLocation() + FVector(0.0f, 0.0f, 65.0f);
-	FVector ShotDirection2D = RequestedAimPoint - TraceStart;
-	ShotDirection2D.Z = 0.0f;
-	if (!ShotDirection2D.Normalize())
+	AMDSProjectPlayerState* MDSPlayerState = GetPlayerState<AMDSProjectPlayerState>();
+	if (!MDSPlayerState)
 	{
-		UE_LOG(LogMDSPlayerCombat, Warning, TEXT("MDS Combat | ServerAttackRejected | Reason=InvalidDirection | Requester=%s."),
-			*GetNameSafe(RequestingPawn));
-		return;
-	}
-	const FVector ShotDirection = ShotDirection2D;
-	const float TraceDistance = AttackRange;
-
-	if (AttackDamage <= 0.0f)
-	{
-		UE_LOG(LogMDSPlayerCombat, Warning, TEXT("MDS Combat | ServerAttackRejected | Reason=InvalidDamage | Requester=%s | Damage=%.1f."),
-			*GetNameSafe(RequestingPawn),
-			AttackDamage);
+		UE_LOG(LogMDSPlayerCombat, Warning,
+			TEXT("MDS GAS Fire | ActivationRejected | Reason=MissingPlayerState | Controller=%s."),
+			*GetNameSafe(this));
 		return;
 	}
 
-	UWorld* World = GetWorld();
-	const double CurrentTimeSeconds = World ? World->GetTimeSeconds() : 0.0;
-	const double CooldownRemaining = LastServerAttackTimeSeconds + AttackCooldownSeconds - CurrentTimeSeconds;
-	if (CooldownRemaining > 0.0)
-	{
-		UE_LOG(LogMDSPlayerCombat, Log, TEXT("MDS Combat | ServerAttackRejected | Reason=Cooldown | Requester=%s | CooldownRemaining=%.2f."),
-			*GetNameSafe(RequestingPawn),
-			CooldownRemaining);
-		return;
-	}
-
-	AMDSCombatEnemyActor* TargetEnemy = nullptr;
-	float ClosestDistanceAlongShot = TraceDistance + 1.0f;
-	if (World)
-	{
-		for (TActorIterator<AMDSCombatEnemyActor> EnemyIt(World); EnemyIt; ++EnemyIt)
-		{
-			AMDSCombatEnemyActor* CandidateEnemy = *EnemyIt;
-			if (!CandidateEnemy || CandidateEnemy->IsDead())
-			{
-				continue;
-			}
-
-			FVector ToEnemy = CandidateEnemy->GetActorLocation() - TraceStart;
-			ToEnemy.Z = 0.0f;
-			const float DistanceAlongShot = FVector::DotProduct(ToEnemy, ShotDirection);
-			if (DistanceAlongShot < 0.0f || DistanceAlongShot > TraceDistance || DistanceAlongShot >= ClosestDistanceAlongShot)
-			{
-				continue;
-			}
-
-			const FVector ClosestPointOnShot = ShotDirection * DistanceAlongShot;
-			const float DistanceFromShot = FVector::Dist2D(ToEnemy, ClosestPointOnShot);
-			if (DistanceFromShot <= DirectionalAttackHitRadius)
-			{
-				TargetEnemy = CandidateEnemy;
-				ClosestDistanceAlongShot = DistanceAlongShot;
-			}
-		}
-	}
-	const FVector TraceEnd = TargetEnemy ? TargetEnemy->GetActorLocation() : FVector(RequestedAimPoint);
-
-	LastServerAttackTimeSeconds = CurrentTimeSeconds;
-	if (AMDSProjectCharacter* RequestingCharacter = Cast<AMDSProjectCharacter>(RequestingPawn))
-	{
-		RequestingCharacter->MulticastPlayRemoteAttackPresentation(
-			TEXT("ServerDirectionalFire"),
-			ShotDirection,
-			TraceEnd,
-			GetAttackFacingDuration());
-	}
-
-	if (!TargetEnemy || TargetEnemy->IsDead())
+	if (!MDSPlayerState->TryActivateFireAbility(ServerAimPoint))
 	{
 		UE_LOG(LogMDSPlayerCombat, Log,
-			TEXT("MDS Combat | ServerAttackResolved | Requester=%s | Target=%s | Valid=true | Hit=false | Direction=%s | TraceEnd=%s | Range=%.1f | HitRadius=%.1f | DamageApplied=false."),
-			*GetNameSafe(RequestingPawn),
-			*GetNameSafe(TargetEnemy),
-			*ShotDirection.ToCompactString(),
-			*TraceEnd.ToCompactString(),
-			AttackRange,
-			DirectionalAttackHitRadius);
-		return;
+			TEXT("MDS GAS Fire | ActivationRejected | Reason=AbilityUnavailable | Controller=%s | PlayerState=%s."),
+			*GetNameSafe(this),
+			*GetNameSafe(MDSPlayerState));
 	}
-
-	const float PreviousHealth = TargetEnemy->GetCurrentHealth();
-	const bool bDamageApplied = TargetEnemy->ApplyEnemyDamage(AttackDamage, TEXT("PlayerAttack"));
-	const float NewHealth = TargetEnemy->GetCurrentHealth();
-
-	UE_LOG(LogMDSPlayerCombat, Log, TEXT("MDS Combat | ServerAttackResolved | Requester=%s | Target=%s | Valid=true | Hit=true | Direction=%s | TraceEnd=%s | DamageApplied=%s | Damage=%.1f | EnemyHP=%.1f->%.1f."),
-		*GetNameSafe(RequestingPawn),
-		*GetNameSafe(TargetEnemy),
-		*ShotDirection.ToCompactString(),
-		*TraceEnd.ToCompactString(),
-		bDamageApplied ? TEXT("true") : TEXT("false"),
-		AttackDamage,
-		PreviousHealth,
-		NewHealth);
 }
 
 UMDSDebugOverlayWidget* AMDSProjectPlayerController::GetOrCreateDebugOverlay()
