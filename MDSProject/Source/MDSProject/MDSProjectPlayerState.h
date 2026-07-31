@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerState.h"
 #include "Progression/MDSLevelUpTypes.h"
 #include "Progression/MDSRoundResultTypes.h"
+#include "Shop/MDSShopTypes.h"
 #include "MDSProjectPlayerState.generated.h"
 
 class UAbilitySystemComponent;
@@ -29,6 +30,7 @@ public:
 	void GrantMatchReward(int32 CurrencyAmount, int32 ExperienceAmount);
 	void PrepareLevelUpChoices();
 	bool TryApplyLevelUpChoice(EMDSLevelUpUpgrade Upgrade);
+	bool TryPurchaseShopOffer(const FMDSShopOffer& Offer);
 	void BeginRoundTracking();
 	void FinalizeRoundResult();
 
@@ -42,6 +44,7 @@ public:
 	float GetFireRateMultiplier() const;
 	float GetMoveSpeedMultiplier() const;
 	const FMDSPlayerRoundResult& GetLastRoundResult() const { return LastRoundResult; }
+	const TArray<FName>& GetPurchasedShopProductIds() const { return PurchasedShopProductIds; }
 
 private:
 	UFUNCTION()
@@ -74,9 +77,13 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_Progression, VisibleInstanceOnly, Category = "MDS|Progression")
 	FMDSPlayerRoundResult LastRoundResult;
 
+	UPROPERTY(ReplicatedUsing = OnRep_Progression, VisibleInstanceOnly, Category = "MDS|Shop")
+	TArray<FName> PurchasedShopProductIds;
+
 	FGameplayAbilitySpecHandle FireAbilityHandle;
 	FMDSPlayerRoundResult CurrentRoundResult;
 	FVector PendingFireAimPoint = FVector::ZeroVector;
 	float CachedBaseWalkSpeed = 0.0f;
 	bool bHasPendingFireAimPoint = false;
+	bool ApplyUpgradeEffect(EMDSLevelUpUpgrade Upgrade);
 };

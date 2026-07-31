@@ -50,6 +50,7 @@ void AMDSProjectPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	DOREPLIFETIME(AMDSProjectPlayerState, PendingLevelUpChoices);
 	DOREPLIFETIME(AMDSProjectPlayerState, ActiveLevelUpChoices);
 	DOREPLIFETIME(AMDSProjectPlayerState, LastRoundResult);
+	DOREPLIFETIME(AMDSProjectPlayerState, PurchasedShopProductIds);
 }
 
 bool AMDSProjectPlayerState::TryActivateFireAbility(const FVector& RequestedAimPoint)
@@ -152,6 +153,29 @@ bool AMDSProjectPlayerState::TryApplyLevelUpChoice(const EMDSLevelUpUpgrade Upgr
 		return false;
 	}
 
+	if (!ApplyUpgradeEffect(Upgrade))
+	{
+		return false;
+	}
+
+	--PendingLevelUpChoices;
+	CurrentRoundResult.SelectedUpgrades.Add(Upgrade);
+	ActiveLevelUpChoices.Reset();
+	if (PendingLevelUpChoices > 0)
+	{
+		PrepareLevelUpChoices();
+	}
+
+	UE_LOG(LogMDSPlayerProgression, Log,
+		TEXT("MDS LevelUp | ChoiceApplied | PlayerState=%s | Upgrade=%s | Pending=%d | Attack=%.2f | FireRate=%.2f | MoveSpeed=%.2f."),
+		*GetNameSafe(this), LexToString(Upgrade), PendingLevelUpChoices,
+		GetAttackPowerMultiplier(), GetFireRateMultiplier(), GetMoveSpeedMultiplier());
+	ForceNetUpdate();
+	return true;
+}
+
+bool AMDSProjectPlayerState::ApplyUpgradeEffect(const EMDSLevelUpUpgrade Upgrade)
+{
 	TSubclassOf<UGameplayEffect> EffectClass;
 	switch (Upgrade)
 	{
@@ -178,14 +202,6 @@ bool AMDSProjectPlayerState::TryApplyLevelUpChoice(const EMDSLevelUpUpgrade Upgr
 		return false;
 	}
 
-	--PendingLevelUpChoices;
-	CurrentRoundResult.SelectedUpgrades.Add(Upgrade);
-	ActiveLevelUpChoices.Reset();
-	if (PendingLevelUpChoices > 0)
-	{
-		PrepareLevelUpChoices();
-	}
-
 	if (ACharacter* Character = Cast<ACharacter>(GetPawn()))
 	{
 		if (UCharacterMovementComponent* Movement = Character->GetCharacterMovement())
@@ -198,14 +214,29 @@ bool AMDSProjectPlayerState::TryApplyLevelUpChoice(const EMDSLevelUpUpgrade Upgr
 		}
 	}
 
+	return true;
+}
+
+bool AMDSProjectPlayerState::TryPurchaseShopOffer(const FMDSShopOffer& Offer)
+{
+	if (!HasAuthority() || Offer.ProductId.IsNone() || Offer.Price < 0
+		|| MatchCurrency < Offer.Price || PurchasedShopProductIds.Contains(Offer.ProductId)
+		|| !ApplyUpgradeEffect(Offer.Upgrade))
+	{
+		UE_LOG(LogMDSPlayerProgression, Warning,
+			TEXT("MDS Shop | PurchaseRejected | PlayerState=%s | Product=%s | Price=%d | Currency=%d."),
+			*GetNameSafe(this), *Offer.ProductId.ToString(), Offer.Price, MatchCurrency);
+		return false;
+	}
+
+	MatchCurrency -= Offer.Price;
+	PurchasedShopProductIds.Add(Offer.ProductId);
+	LastRoundResult.CurrencySpent += Offer.Price;
+	LastRoundResult.CurrentCurrency = MatchCurrency;
 	UE_LOG(LogMDSPlayerProgression, Log,
-		TEXT("MDS LevelUp | ChoiceApplied | PlayerState=%s | Upgrade=%s | Pending=%d | Attack=%.2f | FireRate=%.2f | MoveSpeed=%.2f."),
-		*GetNameSafe(this),
-		LexToString(Upgrade),
-		PendingLevelUpChoices,
-		GetAttackPowerMultiplier(),
-		GetFireRateMultiplier(),
-		GetMoveSpeedMultiplier());
+		TEXT("MDS Shop | PurchaseApplied | PlayerState=%s | Product=%s | Price=%d | Currency=%d | Attack=%.2f | FireRate=%.2f | MoveSpeed=%.2f."),
+		*GetNameSafe(this), *Offer.ProductId.ToString(), Offer.Price, MatchCurrency,
+		GetAttackPowerMultiplier(), GetFireRateMultiplier(), GetMoveSpeedMultiplier());
 	ForceNetUpdate();
 	return true;
 }
@@ -218,6 +249,7 @@ void AMDSProjectPlayerState::BeginRoundTracking()
 	}
 
 	CurrentRoundResult = FMDSPlayerRoundResult();
+	PurchasedShopProductIds.Reset();
 	CurrentRoundResult.CurrentLevel = CurrentLevel;
 	CurrentRoundResult.CurrentCurrency = MatchCurrency;
 }

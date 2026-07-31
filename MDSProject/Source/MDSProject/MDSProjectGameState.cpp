@@ -20,10 +20,22 @@ void AMDSProjectGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 	DOREPLIFETIME(AMDSProjectGameState, bCombatSuspended);
 	DOREPLIFETIME(AMDSProjectGameState, LevelUpFlowState);
 	DOREPLIFETIME(AMDSProjectGameState, LastRoundResult);
+	DOREPLIFETIME(AMDSProjectGameState, ActiveShopOffers);
 	DOREPLIFETIME(AMDSProjectGameState, CurrentWaveIndex);
 	DOREPLIFETIME(AMDSProjectGameState, EnemiesRemaining);
 	DOREPLIFETIME(AMDSProjectGameState, TotalEnemiesThisWave);
 	DOREPLIFETIME(AMDSProjectGameState, bWaveActive);
+}
+
+void AMDSProjectGameState::SetActiveShopOffers(const TArray<FMDSShopOffer>& InShopOffers)
+{
+	if (!HasWaveStateAuthority(TEXT("SetActiveShopOffers")))
+	{
+		return;
+	}
+	ActiveShopOffers = InShopOffers;
+	UE_LOG(LogMDSGameState, Log, TEXT("MDS Shop | OffersPublished | Count=%d."), ActiveShopOffers.Num());
+	ForceNetUpdate();
 }
 
 void AMDSProjectGameState::SetRoundResult(const FMDSRoundResult& InRoundResult)

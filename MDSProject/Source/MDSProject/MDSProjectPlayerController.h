@@ -15,6 +15,7 @@ class UInputAction;
 class UMDSDebugOverlayWidget;
 class UMDSMatchHUDWidget;
 class UMDSLevelUpChoiceWidget;
+class UMDSRoundSettlementWidget;
 class AActor;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -51,6 +52,7 @@ public:
 	/** Constructor */
 	AMDSProjectPlayerController();
 	void RequestLevelUpChoice(EMDSLevelUpUpgrade Upgrade);
+	void RequestShopPurchase(FName ProductId);
 
 protected:
 	virtual void BeginPlay() override;
@@ -90,12 +92,16 @@ private:
 	void StartMovementSnapshotVerification();
 	void LogMovementVerificationSnapshots();
 	void UpdateLevelUpChoiceUI();
+	void UpdateRoundSettlementUI();
 
 	UFUNCTION(Server, Reliable)
 	void ServerRequestAttack(FVector_NetQuantize RequestedAimPoint);
 
 	UFUNCTION(Server, Reliable)
 	void ServerSelectLevelUpChoice(EMDSLevelUpUpgrade Upgrade);
+
+	UFUNCTION(Server, Reliable)
+	void ServerPurchaseShopProduct(FName ProductId);
 
 	UPROPERTY(EditDefaultsOnly, Category = "MDS|UI", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UMDSDebugOverlayWidget> DebugOverlayWidgetClass;
@@ -117,6 +123,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMDSLevelUpChoiceWidget> LevelUpChoiceWidget;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMDSRoundSettlementWidget> RoundSettlementWidget;
 
 	FTimerHandle ReplicatedUIViewportScreenshotTimerHandle;
 	FTimerHandle AttackVisibleScreenshotTimerHandle;
@@ -140,6 +149,7 @@ private:
 	bool bAutoMoveVerificationActive = false;
 	bool bAutoAttackSuspensionLogged = false;
 	bool bAutoLevelUpChoiceSubmitted = false;
+	bool bAutoShopPurchaseSubmitted = false;
 };
 
 

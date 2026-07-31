@@ -31,6 +31,7 @@
 #include "UI/MDSDebugOverlayWidget.h"
 #include "UI/MDSMatchHUDWidget.h"
 #include "UI/MDSLevelUpChoiceWidget.h"
+#include "UI/MDSRoundSettlementWidget.h"
 #include "MDSProjectGameMode.h"
 #include "UnrealClient.h"
 
@@ -151,6 +152,7 @@ void AMDSProjectPlayerController::BeginPlay()
 void AMDSProjectPlayerController::PlayerTick(float DeltaTime)
 {
 	UpdateLevelUpChoiceUI();
+	UpdateRoundSettlementUI();
 	ApplyKeyboardMovementInput();
 
 	if (bAutoMoveVerificationActive)
@@ -227,6 +229,71 @@ void AMDSProjectPlayerController::ServerSelectLevelUpChoice_Implementation(const
 	if (AMDSProjectGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AMDSProjectGameMode>() : nullptr)
 	{
 		GameMode->HandleLevelUpChoice(GetPlayerState<AMDSProjectPlayerState>(), Upgrade);
+	}
+}
+
+void AMDSProjectPlayerController::UpdateRoundSettlementUI()
+{
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+	const AMDSProjectGameState* GameState = GetWorld() ? GetWorld()->GetGameState<AMDSProjectGameState>() : nullptr;
+	const AMDSProjectPlayerState* MDSPlayerState = GetPlayerState<AMDSProjectPlayerState>();
+	const bool bShouldShow = GameState && GameState->GetMatchPhase() == EMDSMatchPhase::RoundSettlement;
+	if (bShouldShow)
+	{
+		if (!RoundSettlementWidget)
+		{
+			RoundSettlementWidget = CreateWidget<UMDSRoundSettlementWidget>(this, UMDSRoundSettlementWidget::StaticClass());
+			RoundSettlementWidget->AddToPlayerScreen(90);
+		}
+		RoundSettlementWidget->RefreshSettlement();
+		RoundSettlementWidget->SetVisibility(ESlateVisibility::Visible);
+		FInputModeGameAndUI InputMode;
+		InputMode.SetWidgetToFocus(RoundSettlementWidget->TakeWidget());
+		SetInputMode(InputMode);
+
+		if (!bAutoShopPurchaseSubmitted && MDSPlayerState
+			&& FParse::Param(FCommandLine::Get(), TEXT("MDSAutoPurchaseShop")))
+		{
+			int32 OfferIndex = 0;
+			FParse::Value(FCommandLine::Get(), TEXT("MDSShopOfferIndex="), OfferIndex);
+			if (GameState->GetActiveShopOffers().IsValidIndex(OfferIndex))
+			{
+				bAutoShopPurchaseSubmitted = true;
+				RequestShopPurchase(GameState->GetActiveShopOffers()[OfferIndex].ProductId);
+				if (FParse::Param(FCommandLine::Get(), TEXT("MDSAutoPurchaseShopTwice")))
+				{
+					RequestShopPurchase(GameState->GetActiveShopOffers()[OfferIndex].ProductId);
+				}
+			}
+		}
+	}
+	else
+	{
+		bAutoShopPurchaseSubmitted = false;
+		if (RoundSettlementWidget)
+		{
+			RoundSettlementWidget->SetVisibility(ESlateVisibility::Collapsed);
+		}
+		SetInputMode(FInputModeGameOnly());
+	}
+}
+
+void AMDSProjectPlayerController::RequestShopPurchase(const FName ProductId)
+{
+	if (IsLocalController() && !ProductId.IsNone())
+	{
+		ServerPurchaseShopProduct(ProductId);
+	}
+}
+
+void AMDSProjectPlayerController::ServerPurchaseShopProduct_Implementation(const FName ProductId)
+{
+	if (AMDSProjectGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AMDSProjectGameMode>() : nullptr)
+	{
+		GameMode->HandleShopPurchase(GetPlayerState<AMDSProjectPlayerState>(), ProductId);
 	}
 }
 
