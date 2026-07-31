@@ -49,6 +49,7 @@ void AMDSProjectPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	DOREPLIFETIME(AMDSProjectPlayerState, CurrentLevel);
 	DOREPLIFETIME(AMDSProjectPlayerState, PendingLevelUpChoices);
 	DOREPLIFETIME(AMDSProjectPlayerState, ActiveLevelUpChoices);
+	DOREPLIFETIME(AMDSProjectPlayerState, LastRoundResult);
 }
 
 bool AMDSProjectPlayerState::TryActivateFireAbility(const FVector& RequestedAimPoint)
@@ -97,6 +98,9 @@ void AMDSProjectPlayerState::GrantMatchReward(const int32 CurrencyAmount, const 
 
 	MatchCurrency += FMath::Max(0, CurrencyAmount);
 	CurrentExperience += FMath::Max(0, ExperienceAmount);
+	++CurrentRoundResult.KillCount;
+	CurrentRoundResult.CurrencyEarned += FMath::Max(0, CurrencyAmount);
+	CurrentRoundResult.ExperienceEarned += FMath::Max(0, ExperienceAmount);
 
 	while (CurrentExperience >= GetExperienceRequiredForNextLevel())
 	{
@@ -175,6 +179,7 @@ bool AMDSProjectPlayerState::TryApplyLevelUpChoice(const EMDSLevelUpUpgrade Upgr
 	}
 
 	--PendingLevelUpChoices;
+	CurrentRoundResult.SelectedUpgrades.Add(Upgrade);
 	ActiveLevelUpChoices.Reset();
 	if (PendingLevelUpChoices > 0)
 	{
@@ -203,6 +208,42 @@ bool AMDSProjectPlayerState::TryApplyLevelUpChoice(const EMDSLevelUpUpgrade Upgr
 		GetMoveSpeedMultiplier());
 	ForceNetUpdate();
 	return true;
+}
+
+void AMDSProjectPlayerState::BeginRoundTracking()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	CurrentRoundResult = FMDSPlayerRoundResult();
+	CurrentRoundResult.CurrentLevel = CurrentLevel;
+	CurrentRoundResult.CurrentCurrency = MatchCurrency;
+}
+
+void AMDSProjectPlayerState::FinalizeRoundResult()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	CurrentRoundResult.CurrentLevel = CurrentLevel;
+	CurrentRoundResult.CurrentCurrency = MatchCurrency;
+	CurrentRoundResult.bReadyForNextRound = false;
+	LastRoundResult = CurrentRoundResult;
+	UE_LOG(LogMDSPlayerProgression, Log,
+		TEXT("MDS RoundResult | PlayerFinalized | PlayerState=%s | Kills=%d | CurrencyEarned=%d | ExperienceEarned=%d | CurrencySpent=%d | Level=%d | Currency=%d | Upgrades=%d | Ready=false."),
+		*GetNameSafe(this),
+		LastRoundResult.KillCount,
+		LastRoundResult.CurrencyEarned,
+		LastRoundResult.ExperienceEarned,
+		LastRoundResult.CurrencySpent,
+		LastRoundResult.CurrentLevel,
+		LastRoundResult.CurrentCurrency,
+		LastRoundResult.SelectedUpgrades.Num());
+	ForceNetUpdate();
 }
 
 int32 AMDSProjectPlayerState::GetExperienceRequiredForNextLevel() const

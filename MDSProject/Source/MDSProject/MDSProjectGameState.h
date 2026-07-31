@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameStateBase.h"
+#include "Progression/MDSRoundResultTypes.h"
 #include "MDSProjectGameState.generated.h"
 
 UENUM(BlueprintType)
@@ -40,10 +41,12 @@ public:
 	bool IsWaveActive() const { return bWaveActive; }
 	bool IsCombatSuspended() const { return bCombatSuspended; }
 	EMDSLevelUpFlowState GetLevelUpFlowState() const { return LevelUpFlowState; }
+	const FMDSRoundResult& GetLastRoundResult() const { return LastRoundResult; }
 
 	void SetMatchState(EMDSMatchPhase InMatchPhase, int32 InCurrentRoundIndex);
 	void SetCombatSuspended(bool bInCombatSuspended);
 	void SetLevelUpFlowState(EMDSLevelUpFlowState InFlowState);
+	void SetRoundResult(const FMDSRoundResult& InRoundResult);
 	void SetWaveState(int32 InCurrentWaveIndex, int32 InEnemiesRemaining, bool bInWaveActive, int32 InTotalEnemiesThisWave);
 	void SetEnemiesRemaining(int32 InEnemiesRemaining);
 	void SetWaveActive(bool bInWaveActive);
@@ -69,6 +72,9 @@ private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_MatchState, VisibleInstanceOnly, Category = "Match")
 	EMDSLevelUpFlowState LevelUpFlowState = EMDSLevelUpFlowState::None;
+
+	UPROPERTY(ReplicatedUsing = OnRep_MatchState, VisibleInstanceOnly, Category = "Match")
+	FMDSRoundResult LastRoundResult;
 
 	UPROPERTY(ReplicatedUsing = OnRep_WaveState, VisibleInstanceOnly, Category = "Wave")
 	int32 CurrentWaveIndex = 0;
