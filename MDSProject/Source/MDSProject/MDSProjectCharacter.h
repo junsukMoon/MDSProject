@@ -44,6 +44,7 @@ public:
 
 	void RequestLocalAttackPresentation(FName PresentationSource);
 	void ApplyMovementInput(const FVector2D& MovementInput);
+	void SetCombatSuspended(bool bInCombatSuspended);
 	void BeginTemporaryFireFacing(const FVector& AimDirection, float DurationSeconds);
 	void PlayShotTracerPresentation(const FVector& TraceEnd);
 
@@ -80,6 +81,7 @@ private:
 	double LastMovementVerificationLogTimeSeconds = -1000000.0;
 	bool bMovementVerificationInitialized = false;
 	bool bFireFacingLocked = false;
+	bool bCombatSuspended = false;
 	TWeakObjectPtr<UAbilitySystemComponent> CachedAbilitySystemComponent;
 	FTimerHandle FireFacingTimerHandle;
 };

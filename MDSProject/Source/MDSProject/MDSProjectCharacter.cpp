@@ -3,6 +3,7 @@
 #include "MDSProjectCharacter.h"
 #include "MDSAssetPaths.h"
 #include "MDSProjectPlayerState.h"
+#include "MDSProjectGameState.h"
 #include "AbilitySystemComponent.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
@@ -13,6 +14,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameplayTagContainer.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
@@ -129,13 +131,62 @@ void AMDSProjectCharacter::OnMoveInput(const FInputActionValue& Value)
 
 void AMDSProjectCharacter::ApplyMovementInput(const FVector2D& MovementInput)
 {
-	if (!Controller || MovementInput.IsNearlyZero())
+	const AMDSProjectGameState* MDSGameState = GetWorld() ? GetWorld()->GetGameState<AMDSProjectGameState>() : nullptr;
+	if (!Controller || MovementInput.IsNearlyZero() || bCombatSuspended || (MDSGameState && MDSGameState->IsCombatSuspended()))
 	{
 		return;
 	}
 
 	AddMovementInput(FVector::ForwardVector, MovementInput.Y);
 	AddMovementInput(FVector::RightVector, MovementInput.X);
+}
+
+void AMDSProjectCharacter::SetCombatSuspended(const bool bInCombatSuspended)
+{
+	if (!HasAuthority() || bCombatSuspended == bInCombatSuspended)
+	{
+		return;
+	}
+
+	bCombatSuspended = bInCombatSuspended;
+	if (UAbilitySystemComponent* AbilitySystem = GetAbilitySystemComponent())
+	{
+		const FGameplayTag CombatSuspendedTag =
+			FGameplayTag::RequestGameplayTag(TEXT("State.CombatSuspended"));
+		if (bCombatSuspended)
+		{
+			AbilitySystem->AddLooseGameplayTag(CombatSuspendedTag);
+		}
+		else
+		{
+			AbilitySystem->RemoveLooseGameplayTag(CombatSuspendedTag);
+		}
+	}
+	if (bCombatSuspended)
+	{
+		GetWorldTimerManager().PauseTimer(FireFacingTimerHandle);
+	}
+	else
+	{
+		GetWorldTimerManager().UnPauseTimer(FireFacingTimerHandle);
+	}
+	if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
+	{
+		MovementComponent->StopMovementImmediately();
+		if (bCombatSuspended)
+		{
+			MovementComponent->DisableMovement();
+		}
+		else
+		{
+			MovementComponent->SetMovementMode(MOVE_Walking);
+		}
+	}
+
+	UE_LOG(LogMDSCharacterMovement, Log,
+		TEXT("MDS CombatSuspension | PlayerMovement | Character=%s | Suspended=%s."),
+		*GetNameSafe(this),
+		bCombatSuspended ? TEXT("true") : TEXT("false"));
 }
 
 void AMDSProjectCharacter::BeginPlay()

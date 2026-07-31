@@ -10,6 +10,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/WidgetComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameplayTagContainer.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "MDSProjectGameMode.h"
@@ -250,7 +251,7 @@ void AMDSCombatEnemyActor::Tick(const float DeltaSeconds)
 		return;
 	}
 
-	if (!HasAuthority() || IsDead() || bHasArrivedAtObjective || bMovementPausedForHitReaction || !ObjectiveActor)
+	if (!HasAuthority() || IsDead() || bHasArrivedAtObjective || bMovementPausedForHitReaction || bCombatSuspended || !ObjectiveActor)
 	{
 		return;
 	}
@@ -292,6 +293,56 @@ void AMDSCombatEnemyActor::Tick(const float DeltaSeconds)
 	{
 		HandleObjectiveArrivalOnce();
 	}
+}
+
+void AMDSCombatEnemyActor::SetCombatSuspended(const bool bInCombatSuspended)
+{
+	if (!HasAuthority() || bCombatSuspended == bInCombatSuspended)
+	{
+		return;
+	}
+
+	bCombatSuspended = bInCombatSuspended;
+	const FGameplayTag CombatSuspendedTag =
+		FGameplayTag::RequestGameplayTag(TEXT("State.CombatSuspended"));
+	if (bCombatSuspended)
+	{
+		AbilitySystemComponent->AddLooseGameplayTag(CombatSuspendedTag);
+	}
+	else
+	{
+		AbilitySystemComponent->RemoveLooseGameplayTag(CombatSuspendedTag);
+	}
+	UCharacterMovementComponent* Movement = GetCharacterMovement();
+	if (Movement)
+	{
+		Movement->StopMovementImmediately();
+		if (bCombatSuspended)
+		{
+			Movement->DisableMovement();
+		}
+		else if (!IsDead() && !bHasArrivedAtObjective && !bMovementPausedForHitReaction)
+		{
+			Movement->SetMovementMode(MOVE_Walking);
+		}
+	}
+
+	if (bCombatSuspended)
+	{
+		GetWorldTimerManager().PauseTimer(ObjectiveDamageTimerHandle);
+		GetWorldTimerManager().PauseTimer(HitMovementPauseTimerHandle);
+	}
+	else
+	{
+		GetWorldTimerManager().UnPauseTimer(ObjectiveDamageTimerHandle);
+		GetWorldTimerManager().UnPauseTimer(HitMovementPauseTimerHandle);
+	}
+
+	UE_LOG(LogMDSCombatEnemy, Log,
+		TEXT("MDS CombatSuspension | Enemy | Enemy=%s | Suspended=%s | AttackingObjective=%s."),
+		*GetNameSafe(this),
+		bCombatSuspended ? TEXT("true") : TEXT("false"),
+		bIsAttackingObjective ? TEXT("true") : TEXT("false"));
 }
 
 void AMDSCombatEnemyActor::StartWorldUITrackingLog()

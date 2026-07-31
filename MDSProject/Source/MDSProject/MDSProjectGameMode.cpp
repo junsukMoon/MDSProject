@@ -3,6 +3,8 @@
 #include "MDSProjectGameMode.h"
 
 #include "ActorAI/MDSActorEnemySpawnSubsystem.h"
+#include "Combat/MDSCombatEnemyActor.h"
+#include "MDSProjectCharacter.h"
 #include "MDSProjectPlayerController.h"
 #include "MDSProjectPlayerState.h"
 #include "MDSProjectGameState.h"
@@ -10,6 +12,7 @@
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
 #include "TimerManager.h"
+#include "EngineUtils.h"
 #include "UObject/ConstructorHelpers.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMDSGameMode, Log, All);
@@ -131,6 +134,9 @@ void AMDSProjectGameMode::HandleEnemyDeathForWave(AMDSProjectPlayerState* Reward
 		return;
 	}
 
+	const int32 PreviousPendingLevelUpChoices = RewardRecipient
+		? RewardRecipient->GetPendingLevelUpChoices()
+		: 0;
 	if (RewardRecipient)
 	{
 		RewardRecipient->GrantMatchReward(KillCurrencyReward, KillExperienceReward);
@@ -151,6 +157,82 @@ void AMDSProjectGameMode::HandleEnemyDeathForWave(AMDSProjectPlayerState* Reward
 		NewEnemiesRemaining);
 
 	CompleteWaveIfCleared();
+
+	AMDSProjectGameState* UpdatedGameState = GetGameState<AMDSProjectGameState>();
+	const bool bNewLevelUpPending = RewardRecipient
+		&& RewardRecipient->GetPendingLevelUpChoices() > PreviousPendingLevelUpChoices;
+	if (bNewLevelUpPending
+		&& UpdatedGameState
+		&& UpdatedGameState->GetMatchPhase() == EMDSMatchPhase::Combat)
+	{
+		SetCombatSuspended(true);
+	}
+}
+
+void AMDSProjectGameMode::SetCombatSuspended(const bool bInCombatSuspended)
+{
+	if (!HasAuthority())
+	{
+		UE_LOG(LogMDSGameMode, Warning, TEXT("Rejected non-authority combat suspension request."));
+		return;
+	}
+
+	AMDSProjectGameState* MDSGameState = GetGameState<AMDSProjectGameState>();
+	if (!MDSGameState
+		|| (bInCombatSuspended && MDSGameState->GetMatchPhase() != EMDSMatchPhase::Combat)
+		|| MDSGameState->IsCombatSuspended() == bInCombatSuspended)
+	{
+		return;
+	}
+
+	MDSGameState->SetCombatSuspended(bInCombatSuspended);
+	if (bInCombatSuspended)
+	{
+		GetWorldTimerManager().PauseTimer(WaveStartTimerHandle);
+	}
+	else
+	{
+		GetWorldTimerManager().UnPauseTimer(WaveStartTimerHandle);
+	}
+
+	int32 SuspendedPlayerCount = 0;
+	for (TActorIterator<AMDSProjectCharacter> CharacterIt(GetWorld()); CharacterIt; ++CharacterIt)
+	{
+		CharacterIt->SetCombatSuspended(bInCombatSuspended);
+		++SuspendedPlayerCount;
+	}
+
+	int32 SuspendedEnemyCount = 0;
+	for (TActorIterator<AMDSCombatEnemyActor> EnemyIt(GetWorld()); EnemyIt; ++EnemyIt)
+	{
+		EnemyIt->SetCombatSuspended(bInCombatSuspended);
+		++SuspendedEnemyCount;
+	}
+
+	UE_LOG(LogMDSGameMode, Log,
+		TEXT("MDS CombatSuspension | Applied | Suspended=%s | Players=%d | Enemies=%d | WorldPaused=false."),
+		bInCombatSuspended ? TEXT("true") : TEXT("false"),
+		SuspendedPlayerCount,
+		SuspendedEnemyCount);
+
+	if (bInCombatSuspended)
+	{
+		float AutoResumeDelaySeconds = 0.0f;
+		if (FParse::Value(FCommandLine::Get(), TEXT("MDSAutoCombatResumeDelay="), AutoResumeDelaySeconds))
+		{
+			GetWorldTimerManager().SetTimer(
+				CombatResumeVerificationTimerHandle,
+				FTimerDelegate::CreateWeakLambda(this, [this]()
+				{
+					SetCombatSuspended(false);
+				}),
+				FMath::Max(0.01f, AutoResumeDelaySeconds),
+				false);
+			UE_LOG(LogMDSGameMode, Log,
+				TEXT("MDS CombatSuspension | VerificationResumeScheduled | Delay=%.2f."),
+				AutoResumeDelaySeconds);
+		}
+	}
 }
 
 void AMDSProjectGameMode::InitializeWaveDisplayState()

@@ -16,10 +16,30 @@ void AMDSProjectGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 
 	DOREPLIFETIME(AMDSProjectGameState, MatchPhase);
 	DOREPLIFETIME(AMDSProjectGameState, CurrentRoundIndex);
+	DOREPLIFETIME(AMDSProjectGameState, bCombatSuspended);
 	DOREPLIFETIME(AMDSProjectGameState, CurrentWaveIndex);
 	DOREPLIFETIME(AMDSProjectGameState, EnemiesRemaining);
 	DOREPLIFETIME(AMDSProjectGameState, TotalEnemiesThisWave);
 	DOREPLIFETIME(AMDSProjectGameState, bWaveActive);
+}
+
+void AMDSProjectGameState::SetCombatSuspended(const bool bInCombatSuspended)
+{
+	if (!HasWaveStateAuthority(TEXT("SetCombatSuspended")))
+	{
+		return;
+	}
+
+	const bool bWasCombatSuspended = bCombatSuspended;
+	bCombatSuspended = bInCombatSuspended;
+	UE_LOG(LogMDSGameState, Log,
+		TEXT("Combat suspension set on server: Suspended=%s->%s Phase=%s Round=%d Wave=%d."),
+		bWasCombatSuspended ? TEXT("true") : TEXT("false"),
+		bCombatSuspended ? TEXT("true") : TEXT("false"),
+		*UEnum::GetValueAsString(MatchPhase),
+		CurrentRoundIndex,
+		CurrentWaveIndex);
+	ForceNetUpdate();
 }
 
 void AMDSProjectGameState::SetMatchState(const EMDSMatchPhase InMatchPhase, const int32 InCurrentRoundIndex)
@@ -135,9 +155,10 @@ void AMDSProjectGameState::OnRep_WaveState()
 void AMDSProjectGameState::OnRep_MatchState()
 {
 	UE_LOG(LogMDSGameState, Log,
-		TEXT("Match state replicated on client: Phase=%s Round=%d."),
+		TEXT("Match state replicated on client: Phase=%s Round=%d CombatSuspended=%s."),
 		*UEnum::GetValueAsString(MatchPhase),
-		CurrentRoundIndex);
+		CurrentRoundIndex,
+		bCombatSuspended ? TEXT("true") : TEXT("false"));
 }
 
 bool AMDSProjectGameState::HasWaveStateAuthority(const TCHAR* Context) const

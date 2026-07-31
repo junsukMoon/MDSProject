@@ -29,8 +29,10 @@ public:
 	int32 GetEnemiesRemaining() const { return EnemiesRemaining; }
 	int32 GetTotalEnemiesThisWave() const { return TotalEnemiesThisWave; }
 	bool IsWaveActive() const { return bWaveActive; }
+	bool IsCombatSuspended() const { return bCombatSuspended; }
 
 	void SetMatchState(EMDSMatchPhase InMatchPhase, int32 InCurrentRoundIndex);
+	void SetCombatSuspended(bool bInCombatSuspended);
 	void SetWaveState(int32 InCurrentWaveIndex, int32 InEnemiesRemaining, bool bInWaveActive, int32 InTotalEnemiesThisWave);
 	void SetEnemiesRemaining(int32 InEnemiesRemaining);
 	void SetWaveActive(bool bInWaveActive);
@@ -50,6 +52,9 @@ private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_MatchState, VisibleInstanceOnly, Category = "Match")
 	int32 CurrentRoundIndex = 0;
+
+	UPROPERTY(ReplicatedUsing = OnRep_MatchState, VisibleInstanceOnly, Category = "Match")
+	bool bCombatSuspended = false;
 
 	UPROPERTY(ReplicatedUsing = OnRep_WaveState, VisibleInstanceOnly, Category = "Wave")
 	int32 CurrentWaveIndex = 0;

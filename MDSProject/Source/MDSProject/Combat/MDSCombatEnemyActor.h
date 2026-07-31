@@ -36,6 +36,7 @@ public:
 	void InitializeCombatEnemy(AMDSObjectiveActor* InObjectiveActor, float InMoveSpeed, float InArrivalDistance, float InObjectiveDamageAmount);
 	bool ApplyEnemyDamage(float DamageAmount, FName DamageSource, AMDSProjectPlayerState* RewardRecipient = nullptr);
 	bool ResolveObjectiveAttackAbility();
+	void SetCombatSuspended(bool bInCombatSuspended);
 
 protected:
 	virtual void BeginPlay() override;
@@ -116,6 +117,7 @@ private:
 	bool bDeathFadeActive = false;
 	bool bMovementDiagnosticLogged = false;
 	bool bMovementPausedForHitReaction = false;
+	bool bCombatSuspended = false;
 	float DeathFadeElapsedSeconds = 0.0f;
 
 	FTimerHandle WorldUITrackingLogTimerHandle;

@@ -25,6 +25,7 @@ public:
 
 	void StartWave(int32 WaveIndex, int32 TotalEnemies);
 	void HandleEnemyDeathForWave(AMDSProjectPlayerState* RewardRecipient);
+	void SetCombatSuspended(bool bInCombatSuspended);
 
 protected:
 	virtual void BeginPlay() override;
@@ -39,6 +40,7 @@ private:
 	int32 GetEnemyCountForWave(int32 WaveIndex) const;
 
 	FTimerHandle WaveStartTimerHandle;
+	FTimerHandle CombatResumeVerificationTimerHandle;
 	int32 ScheduledWaveIndex = 0;
 	int32 MaxWaveCount = 3;
 	int32 InitialWaveEnemyCount = 3;

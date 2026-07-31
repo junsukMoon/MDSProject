@@ -1,6 +1,7 @@
 #include "Abilities/MDSEnemyAttackCastleAbility.h"
 
 #include "Combat/MDSCombatEnemyActor.h"
+#include "MDSProjectGameState.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMDSEnemyAttackCastleAbility, Log, All);
 
@@ -23,6 +24,16 @@ void UMDSEnemyAttackCastleAbility::ActivateAbility(
 	{
 		UE_LOG(LogMDSEnemyAttackCastleAbility, Warning,
 			TEXT("MDS GAS EnemyAttackCastle | Rejected | Reason=InvalidAuthorityContext | Enemy=%s."),
+			*GetNameSafe(Enemy));
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
+
+	const AMDSProjectGameState* MDSGameState = GetWorld() ? GetWorld()->GetGameState<AMDSProjectGameState>() : nullptr;
+	if (MDSGameState && MDSGameState->IsCombatSuspended())
+	{
+		UE_LOG(LogMDSEnemyAttackCastleAbility, Log,
+			TEXT("MDS GAS EnemyAttackCastle | Rejected | Reason=CombatSuspended | Enemy=%s."),
 			*GetNameSafe(Enemy));
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		return;
