@@ -56,9 +56,11 @@ void UMDSRoundSettlementWidget::EnsureFallbackLayout()
 	OfferButtons[1]->OnClicked.AddDynamic(this, &UMDSRoundSettlementWidget::HandleOffer1);
 	OfferButtons[2]->OnClicked.AddDynamic(this, &UMDSRoundSettlementWidget::HandleOffer2);
 
-	UTextBlock* ReadyPlaceholder = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("NextRoundReadyButtonPlaceholder"));
-	ReadyPlaceholder->SetText(FText::FromString(TEXT("다음 라운드 준비 기능은 Phase R11에서 연결됩니다.")));
-	ResultPanel->AddChildToVerticalBox(ReadyPlaceholder);
+	SettlementActionButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("NextRoundReadyButton"));
+	SettlementActionText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SettlementActionText"));
+	SettlementActionButton->AddChild(SettlementActionText);
+	ResultPanel->AddChildToVerticalBox(SettlementActionButton);
+	SettlementActionButton->OnClicked.AddDynamic(this, &UMDSRoundSettlementWidget::HandleSettlementAction);
 }
 
 void UMDSRoundSettlementWidget::RefreshSettlement()
@@ -73,6 +75,12 @@ void UMDSRoundSettlementWidget::RefreshSettlement()
 
 	const FMDSRoundResult& Team = GameState->GetLastRoundResult();
 	const FMDSPlayerRoundResult& Player = PlayerState->GetLastRoundResult();
+	if (SettlementActionText && SettlementActionButton)
+	{
+		const bool bFinal = GameState->IsFinalRoundSettlement();
+		SettlementActionText->SetText(FText::FromString(bFinal ? TEXT("매치 종료") : TEXT("다음 라운드 준비")));
+		SettlementActionButton->SetIsEnabled(bFinal || !PlayerState->IsReadyForNextRound());
+	}
 	FString UpgradeSummary = TEXT("없음");
 	if (!Player.SelectedUpgrades.IsEmpty())
 	{
@@ -110,7 +118,7 @@ void UMDSRoundSettlementWidget::RefreshSettlement()
 		OfferTexts[Index]->SetText(FText::FromString(FString::Printf(TEXT("%s\n%s\n가격 %d%s"),
 			*Offer.DisplayName.ToString(), *Offer.EffectDescription.ToString(), Offer.Price,
 			bPurchased ? TEXT(" (구매 완료)") : TEXT(""))));
-		OfferButtons[Index]->SetIsEnabled(!bPurchased && bAffordable);
+		OfferButtons[Index]->SetIsEnabled(!GameState->IsFinalRoundSettlement() && !bPurchased && bAffordable);
 	}
 }
 
@@ -128,3 +136,11 @@ void UMDSRoundSettlementWidget::SubmitPurchase(const int32 OfferIndex)
 void UMDSRoundSettlementWidget::HandleOffer0() { SubmitPurchase(0); }
 void UMDSRoundSettlementWidget::HandleOffer1() { SubmitPurchase(1); }
 void UMDSRoundSettlementWidget::HandleOffer2() { SubmitPurchase(2); }
+
+void UMDSRoundSettlementWidget::HandleSettlementAction()
+{
+	if (AMDSProjectPlayerController* Controller = GetOwningPlayer<AMDSProjectPlayerController>())
+	{
+		Controller->RequestSettlementAction();
+	}
+}

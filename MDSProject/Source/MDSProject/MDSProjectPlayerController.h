@@ -53,6 +53,7 @@ public:
 	AMDSProjectPlayerController();
 	void RequestLevelUpChoice(EMDSLevelUpUpgrade Upgrade);
 	void RequestShopPurchase(FName ProductId);
+	void RequestSettlementAction();
 
 protected:
 	virtual void BeginPlay() override;
@@ -103,6 +104,9 @@ private:
 	UFUNCTION(Server, Reliable)
 	void ServerPurchaseShopProduct(FName ProductId);
 
+	UFUNCTION(Server, Reliable)
+	void ServerRequestSettlementAction();
+
 	UPROPERTY(EditDefaultsOnly, Category = "MDS|UI", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UMDSDebugOverlayWidget> DebugOverlayWidgetClass;
 
@@ -150,6 +154,7 @@ private:
 	bool bAutoAttackSuspensionLogged = false;
 	bool bAutoLevelUpChoiceSubmitted = false;
 	bool bAutoShopPurchaseSubmitted = false;
+	bool bAutoSettlementActionSubmitted = false;
 };
 
 

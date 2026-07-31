@@ -269,15 +269,34 @@ void AMDSProjectPlayerController::UpdateRoundSettlementUI()
 				}
 			}
 		}
+		if (!bAutoSettlementActionSubmitted && FParse::Param(FCommandLine::Get(), TEXT("MDSAutoSettlementAction")))
+		{
+			bAutoSettlementActionSubmitted = true;
+			RequestSettlementAction();
+		}
 	}
 	else
 	{
 		bAutoShopPurchaseSubmitted = false;
+		bAutoSettlementActionSubmitted = false;
 		if (RoundSettlementWidget)
 		{
 			RoundSettlementWidget->SetVisibility(ESlateVisibility::Collapsed);
 		}
 		SetInputMode(FInputModeGameOnly());
+	}
+}
+
+void AMDSProjectPlayerController::RequestSettlementAction()
+{
+	if (IsLocalController()) ServerRequestSettlementAction();
+}
+
+void AMDSProjectPlayerController::ServerRequestSettlementAction_Implementation()
+{
+	if (AMDSProjectGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AMDSProjectGameMode>() : nullptr)
+	{
+		GameMode->HandleSettlementAction(GetPlayerState<AMDSProjectPlayerState>());
 	}
 }
 
