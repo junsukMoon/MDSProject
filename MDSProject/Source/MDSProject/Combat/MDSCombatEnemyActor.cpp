@@ -1,5 +1,7 @@
 #include "Combat/MDSCombatEnemyActor.h"
 
+#include "Abilities/MDSEnemyAttackCastleAbility.h"
+#include "AbilitySystemComponent.h"
 #include "MDSAssetPaths.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
@@ -126,6 +128,11 @@ AMDSCombatEnemyActor::AMDSCombatEnemyActor()
 	EnemyWorldWidgetComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 120.0f));
 	EnemyWorldWidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
+	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+	AbilitySystemComponent->SetIsReplicated(true);
+	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Minimal);
+	ObjectiveAttackAbilityClass = UMDSEnemyAttackCastleAbility::StaticClass();
+
 	EnemyPresentationMesh = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(MDSAssetPaths::EnemyPresentationMesh));
 	EnemyPresentationAnimClass = TSoftClassPtr<UAnimInstance>(FSoftObjectPath(MDSAssetPaths::EnemyPresentationAnimClass));
 	ObjectiveAttackAnimation = TSoftObjectPtr<UAnimSequenceBase>(FSoftObjectPath(MDSAssetPaths::EnemyObjectiveAttackAnimation));
@@ -137,8 +144,19 @@ void AMDSCombatEnemyActor::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (AbilitySystemComponent)
+	{
+		AbilitySystemComponent->InitAbilityActorInfo(this, this);
+	}
+
 	if (HasAuthority())
 	{
+		if (AbilitySystemComponent && ObjectiveAttackAbilityClass)
+		{
+			ObjectiveAttackAbilityHandle = AbilitySystemComponent->GiveAbility(
+				FGameplayAbilitySpec(ObjectiveAttackAbilityClass, 1));
+		}
+
 		CurrentHealth = MaxHealth;
 		bDeathHandled = false;
 		bHasArrivedAtObjective = false;
@@ -486,6 +504,10 @@ void AMDSCombatEnemyActor::HandleDeathOnce(const FName DamageSource)
 	bDeathHandled = true;
 	bIsAttackingObjective = false;
 	GetWorldTimerManager().ClearTimer(ObjectiveDamageTimerHandle);
+	if (AbilitySystemComponent)
+	{
+		AbilitySystemComponent->CancelAllAbilities();
+	}
 	StopObjectiveAttackPresentation();
 	ForceNetUpdate();
 	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
@@ -546,7 +568,7 @@ void AMDSCombatEnemyActor::HandleObjectiveArrivalOnce()
 	GetWorldTimerManager().SetTimer(
 		ObjectiveDamageTimerHandle,
 		this,
-		&AMDSCombatEnemyActor::ApplyObjectiveAttackDamage,
+		&AMDSCombatEnemyActor::RequestObjectiveAttackAbility,
 		ObjectiveAttackIntervalSeconds,
 		true,
 		ObjectiveAttackHitDelaySeconds);
@@ -564,19 +586,33 @@ void AMDSCombatEnemyActor::HandleObjectiveArrivalOnce()
 		ObjectiveDamageAmount);
 }
 
-void AMDSCombatEnemyActor::ApplyObjectiveAttackDamage()
+void AMDSCombatEnemyActor::RequestObjectiveAttackAbility()
+{
+	if (!HasAuthority()
+		|| !AbilitySystemComponent
+		|| !ObjectiveAttackAbilityHandle.IsValid()
+		|| !AbilitySystemComponent->TryActivateAbility(ObjectiveAttackAbilityHandle))
+	{
+		UE_LOG(LogMDSCombatEnemy, Warning,
+			TEXT("MDS GAS EnemyAttackCastle | ActivationRejected | Enemy=%s | AbilityReady=%s."),
+			*GetNameSafe(this),
+			ObjectiveAttackAbilityHandle.IsValid() ? TEXT("true") : TEXT("false"));
+	}
+}
+
+bool AMDSCombatEnemyActor::ResolveObjectiveAttackAbility()
 {
 	if (!HasAuthority() || !bIsAttackingObjective || IsDead() || !ObjectiveActor || ObjectiveActor->GetCurrentHealth() <= 0.0f)
 	{
 		bIsAttackingObjective = false;
 		GetWorldTimerManager().ClearTimer(ObjectiveDamageTimerHandle);
 		ForceNetUpdate();
-		return;
+		return false;
 	}
 
-	const bool bDamageApplied = ObjectiveActor->ApplyObjectiveDamage(ObjectiveDamageAmount, TEXT("CombatEnemyAttack"));
+	const bool bDamageApplied = ObjectiveActor->ApplyObjectiveDamage(ObjectiveDamageAmount, TEXT("GA_Enemy_AttackCastle"));
 	UE_LOG(LogMDSCombatEnemy, Log,
-		TEXT("Combat enemy objective attack impact. Enemy=%s DamageApplied=%s Damage=%.1f ObjectiveHP=%.1f."),
+		TEXT("MDS GAS EnemyAttackCastle | Impact | Enemy=%s | DamageApplied=%s | Damage=%.1f | ObjectiveHP=%.1f."),
 		*GetNameSafe(this),
 		bDamageApplied ? TEXT("true") : TEXT("false"),
 		ObjectiveDamageAmount,
@@ -588,6 +624,13 @@ void AMDSCombatEnemyActor::ApplyObjectiveAttackDamage()
 		GetWorldTimerManager().ClearTimer(ObjectiveDamageTimerHandle);
 		ForceNetUpdate();
 	}
+
+	return bDamageApplied;
+}
+
+UAbilitySystemComponent* AMDSCombatEnemyActor::GetAbilitySystemComponent() const
+{
+	return AbilitySystemComponent;
 }
 
 void AMDSCombatEnemyActor::OnRep_ObjectiveAttackState()
