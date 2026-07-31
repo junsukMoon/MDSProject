@@ -153,6 +153,7 @@ void AMDSProjectPlayerController::PlayerTick(float DeltaTime)
 {
 	UpdateLevelUpChoiceUI();
 	UpdateRoundSettlementUI();
+	UpdateModalInputMode();
 	ApplyKeyboardMovementInput();
 
 	if (bAutoMoveVerificationActive)
@@ -185,18 +186,29 @@ void AMDSProjectPlayerController::UpdateLevelUpChoiceUI()
 		}
 		LevelUpChoiceWidget->RefreshChoices();
 		LevelUpChoiceWidget->SetVisibility(ESlateVisibility::Visible);
-		FInputModeGameAndUI InputMode;
-		InputMode.SetWidgetToFocus(LevelUpChoiceWidget->TakeWidget());
-		SetInputMode(InputMode);
+		if (!bAutoLevelUpChoiceSubmitted && FParse::Param(FCommandLine::Get(), TEXT("MDSVerifyClickLevelUpWidget")))
+		{
+			bAutoLevelUpChoiceSubmitted = true;
+			TWeakObjectPtr<UMDSLevelUpChoiceWidget> WeakWidget = LevelUpChoiceWidget;
+			FTimerHandle VerificationClickTimer;
+			GetWorldTimerManager().SetTimer(VerificationClickTimer, FTimerDelegate::CreateWeakLambda(this, [WeakWidget]()
+			{
+				if (WeakWidget.IsValid())
+				{
+					UE_LOG(LogMDSPlayerCombat, Log, TEXT("MDS LevelUp | VerificationWidgetClick | Index=0."));
+					WeakWidget->ClickChoiceForVerification(0);
+				}
+			}), 1.5f, false);
+		}
 
 		if (!bAutoLevelUpChoiceSubmitted && FParse::Param(FCommandLine::Get(), TEXT("MDSAutoSelectLevelUp")))
 		{
-			bAutoLevelUpChoiceSubmitted = true;
 			int32 ChoiceIndex = 0;
 			FParse::Value(FCommandLine::Get(), TEXT("MDSLevelUpChoiceIndex="), ChoiceIndex);
 			const TArray<EMDSLevelUpUpgrade>& Choices = MDSPlayerState->GetActiveLevelUpChoices();
 			if (Choices.IsValidIndex(ChoiceIndex))
 			{
+				bAutoLevelUpChoiceSubmitted = true;
 				UE_LOG(LogMDSPlayerCombat, Log,
 					TEXT("MDS LevelUp | VerificationChoiceRequested | Index=%d | Upgrade=%s."),
 					ChoiceIndex,
@@ -208,9 +220,8 @@ void AMDSProjectPlayerController::UpdateLevelUpChoiceUI()
 	else if (LevelUpChoiceWidget && LevelUpChoiceWidget->IsVisible())
 	{
 		LevelUpChoiceWidget->SetVisibility(ESlateVisibility::Collapsed);
-		SetInputMode(FInputModeGameOnly());
 	}
-	if (!MDSPlayerState || MDSPlayerState->GetPendingLevelUpChoices() <= 0)
+	if (!bShouldShow)
 	{
 		bAutoLevelUpChoiceSubmitted = false;
 	}
@@ -250,9 +261,6 @@ void AMDSProjectPlayerController::UpdateRoundSettlementUI()
 		}
 		RoundSettlementWidget->RefreshSettlement();
 		RoundSettlementWidget->SetVisibility(ESlateVisibility::Visible);
-		FInputModeGameAndUI InputMode;
-		InputMode.SetWidgetToFocus(RoundSettlementWidget->TakeWidget());
-		SetInputMode(InputMode);
 
 		if (!bAutoShopPurchaseSubmitted && MDSPlayerState
 			&& FParse::Param(FCommandLine::Get(), TEXT("MDSAutoPurchaseShop")))
@@ -283,8 +291,40 @@ void AMDSProjectPlayerController::UpdateRoundSettlementUI()
 		{
 			RoundSettlementWidget->SetVisibility(ESlateVisibility::Collapsed);
 		}
-		SetInputMode(FInputModeGameOnly());
 	}
+}
+
+void AMDSProjectPlayerController::UpdateModalInputMode()
+{
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+
+	const bool bLevelUpVisible = LevelUpChoiceWidget && LevelUpChoiceWidget->IsVisible();
+	const bool bSettlementVisible = RoundSettlementWidget && RoundSettlementWidget->IsVisible();
+	const uint8 DesiredModalInputMode = bLevelUpVisible ? 2 : (bSettlementVisible ? 1 : 0);
+	if (ActiveModalInputMode == DesiredModalInputMode)
+	{
+		return;
+	}
+
+	ActiveModalInputMode = DesiredModalInputMode;
+	if (DesiredModalInputMode == 0)
+	{
+		SetInputMode(FInputModeGameOnly());
+		return;
+	}
+
+	UUserWidget* FocusWidget = bLevelUpVisible
+		? static_cast<UUserWidget*>(LevelUpChoiceWidget)
+		: static_cast<UUserWidget*>(RoundSettlementWidget);
+	FInputModeGameAndUI InputMode;
+	InputMode.SetWidgetToFocus(FocusWidget->TakeWidget());
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	InputMode.SetHideCursorDuringCapture(false);
+	SetInputMode(InputMode);
+	bShowMouseCursor = true;
 }
 
 void AMDSProjectPlayerController::RequestSettlementAction()
