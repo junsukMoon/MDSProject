@@ -28,6 +28,7 @@ MVP에서는 라운드당 Wave 하나를 사용할 수 있지만 다음 상태�
 
 - `Waiting`
 - `Combat`
+- `RoundEnding`
 - `RoundSettlement`
 - `Finished`
 
@@ -49,6 +50,8 @@ Waiting
 -> 전투와 전투 중 레벨업 반복
 -> 모든 적 사망
 -> Round 결과 확정
+-> RoundEnding
+-> 약 2초 실시간 슬로우 모션
 -> RoundSettlement
 -> 결과 + 상점
 -> 준비 완료 또는 제한시간
@@ -63,7 +66,7 @@ Waiting
 경험치 지급
 -> 서버가 레벨업과 미처리 횟수 확정
 -> LevelUpTransitionIn
--> 짧은 감속
+-> 약 2초 실시간 감속
 -> CombatSuspended
 -> 3지선다 Modal
 -> 서버 선택 검증
@@ -104,7 +107,7 @@ Dedicated Server World Pause는 사용하지 않습니다.
 
 ## 감속과 완전 정지
 
-진입·복귀 감속은 짧은 연출 구간입니다. 초기 튜닝 후보는 각각 `0.2~0.5초`지만 구현 시 별도 승인과 실제 테스트를 거칩니다.
+레벨업 진입 감속은 체감 가능한 약 `2초` 실시간 연출 구간입니다. 선택 완료 후 복귀 감속은 입력 지연을 줄이기 위해 짧게 유지합니다. 라운드 종료도 `RoundEnding`에서 약 `2초` 실시간 감속 후 정산 UI를 표시합니다.
 
 클라이언트 시각적 Time Dilation만으로 authoritative simulation을 정지시키지 않습니다.
 

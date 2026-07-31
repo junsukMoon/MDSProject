@@ -19,6 +19,14 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogMDSGameMode, Log, All);
 
+namespace
+{
+constexpr float SlowMotionTimeDilation = 0.25f;
+constexpr float SlowMotionRealDurationSeconds = 2.0f;
+constexpr float SlowMotionTimerGameSeconds = SlowMotionTimeDilation * SlowMotionRealDurationSeconds;
+constexpr float LevelUpResumeTimerGameSeconds = 0.0875f;
+}
+
 AMDSProjectGameMode::AMDSProjectGameMode()
 {
 	GameStateClass = AMDSProjectGameState::StaticClass();
@@ -201,8 +209,11 @@ void AMDSProjectGameMode::BeginLevelUpFlow()
 		LevelUpTransitionTimerHandle,
 		this,
 		&AMDSProjectGameMode::EnterLevelUpSelection,
-		0.0875f,
+		SlowMotionTimerGameSeconds,
 		false);
+	UE_LOG(LogMDSGameMode, Log,
+		TEXT("MDS LevelUp | TransitionInScheduled | RealDuration=%.2f | GameDuration=%.3f | TimeDilation=%.2f."),
+		SlowMotionRealDurationSeconds, SlowMotionTimerGameSeconds, SlowMotionTimeDilation);
 }
 
 void AMDSProjectGameMode::EnterLevelUpSelection()
@@ -299,7 +310,7 @@ void AMDSProjectGameMode::BeginLevelUpResume()
 		LevelUpTransitionTimerHandle,
 		this,
 		&AMDSProjectGameMode::FinishLevelUpResume,
-		0.0875f,
+		LevelUpResumeTimerGameSeconds,
 		false);
 }
 
@@ -531,17 +542,37 @@ void AMDSProjectGameMode::CompleteWaveIfCleared()
 
 	MDSGameState->SetWaveActive(false);
 	FinalizeRoundResults();
-	BeginRoundSettlement();
-	UE_LOG(LogMDSGameMode, Log, TEXT("Round entered settlement on server: Round=%d Wave=%d."),
+	BeginRoundEndTransition();
+	UE_LOG(LogMDSGameMode, Log, TEXT("Round entered ending transition on server: Round=%d Wave=%d."),
 		MDSGameState->GetCurrentRoundIndex(),
 		MDSGameState->GetCurrentWaveIndex());
 
 }
 
+void AMDSProjectGameMode::BeginRoundEndTransition()
+{
+	AMDSProjectGameState* MDSGameState = GetGameState<AMDSProjectGameState>();
+	if (!HasAuthority() || !MDSGameState || MDSGameState->GetMatchPhase() != EMDSMatchPhase::Combat)
+	{
+		return;
+	}
+
+	MDSGameState->SetMatchState(EMDSMatchPhase::RoundEnding, MDSGameState->GetCurrentRoundIndex());
+	GetWorldTimerManager().SetTimer(
+		RoundEndTransitionTimerHandle,
+		this,
+		&AMDSProjectGameMode::BeginRoundSettlement,
+		SlowMotionTimerGameSeconds,
+		false);
+	UE_LOG(LogMDSGameMode, Log,
+		TEXT("MDS Settlement | TransitionScheduled | Round=%d | RealDuration=%.2f | GameDuration=%.3f | TimeDilation=%.2f."),
+		MDSGameState->GetCurrentRoundIndex(), SlowMotionRealDurationSeconds, SlowMotionTimerGameSeconds, SlowMotionTimeDilation);
+}
+
 void AMDSProjectGameMode::BeginRoundSettlement()
 {
 	AMDSProjectGameState* MDSGameState = GetGameState<AMDSProjectGameState>();
-	if (!MDSGameState) return;
+	if (!MDSGameState || MDSGameState->GetMatchPhase() != EMDSMatchPhase::RoundEnding) return;
 	const bool bFinalRound = bContinuousWaveLoopEnabled && MDSGameState->GetCurrentWaveIndex() >= MaxWaveCount;
 	PublishRoundShopOffers();
 	if (bFinalRound) MDSGameState->SetActiveShopOffers({});
