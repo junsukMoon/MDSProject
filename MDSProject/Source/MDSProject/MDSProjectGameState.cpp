@@ -14,10 +14,32 @@ void AMDSProjectGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
+	DOREPLIFETIME(AMDSProjectGameState, MatchPhase);
+	DOREPLIFETIME(AMDSProjectGameState, CurrentRoundIndex);
 	DOREPLIFETIME(AMDSProjectGameState, CurrentWaveIndex);
 	DOREPLIFETIME(AMDSProjectGameState, EnemiesRemaining);
 	DOREPLIFETIME(AMDSProjectGameState, TotalEnemiesThisWave);
 	DOREPLIFETIME(AMDSProjectGameState, bWaveActive);
+}
+
+void AMDSProjectGameState::SetMatchState(const EMDSMatchPhase InMatchPhase, const int32 InCurrentRoundIndex)
+{
+	if (!HasWaveStateAuthority(TEXT("SetMatchState")))
+	{
+		return;
+	}
+
+	const EMDSMatchPhase PreviousPhase = MatchPhase;
+	const int32 PreviousRoundIndex = CurrentRoundIndex;
+	MatchPhase = InMatchPhase;
+	CurrentRoundIndex = FMath::Max(0, InCurrentRoundIndex);
+
+	UE_LOG(LogMDSGameState, Log,
+		TEXT("Match state set on server: Phase=%s->%s Round=%d->%d."),
+		*UEnum::GetValueAsString(PreviousPhase),
+		*UEnum::GetValueAsString(MatchPhase),
+		PreviousRoundIndex,
+		CurrentRoundIndex);
 }
 
 void AMDSProjectGameState::SetWaveState(const int32 InCurrentWaveIndex, const int32 InEnemiesRemaining, const bool bInWaveActive, const int32 InTotalEnemiesThisWave)
@@ -108,6 +130,14 @@ void AMDSProjectGameState::OnRep_WaveState()
 			DebugState->SetWaveState(CurrentWaveIndex, EnemiesRemaining, TotalEnemiesThisWave, bWaveActive);
 		}
 	}
+}
+
+void AMDSProjectGameState::OnRep_MatchState()
+{
+	UE_LOG(LogMDSGameState, Log,
+		TEXT("Match state replicated on client: Phase=%s Round=%d."),
+		*UEnum::GetValueAsString(MatchPhase),
+		CurrentRoundIndex);
 }
 
 bool AMDSProjectGameState::HasWaveStateAuthority(const TCHAR* Context) const

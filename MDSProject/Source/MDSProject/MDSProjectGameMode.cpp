@@ -72,6 +72,7 @@ void AMDSProjectGameMode::StartWave(const int32 WaveIndex, const int32 TotalEnem
 	ScheduledWaveIndex = 0;
 
 	const int32 ClampedWaveIndex = FMath::Max(1, WaveIndex);
+	MDSGameState->SetMatchState(EMDSMatchPhase::Combat, ClampedWaveIndex);
 	const int32 RequestedEnemyCount = FMath::Max(0, TotalEnemies);
 	int32 SpawnedEnemyCount = 0;
 
@@ -89,7 +90,8 @@ void AMDSProjectGameMode::StartWave(const int32 WaveIndex, const int32 TotalEnem
 
 	MDSGameState->SetWaveState(ClampedWaveIndex, SpawnedEnemyCount, SpawnedEnemyCount > 0, SpawnedEnemyCount);
 
-	UE_LOG(LogMDSGameMode, Log, TEXT("Wave started on server: Wave=%d RequestedEnemies=%d SpawnedEnemies=%d Active=%s."),
+	UE_LOG(LogMDSGameMode, Log, TEXT("Round combat started on server: Round=%d Wave=%d RequestedEnemies=%d SpawnedEnemies=%d Active=%s."),
+		MDSGameState->GetCurrentRoundIndex(),
 		ClampedWaveIndex,
 		RequestedEnemyCount,
 		SpawnedEnemyCount,
@@ -150,8 +152,10 @@ void AMDSProjectGameMode::InitializeWaveDisplayState()
 		return;
 	}
 
-	MDSGameState->SetWaveState(1, 0, false, 0);
-	UE_LOG(LogMDSGameMode, Log, TEXT("Initialized wave display state on server: Wave=1 Remaining=0 Total=0 Active=false."));
+	MDSGameState->SetMatchState(EMDSMatchPhase::Waiting, 0);
+	MDSGameState->SetWaveState(0, 0, false, 0);
+	UE_LOG(LogMDSGameMode, Log,
+		TEXT("Initialized match state on server: Phase=Waiting Round=0 Wave=0 Remaining=0 Total=0 Active=false."));
 }
 
 void AMDSProjectGameMode::TryAutoStartWaveFromCommandLine()
@@ -272,7 +276,10 @@ void AMDSProjectGameMode::CompleteWaveIfCleared()
 	}
 
 	MDSGameState->SetWaveActive(false);
-	UE_LOG(LogMDSGameMode, Log, TEXT("Wave cleared on server: Wave=%d."), MDSGameState->GetCurrentWaveIndex());
+	MDSGameState->SetMatchState(EMDSMatchPhase::RoundSettlement, MDSGameState->GetCurrentRoundIndex());
+	UE_LOG(LogMDSGameMode, Log, TEXT("Round entered settlement on server: Round=%d Wave=%d."),
+		MDSGameState->GetCurrentRoundIndex(),
+		MDSGameState->GetCurrentWaveIndex());
 
 	const int32 ClearedWaveIndex = MDSGameState->GetCurrentWaveIndex();
 	if (!bContinuousWaveLoopEnabled)
