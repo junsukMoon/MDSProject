@@ -35,7 +35,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogMDSPlayerCombat, Log, All);
 
 namespace
 {
-constexpr float DirectionalAttackHitRadius = 100.0f;
+constexpr float PlayerFirePredictionHitRadius = 100.0f;
 constexpr float AttackFacingFallbackDuration = 0.2f;
 
 bool ShouldLogPlayerCombatPresentation()
@@ -345,7 +345,7 @@ FVector AMDSProjectPlayerController::ResolvePredictedShotEnd(const FVector& AimP
 		if (DistanceAlongShot >= 0.0f
 			&& DistanceAlongShot <= AttackRange
 			&& DistanceAlongShot < ClosestDistanceAlongShot
-			&& DistanceFromShot <= DirectionalAttackHitRadius)
+			&& DistanceFromShot <= PlayerFirePredictionHitRadius)
 		{
 			ClosestEnemy = Enemy;
 			ClosestDistanceAlongShot = DistanceAlongShot;
