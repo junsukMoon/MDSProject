@@ -51,6 +51,12 @@ void AMDSProjectGameMode::BeginPlay()
 	}
 }
 
+void AMDSProjectGameMode::Logout(AController* Exiting)
+{
+	Super::Logout(Exiting);
+	GetWorldTimerManager().SetTimerForNextTick(this, &AMDSProjectGameMode::EvaluateSettlementReadiness);
+}
+
 void AMDSProjectGameMode::StartWave(const int32 WaveIndex, const int32 TotalEnemies)
 {
 	if (!HasAuthority())
@@ -243,6 +249,25 @@ void AMDSProjectGameMode::HandleShopPurchase(AMDSProjectPlayerState* PlayerState
 	PlayerState->TryPurchaseShopOffer(*Offer);
 }
 
+void AMDSProjectGameMode::HandleSettlementAction(AMDSProjectPlayerState* PlayerState)
+{
+	AMDSProjectGameState* MDSGameState = GetGameState<AMDSProjectGameState>();
+	if (!HasAuthority() || !MDSGameState || MDSGameState->GetMatchPhase() != EMDSMatchPhase::RoundSettlement || !PlayerState)
+	{
+		return;
+	}
+	if (MDSGameState->IsFinalRoundSettlement())
+	{
+		GetWorldTimerManager().ClearTimer(SettlementTimerHandle);
+		MDSGameState->SetActiveShopOffers({});
+		MDSGameState->SetMatchState(EMDSMatchPhase::Finished, MDSGameState->GetCurrentRoundIndex());
+		UE_LOG(LogMDSGameMode, Log, TEXT("MDS Settlement | MatchFinished | Round=%d."), MDSGameState->GetCurrentRoundIndex());
+		return;
+	}
+	PlayerState->SetReadyForNextRound(true);
+	EvaluateSettlementReadiness();
+}
+
 bool AMDSProjectGameMode::DoAllPlayersHaveNoPendingLevelUpChoices() const
 {
 	const AMDSProjectGameState* MDSGameState = GetGameState<AMDSProjectGameState>();
@@ -413,6 +438,7 @@ void AMDSProjectGameMode::ConfigureWaveLoopFromCommandLine()
 	FParse::Value(FCommandLine::Get(), TEXT("MDSWaveInitialEnemyCount="), InitialWaveEnemyCount);
 	FParse::Value(FCommandLine::Get(), TEXT("MDSWaveEnemyIncrement="), EnemyIncrementPerWave);
 	FParse::Value(FCommandLine::Get(), TEXT("MDSWaveIntermission="), WaveIntermissionSeconds);
+	FParse::Value(FCommandLine::Get(), TEXT("MDSSettlementDuration="), SettlementDurationSeconds);
 	FParse::Value(FCommandLine::Get(), TEXT("MDSKillCurrency="), KillCurrencyReward);
 	FParse::Value(FCommandLine::Get(), TEXT("MDSKillExperience="), KillExperienceReward);
 
@@ -422,6 +448,7 @@ void AMDSProjectGameMode::ConfigureWaveLoopFromCommandLine()
 	KillCurrencyReward = FMath::Max(0, KillCurrencyReward);
 	KillExperienceReward = FMath::Max(0, KillExperienceReward);
 	WaveIntermissionSeconds = FMath::Max(0.0f, WaveIntermissionSeconds);
+	SettlementDurationSeconds = FMath::Max(0.01f, SettlementDurationSeconds);
 
 	UE_LOG(LogMDSGameMode, Log,
 		TEXT("Wave loop configured on server: Enabled=%s MaxWaves=%d InitialEnemies=%d EnemyIncrement=%d Intermission=%.2f KillCurrency=%d KillExperience=%d."),
@@ -504,25 +531,60 @@ void AMDSProjectGameMode::CompleteWaveIfCleared()
 
 	MDSGameState->SetWaveActive(false);
 	FinalizeRoundResults();
-	PublishRoundShopOffers();
-	MDSGameState->SetMatchState(EMDSMatchPhase::RoundSettlement, MDSGameState->GetCurrentRoundIndex());
+	BeginRoundSettlement();
 	UE_LOG(LogMDSGameMode, Log, TEXT("Round entered settlement on server: Round=%d Wave=%d."),
 		MDSGameState->GetCurrentRoundIndex(),
 		MDSGameState->GetCurrentWaveIndex());
 
-	const int32 ClearedWaveIndex = MDSGameState->GetCurrentWaveIndex();
-	if (!bContinuousWaveLoopEnabled)
-	{
-		return;
-	}
+}
 
-	if (ClearedWaveIndex >= MaxWaveCount)
+void AMDSProjectGameMode::BeginRoundSettlement()
+{
+	AMDSProjectGameState* MDSGameState = GetGameState<AMDSProjectGameState>();
+	if (!MDSGameState) return;
+	const bool bFinalRound = bContinuousWaveLoopEnabled && MDSGameState->GetCurrentWaveIndex() >= MaxWaveCount;
+	PublishRoundShopOffers();
+	if (bFinalRound) MDSGameState->SetActiveShopOffers({});
+	MDSGameState->SetMatchState(EMDSMatchPhase::RoundSettlement, MDSGameState->GetCurrentRoundIndex());
+	const double EndTime = bFinalRound ? 0.0 : MDSGameState->GetServerWorldTimeSeconds() + SettlementDurationSeconds;
+	MDSGameState->SetSettlementState(bFinalRound, EndTime);
+	if (!bFinalRound && bContinuousWaveLoopEnabled)
 	{
-		UE_LOG(LogMDSGameMode, Log, TEXT("Demo wave loop completed on server: FinalWave=%d."), ClearedWaveIndex);
-		return;
+		GetWorldTimerManager().SetTimer(SettlementTimerHandle, this, &AMDSProjectGameMode::HandleSettlementTimeout,
+			FMath::Max(0.01f, SettlementDurationSeconds), false);
 	}
+	UE_LOG(LogMDSGameMode, Log, TEXT("MDS Settlement | Began | Round=%d | Final=%s | Duration=%.2f."),
+		MDSGameState->GetCurrentRoundIndex(), bFinalRound ? TEXT("true") : TEXT("false"), SettlementDurationSeconds);
+}
 
-	ScheduleWaveStart(ClearedWaveIndex + 1, WaveIntermissionSeconds);
+void AMDSProjectGameMode::HandleSettlementTimeout()
+{
+	UE_LOG(LogMDSGameMode, Log, TEXT("MDS Settlement | Timeout."));
+	StartNextRoundFromSettlement();
+}
+
+void AMDSProjectGameMode::EvaluateSettlementReadiness()
+{
+	AMDSProjectGameState* GS = GetGameState<AMDSProjectGameState>();
+	if (!GS || GS->GetMatchPhase() != EMDSMatchPhase::RoundSettlement || GS->IsFinalRoundSettlement()) return;
+	if (GS->PlayerArray.IsEmpty()) return;
+	for (APlayerState* BasePS : GS->PlayerArray)
+	{
+		const AMDSProjectPlayerState* PS = Cast<AMDSProjectPlayerState>(BasePS);
+		if (PS && !PS->IsReadyForNextRound()) return;
+	}
+	UE_LOG(LogMDSGameMode, Log, TEXT("MDS Settlement | AllPlayersReady | Count=%d."), GS->PlayerArray.Num());
+	StartNextRoundFromSettlement();
+}
+
+void AMDSProjectGameMode::StartNextRoundFromSettlement()
+{
+	AMDSProjectGameState* GS = GetGameState<AMDSProjectGameState>();
+	if (!GS || GS->GetMatchPhase() != EMDSMatchPhase::RoundSettlement || GS->IsFinalRoundSettlement()) return;
+	GetWorldTimerManager().ClearTimer(SettlementTimerHandle);
+	const int32 NextWave = GS->GetCurrentWaveIndex() + 1;
+	GS->SetSettlementState(false, 0.0);
+	StartWave(NextWave, GetEnemyCountForWave(NextWave));
 }
 
 void AMDSProjectGameMode::PublishRoundShopOffers()

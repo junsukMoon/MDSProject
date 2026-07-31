@@ -51,6 +51,7 @@ void AMDSProjectPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	DOREPLIFETIME(AMDSProjectPlayerState, ActiveLevelUpChoices);
 	DOREPLIFETIME(AMDSProjectPlayerState, LastRoundResult);
 	DOREPLIFETIME(AMDSProjectPlayerState, PurchasedShopProductIds);
+	DOREPLIFETIME(AMDSProjectPlayerState, bReadyForNextRound);
 }
 
 bool AMDSProjectPlayerState::TryActivateFireAbility(const FVector& RequestedAimPoint)
@@ -250,8 +251,22 @@ void AMDSProjectPlayerState::BeginRoundTracking()
 
 	CurrentRoundResult = FMDSPlayerRoundResult();
 	PurchasedShopProductIds.Reset();
+	bReadyForNextRound = false;
 	CurrentRoundResult.CurrentLevel = CurrentLevel;
 	CurrentRoundResult.CurrentCurrency = MatchCurrency;
+}
+
+void AMDSProjectPlayerState::SetReadyForNextRound(const bool bInReady)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+	bReadyForNextRound = bInReady;
+	LastRoundResult.bReadyForNextRound = bReadyForNextRound;
+	UE_LOG(LogMDSPlayerProgression, Log, TEXT("MDS Settlement | PlayerReady=%s | PlayerState=%s."),
+		bReadyForNextRound ? TEXT("true") : TEXT("false"), *GetNameSafe(this));
+	ForceNetUpdate();
 }
 
 void AMDSProjectPlayerState::FinalizeRoundResult()

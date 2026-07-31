@@ -29,9 +29,11 @@ public:
 	void SetCombatSuspended(bool bInCombatSuspended);
 	void HandleLevelUpChoice(AMDSProjectPlayerState* PlayerState, EMDSLevelUpUpgrade Upgrade);
 	void HandleShopPurchase(AMDSProjectPlayerState* PlayerState, FName ProductId);
+	void HandleSettlementAction(AMDSProjectPlayerState* PlayerState);
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void Logout(AController* Exiting) override;
 
 private:
 	void InitializeWaveDisplayState();
@@ -43,6 +45,10 @@ private:
 	void BeginRoundResultTracking(int32 RoundIndex, int32 TotalEnemyCount);
 	void FinalizeRoundResults();
 	void PublishRoundShopOffers();
+	void BeginRoundSettlement();
+	void HandleSettlementTimeout();
+	void EvaluateSettlementReadiness();
+	void StartNextRoundFromSettlement();
 	void BeginLevelUpFlow();
 	void EnterLevelUpSelection();
 	void BeginLevelUpResume();
@@ -53,6 +59,7 @@ private:
 	FTimerHandle WaveStartTimerHandle;
 	FTimerHandle CombatResumeVerificationTimerHandle;
 	FTimerHandle LevelUpTransitionTimerHandle;
+	FTimerHandle SettlementTimerHandle;
 	int32 ScheduledWaveIndex = 0;
 	int32 MaxWaveCount = 3;
 	int32 InitialWaveEnemyCount = 3;
@@ -60,6 +67,7 @@ private:
 	int32 KillCurrencyReward = 10;
 	int32 KillExperienceReward = 25;
 	float WaveIntermissionSeconds = 3.0f;
+	float SettlementDurationSeconds = 15.0f;
 	double RoundStartTimeSeconds = 0.0;
 	double LevelUpPauseStartTimeSeconds = 0.0;
 	double AccumulatedLevelUpPauseSeconds = 0.0;

@@ -33,6 +33,7 @@ public:
 	bool TryPurchaseShopOffer(const FMDSShopOffer& Offer);
 	void BeginRoundTracking();
 	void FinalizeRoundResult();
+	void SetReadyForNextRound(bool bInReady);
 
 	int32 GetMatchCurrency() const { return MatchCurrency; }
 	int32 GetCurrentExperience() const { return CurrentExperience; }
@@ -45,6 +46,7 @@ public:
 	float GetMoveSpeedMultiplier() const;
 	const FMDSPlayerRoundResult& GetLastRoundResult() const { return LastRoundResult; }
 	const TArray<FName>& GetPurchasedShopProductIds() const { return PurchasedShopProductIds; }
+	bool IsReadyForNextRound() const { return bReadyForNextRound; }
 
 private:
 	UFUNCTION()
@@ -79,6 +81,9 @@ private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_Progression, VisibleInstanceOnly, Category = "MDS|Shop")
 	TArray<FName> PurchasedShopProductIds;
+
+	UPROPERTY(ReplicatedUsing = OnRep_Progression, VisibleInstanceOnly, Category = "MDS|Round")
+	bool bReadyForNextRound = false;
 
 	FGameplayAbilitySpecHandle FireAbilityHandle;
 	FMDSPlayerRoundResult CurrentRoundResult;

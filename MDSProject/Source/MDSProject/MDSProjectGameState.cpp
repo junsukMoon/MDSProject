@@ -21,10 +21,25 @@ void AMDSProjectGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 	DOREPLIFETIME(AMDSProjectGameState, LevelUpFlowState);
 	DOREPLIFETIME(AMDSProjectGameState, LastRoundResult);
 	DOREPLIFETIME(AMDSProjectGameState, ActiveShopOffers);
+	DOREPLIFETIME(AMDSProjectGameState, bFinalRoundSettlement);
+	DOREPLIFETIME(AMDSProjectGameState, SettlementEndServerTime);
 	DOREPLIFETIME(AMDSProjectGameState, CurrentWaveIndex);
 	DOREPLIFETIME(AMDSProjectGameState, EnemiesRemaining);
 	DOREPLIFETIME(AMDSProjectGameState, TotalEnemiesThisWave);
 	DOREPLIFETIME(AMDSProjectGameState, bWaveActive);
+}
+
+void AMDSProjectGameState::SetSettlementState(const bool bInFinalRoundSettlement, const double InSettlementEndServerTime)
+{
+	if (!HasWaveStateAuthority(TEXT("SetSettlementState")))
+	{
+		return;
+	}
+	bFinalRoundSettlement = bInFinalRoundSettlement;
+	SettlementEndServerTime = FMath::Max(0.0, InSettlementEndServerTime);
+	UE_LOG(LogMDSGameState, Log, TEXT("MDS Settlement | StatePublished | Final=%s | EndServerTime=%.2f."),
+		bFinalRoundSettlement ? TEXT("true") : TEXT("false"), SettlementEndServerTime);
+	ForceNetUpdate();
 }
 
 void AMDSProjectGameState::SetActiveShopOffers(const TArray<FMDSShopOffer>& InShopOffers)

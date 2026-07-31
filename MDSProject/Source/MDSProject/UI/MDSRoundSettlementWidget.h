@@ -28,9 +28,17 @@ private:
 	void HandleOffer1();
 	UFUNCTION()
 	void HandleOffer2();
+	UFUNCTION()
+	void HandleSettlementAction();
 
 	UPROPERTY(Transient)
 	TObjectPtr<UTextBlock> ResultText;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UButton> SettlementActionButton;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> SettlementActionText;
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UButton>> OfferButtons;
