@@ -15,6 +15,7 @@ class MDSPROJECT_API UMDSLevelUpChoiceWidget : public UUserWidget
 
 public:
 	void RefreshChoices();
+	void ClickChoiceForVerification(int32 ChoiceIndex);
 
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
@@ -36,6 +37,9 @@ private:
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UTextBlock>> ChoiceTexts;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UTextBlock>> ChoiceDescriptionTexts;
 
 	TArray<EMDSLevelUpUpgrade> DisplayedChoices;
 };

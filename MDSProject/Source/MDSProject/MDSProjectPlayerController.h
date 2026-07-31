@@ -94,6 +94,7 @@ private:
 	void LogMovementVerificationSnapshots();
 	void UpdateLevelUpChoiceUI();
 	void UpdateRoundSettlementUI();
+	void UpdateModalInputMode();
 
 	UFUNCTION(Server, Reliable)
 	void ServerRequestAttack(FVector_NetQuantize RequestedAimPoint);
@@ -155,6 +156,7 @@ private:
 	bool bAutoLevelUpChoiceSubmitted = false;
 	bool bAutoShopPurchaseSubmitted = false;
 	bool bAutoSettlementActionSubmitted = false;
+	uint8 ActiveModalInputMode = 0;
 };
 
 

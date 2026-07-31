@@ -1,13 +1,31 @@
 #include "UI/MDSRoundSettlementWidget.h"
 
 #include "Blueprint/WidgetTree.h"
+#include "Components/Border.h"
 #include "Components/Button.h"
+#include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
 #include "Components/HorizontalBox.h"
+#include "Components/HorizontalBoxSlot.h"
+#include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
+#include "Components/VerticalBoxSlot.h"
 #include "MDSProjectGameState.h"
 #include "MDSProjectPlayerController.h"
 #include "MDSProjectPlayerState.h"
+
+namespace
+{
+void ConfigureSettlementText(UTextBlock* TextBlock, const int32 FontSize, const FLinearColor Color, const ETextJustify::Type Justification = ETextJustify::Left)
+{
+	FSlateFontInfo Font = TextBlock->GetFont();
+	Font.Size = FontSize;
+	TextBlock->SetFont(Font);
+	TextBlock->SetColorAndOpacity(FSlateColor(Color));
+	TextBlock->SetJustification(Justification);
+}
+}
 
 TSharedRef<SWidget> UMDSRoundSettlementWidget::RebuildWidget()
 {
@@ -29,26 +47,66 @@ void UMDSRoundSettlementWidget::EnsureFallbackLayout()
 		return;
 	}
 
-	UHorizontalBox* Root = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("SettlementRoot"));
+	UCanvasPanel* Root = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("SettlementRoot"));
 	WidgetTree->RootWidget = Root;
+	UBorder* Dimmer = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("SettlementDimmer"));
+	Dimmer->SetBrushColor(FLinearColor(0.005f, 0.008f, 0.015f, 0.68f));
+	UCanvasPanelSlot* DimmerSlot = Root->AddChildToCanvas(Dimmer);
+	DimmerSlot->SetAnchors(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
+	DimmerSlot->SetOffsets(FMargin(0.0f));
+
+	USizeBox* WindowSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("SettlementWindowSize"));
+	WindowSize->SetWidthOverride(1120.0f);
+	WindowSize->SetHeightOverride(650.0f);
+	UCanvasPanelSlot* WindowSlot = Root->AddChildToCanvas(WindowSize);
+	WindowSlot->SetAnchors(FAnchors(0.5f, 0.5f));
+	WindowSlot->SetAlignment(FVector2D(0.5f, 0.5f));
+	WindowSlot->SetAutoSize(true);
+
+	UBorder* WindowBorder = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("SettlementWindowBorder"));
+	WindowBorder->SetBrushColor(FLinearColor(0.025f, 0.035f, 0.06f, 0.98f));
+	WindowBorder->SetPadding(FMargin(38.0f, 28.0f));
+	WindowSize->AddChild(WindowBorder);
+	UVerticalBox* WindowContent = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("SettlementWindowContent"));
+	WindowBorder->AddChild(WindowContent);
+	UTextBlock* WindowTitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SettlementWindowTitle"));
+	WindowTitle->SetText(FText::FromString(TEXT("라운드 정산")));
+	ConfigureSettlementText(WindowTitle, 34, FLinearColor(0.95f, 0.82f, 0.38f, 1.0f), ETextJustify::Center);
+	WindowContent->AddChildToVerticalBox(WindowTitle)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 22.0f));
+
+	UHorizontalBox* PanelRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("SettlementPanelRow"));
+	UVerticalBoxSlot* PanelRowSlot = WindowContent->AddChildToVerticalBox(PanelRow);
+	PanelRowSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 	UVerticalBox* ResultPanel = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("RoundResultPanel"));
 	UVerticalBox* ShopPanel = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("ShopPanel"));
-	Root->AddChildToHorizontalBox(ResultPanel);
-	Root->AddChildToHorizontalBox(ShopPanel);
+	UHorizontalBoxSlot* ResultPanelSlot = PanelRow->AddChildToHorizontalBox(ResultPanel);
+	ResultPanelSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	ResultPanelSlot->SetPadding(FMargin(12.0f, 0.0f, 28.0f, 0.0f));
+	UHorizontalBoxSlot* ShopPanelSlot = PanelRow->AddChildToHorizontalBox(ShopPanel);
+	ShopPanelSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	ShopPanelSlot->SetPadding(FMargin(28.0f, 0.0f, 12.0f, 0.0f));
 
 	ResultText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("RoundResultText"));
-	ResultText->SetColorAndOpacity(FSlateColor(FLinearColor::White));
-	ResultPanel->AddChildToVerticalBox(ResultText);
+	ConfigureSettlementText(ResultText, 20, FLinearColor(0.9f, 0.94f, 1.0f, 1.0f));
+	ResultText->SetLineHeightPercentage(1.12f);
+	UVerticalBoxSlot* ResultTextSlot = ResultPanel->AddChildToVerticalBox(ResultText);
+	ResultTextSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 
 	UTextBlock* ShopTitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("ShopTitle"));
 	ShopTitle->SetText(FText::FromString(TEXT("라운드 상점")));
-	ShopPanel->AddChildToVerticalBox(ShopTitle);
+	ConfigureSettlementText(ShopTitle, 25, FLinearColor(0.35f, 0.82f, 1.0f, 1.0f), ETextJustify::Center);
+	ShopPanel->AddChildToVerticalBox(ShopTitle)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 16.0f));
 	for (int32 Index = 0; Index < 3; ++Index)
 	{
-		UButton* Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
+		UButton* Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), *FString::Printf(TEXT("ShopOffer%d"), Index));
+		Button->SetBackgroundColor(FLinearColor(0.10f, 0.28f, 0.42f, 1.0f));
 		UTextBlock* Text = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		Text->SetAutoWrapText(true);
+		ConfigureSettlementText(Text, 17, FLinearColor::White, ETextJustify::Center);
 		Button->AddChild(Text);
-		ShopPanel->AddChildToVerticalBox(Button);
+		UVerticalBoxSlot* OfferSlot = ShopPanel->AddChildToVerticalBox(Button);
+		OfferSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		OfferSlot->SetPadding(FMargin(0.0f, 7.0f));
 		OfferButtons.Add(Button);
 		OfferTexts.Add(Text);
 	}
@@ -58,8 +116,10 @@ void UMDSRoundSettlementWidget::EnsureFallbackLayout()
 
 	SettlementActionButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("NextRoundReadyButton"));
 	SettlementActionText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SettlementActionText"));
+	ConfigureSettlementText(SettlementActionText, 19, FLinearColor::White, ETextJustify::Center);
+	SettlementActionButton->SetBackgroundColor(FLinearColor(0.72f, 0.48f, 0.12f, 1.0f));
 	SettlementActionButton->AddChild(SettlementActionText);
-	ResultPanel->AddChildToVerticalBox(SettlementActionButton);
+	ResultPanel->AddChildToVerticalBox(SettlementActionButton)->SetPadding(FMargin(0.0f, 18.0f, 0.0f, 0.0f));
 	SettlementActionButton->OnClicked.AddDynamic(this, &UMDSRoundSettlementWidget::HandleSettlementAction);
 }
 
