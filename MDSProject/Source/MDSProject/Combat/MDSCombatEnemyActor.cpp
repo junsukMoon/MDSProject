@@ -513,9 +513,16 @@ void AMDSCombatEnemyActor::ResumeMovementAfterHitReaction()
 	}
 
 	bMovementPausedForHitReaction = false;
-	UE_LOG(LogMDSCombatEnemy, Log, TEXT("Enemy movement resumed after hit reaction. Enemy=%s PauseDuration=%.2f."),
+	UCharacterMovementComponent* Movement = GetCharacterMovement();
+	if (!bCombatSuspended && Movement)
+	{
+		Movement->SetMovementMode(MOVE_Walking);
+	}
+	UE_LOG(LogMDSCombatEnemy, Log, TEXT("Enemy movement resumed after hit reaction. Enemy=%s PauseDuration=%.2f CombatSuspended=%s MovementMode=%s."),
 		*GetNameSafe(this),
-		HitMovementPauseSeconds);
+		HitMovementPauseSeconds,
+		bCombatSuspended ? TEXT("true") : TEXT("false"),
+		Movement ? *Movement->GetMovementName() : TEXT("None"));
 }
 
 void AMDSCombatEnemyActor::OnRep_CurrentHealth(const float PreviousHealth)

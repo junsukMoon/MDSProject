@@ -102,7 +102,7 @@ Remove-Item -LiteralPath $ServerLog,$ClientLog -Force -ErrorAction SilentlyConti
 if (-not (Test-Path $ServerExe) -or -not (Test-Path $ClientExe)) { throw "Server or staged client executable is missing." }
 
 $ServerArgs = "`"$ProjectFile`" /Game/TopDown/Lvl_TopDown -server -NullRHI -unattended -DDC-ForceMemoryCache -forcelogflush -abslog=`"$ServerLog`" MDSWaveMaxCount=1 MDSWaveInitialEnemyCount=2 MDSWaveEnemyIncrement=0 MDSWaveIntermission=2 MDSSettlementDuration=20 MDSActorBaselineMoveSpeed=0 MDSKillCurrency=50 MDSKillExperience=100 -port=$Port"
-$ClientArgs = "127.0.0.1:$Port -NullRHI -unattended -nosound -NoSplash -DDC-ForceMemoryCache -forcelogflush -abslog=`"$ClientLog`" -MDSAutoAttackNearestEnemy MDSAutoAttackCount=20 MDSAutoAttackDelay=2 MDSAutoAttackRetryInterval=0.25 MDSAttackDamage=40 MDSAttackRange=5000 -MDSVerifyClickLevelUpWidget"
+$ClientArgs = "127.0.0.1:$Port -NullRHI -unattended -nosound -NoSplash -DDC-ForceMemoryCache -forcelogflush -abslog=`"$ClientLog`" -MDSAutoAttackNearestEnemy MDSAutoAttackCount=20 MDSAutoAttackDelay=2 MDSAutoAttackRetryInterval=0.35 MDSAttackDamage=25 MDSAttackRange=5000 -MDSVerifyClickLevelUpWidget -MDSCombatPresentationLog"
 $Server = $null
 $Client = $null
 try {
@@ -115,8 +115,12 @@ try {
     $LevelUpTransitionSeconds = ([DateTime]::UtcNow - $LevelUpTransitionObservedAt).TotalSeconds
     if ($LevelUpTransitionSeconds -lt 1.5) { throw "Level-up transition was shorter than expected: $LevelUpTransitionSeconds seconds." }
     $DamageCountBeforeChoice = Get-LogPatternCount $ServerLog "Enemy damage applied by GA_Player_Fire"
+    $MovementResumeCountBeforeChoice = Get-LogPatternCount $ServerLog "Enemy movement resumed after hit reaction.*CombatSuspended=false.*MovementMode=Walking"
     if (-not (Wait-LogPattern $ServerLog "MDS LevelUp \| ChoiceApplied" $FlowTimeoutSeconds)) { throw "Augment card OnClicked delegate did not apply a choice." }
     if (-not (Wait-LogPatternCount $ServerLog "Enemy damage applied by GA_Player_Fire" ($DamageCountBeforeChoice + 1) $FlowTimeoutSeconds)) { throw "Player fire did not resume after closing the level-up modal." }
+    if (-not (Wait-LogPatternCount $ServerLog "Enemy movement resumed after hit reaction.*CombatSuspended=false.*MovementMode=Walking" ($MovementResumeCountBeforeChoice + 1) $FlowTimeoutSeconds)) { throw "Hit-reacting enemy movement did not resume after closing the level-up modal." }
+    if (-not (Wait-LogPattern $ClientLog "ShotTracerStarted .* TimeDilation=0.25" $FlowTimeoutSeconds)) { throw "A shot tracer was not observed during slow motion." }
+    if (-not (Wait-LogPattern $ClientLog "ShotTracerExpired .* RealDuration=0.1[0-9][0-9] .* TimeDilation=0.25" $FlowTimeoutSeconds)) { throw "Shot tracer lifetime was affected by slow motion." }
     if (-not (Wait-LogPattern $ServerLog "MDS Settlement \| TransitionScheduled .* RealDuration=2.00" $FlowTimeoutSeconds)) { throw "Round-end transition was not scheduled for two real seconds." }
     $SettlementTransitionObservedAt = [DateTime]::UtcNow
     if (-not (Wait-LogPattern $ServerLog "MDS Settlement \| Began \| Round=1" $FlowTimeoutSeconds)) { throw "Round settlement did not open." }
@@ -129,10 +133,12 @@ try {
     Write-Host "Level-up two-second transition: PASS ($([Math]::Round($LevelUpTransitionSeconds, 2))s observed after schedule log)"
     Write-Host "Player fire recovery after modal: PASS"
     Write-Host "Repeated damage during hit reaction: PASS"
+    Write-Host "Hit-reacting enemy movement recovery: PASS"
+    Write-Host "Real-time shot tracer lifetime during slow motion: PASS"
     Write-Host "Round-end two-second transition: PASS ($([Math]::Round($SettlementTransitionSeconds, 2))s observed after schedule log)"
     Write-Host "Round settlement opened: PASS"
     Write-Host "No fatal runtime error: PASS"
-    Write-Host "R15 SLOW-MO AND FIRE RECOVERY VERIFY RESULT: PASS"
+    Write-Host "R16 ENEMY RESUME AND REAL-TIME TRACER VERIFY RESULT: PASS"
 }
 finally {
     Stop-MDSProcess $Client
