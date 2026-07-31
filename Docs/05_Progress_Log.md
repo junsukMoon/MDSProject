@@ -391,3 +391,14 @@ main
 - `MDSProjectEditor Win64 Development` build succeeded.
 - Manual Standalone review confirmed enemy locomotion, nonlethal hit pause/reaction, persistent death pose, and delayed fade.
 - The completed checkpoint was merged through PR #48 with merge commit `ed43547`.
+
+## GAS MVP R0~R12 완료 및 Dedicated Server 통합 검증
+
+- 날짜: 2026-08-01
+- R0~R11에서 문서 정렬, Player/Enemy GAS, Round/Wave, 처치 보상과 경험치, 전투 중 레벨업 중단·3지선다, 라운드 결과, 상점, 준비·제한시간과 최종 종료를 단계적으로 구현했습니다.
+- R12에서 `Run_Verify_MVPFlowDedicated.ps1`을 추가해 Dedicated Server와 스테이징 Client 2개의 전체 흐름을 자동 검증했습니다.
+- Client Cook/Stage가 성공했습니다.
+- 두 Client 접속부터 Round 1 전투 중 레벨업, 정산·상점·전원 준비, Round 2 최종 정산과 `Finished` Replication까지 12개 검사가 모두 통과했습니다.
+- `main` 병합 후 포트 `7992`에서 동일 회귀 검증을 다시 실행해 `R12 DEDICATED MVP FLOW VERIFY RESULT: PASS`를 확인했습니다.
+- 검증 종료 후 Unreal, UnrealBuildTool, AutomationTool, compiler와 UBA 잔류 프로세스가 없음을 확인했습니다.
+- 정식 성능 프로파일링은 실행하지 않았으며 MVP 제외·향후 확장 범위로 유지합니다.

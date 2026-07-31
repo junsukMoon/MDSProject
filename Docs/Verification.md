@@ -111,6 +111,14 @@ dedicated server support, standalone client behavior, Objective state, replicate
 - client log result
 - observed gameplay result
 
+현재 MVP 전체 흐름은 다음 명령으로 재현합니다.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Run_Verify_MVPFlowDedicated.ps1
+```
+
+이 검증은 Editor 실행 파일의 Dedicated Server 모드와 최신 스테이징 Client 2개를 사용합니다. 두 Client 접속, Round 1, 전투 중 레벨업 중단·강화, 정산·상점·전원 준비, Round 2, 최종 정산·`Finished`, Client Replication과 fatal/ensure 부재를 모두 통과해야 성공합니다.
+
 ## Network Replication Checks
 
 replicated property, RPC, authority check, ownership, damage, health, score, Objective HP, spawning, possession, client-visible gameplay state 변경에 사용합니다.
@@ -450,6 +458,15 @@ MDS v2 MVP 완료 검증, dedicated server runtime review, evidence 정리에 �
 - AnimNotify or client-only montage event does not directly apply authoritative damage.
 - Debug Overlay is not gameplay truth.
 - runtime evidence includes enough context to reproduce the scenario.
+
+2026-08-01 MVP 통합 검증 결과:
+
+- Script: `Run_Verify_MVPFlowDedicated.ps1`
+- Server: `MDSProjectEditor.exe -server`
+- Clients: staged `MDSProject.exe` 2개
+- Result: `R12 DEDICATED MVP FLOW VERIFY RESULT: PASS`
+- Assertions: 12/12 PASS
+- Formal profiling: 실행하지 않았으며 MVP 필수 검증이 아님
 
 ## Future Profiling Checks
 

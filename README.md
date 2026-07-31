@@ -4,7 +4,7 @@
 
 목표는 상용 완성형 게임이 아니라, 전투부터 라운드 정산·상점·다음 라운드까지 이어지는 소규모 플레이 가능한 버티컬 슬라이스를 만드는 것입니다.
 
-현재 저장소에는 검증된 Dedicated Server Objective Combat 기반선이 있습니다. GAS, PlayerState 기반 진행, 전투 중 레벨업, 라운드 정산과 상점은 새 목표 구조이며 아직 구현·검증 완료로 간주하지 않습니다.
+현재 저장소에는 Dedicated Server Objective Combat 기반선과 GAS, PlayerState 기반 진행, 전투 중 레벨업, 라운드 정산·상점, 다음 Round와 최종 종료 흐름이 구현되어 있습니다. 전체 흐름은 Dedicated Server와 Client 2개 환경에서 자동 검증했습니다.
 
 핵심 주제:
 
@@ -100,6 +100,11 @@ Mover, Motion Matching, Mutable, Mass Entity는 MVP에 직접 구현하지 않�
 - runtime debug state subsystem
 - visible two-client Objective HP verification
 - smoke verification script
+- PlayerState 소유 Ability System Component와 서버 권한 GAS 전투 실행 계층
+- 전투 중 경험치 레벨업, 전역 gameplay simulation 중단, 3지선다와 감속 전환
+- Round/Wave 분리, 라운드별 팀·개인 결과, 즉시 적용형 상점
+- 전원 준비 또는 제한시간 기반 다음 Round 전환과 마지막 Round 종료
+- Dedicated Server와 Client 2개를 사용하는 전체 MVP 흐름 자동 검증
 
 Verified runtime evidence:
 
@@ -121,6 +126,7 @@ Verified runtime evidence:
 - Dedicated Server + two-client automation verified four remote attack montage playbacks and fire-facing direction receipts on the observer's `SimulatedProxy`, with no owner duplicate or server animation playback.
 - Authored gameplay UI styling is viewport-verified: cyan Match HUD, gold Objective HP, and red Enemy HP labels retain replicated-state reads and actor-following placement.
 - Actor-following Objective/Enemy World UI evidence is recorded in `Docs/11_Runtime_Review_Evidence.md`.
+- Dedicated Server + Client 2개 MVP 흐름 검증: `R12 DEDICATED MVP FLOW VERIFY RESULT: PASS`. 두 Client 접속, 전투 중 레벨업과 강화, Round 1 정산·상점·전원 준비, Round 2 최종 정산, `Finished` Replication을 확인했습니다.
 
 남아 있는 선택적 polish 항목:
 
@@ -182,6 +188,7 @@ Debug / runtime evidence:
 - `UMDSDebugStateSubsystem`
 - `Run_Smoke_DedicatedServer_WithClient.ps1`
 - `Run_Verify_WaveDisplayState.ps1`
+- `Run_Verify_MVPFlowDedicated.ps1`
 - `Docs/11_Runtime_Review_Evidence.md`
 - `UMDSGameplayProfileSubsystem`은 future profiling/reference 용도로 유지
 
@@ -200,12 +207,14 @@ MDSProject/Source/MDSProject/Profiling
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\Run_Smoke_DedicatedServer_WithClient.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Run_Verify_MVPFlowDedicated.ps1
 ```
 
 최근 검증 결과:
 
 ```text
 SMOKE RESULT: PASS
+R12 DEDICATED MVP FLOW VERIFY RESULT: PASS
 ```
 
 검증 내용:
@@ -215,6 +224,10 @@ SMOKE RESULT: PASS
 - staged client 접속
 - server final Objective/Mass state 확인
 - client replicated Objective HP 확인
+- Client 2개 접속과 서버 권한 Round 1~2 진행
+- 전투 중 레벨업 중단, 서버 검증 강화와 전투 재개
+- 라운드 정산, 즉시 적용형 상점 구매와 플레이어별 준비
+- 마지막 Round 정산과 `Finished` 상태 Replication
 
 ## Current Evidence Status
 
@@ -232,6 +245,8 @@ Verified:
 - staged-client attack, hit reaction, and death animation playback API acceptance
 - paired pre-combat and playback-frame Attack, Hit, and Death viewport captures with non-zero center-region pixel deltas
 - verification-only runtime AnimNotify dispatch on the client with zero server-side Notify callbacks or presentation-only damage
+- GAS 기반 전투 중 레벨업, 전체 gameplay simulation 중단과 선택 후 재개
+- 라운드 결과, 상점 상품·구매, 전원 준비, 다음 Round와 마지막 Round 종료의 Dedicated Server + Client 2개 통합 흐름
 
 Not yet verified:
 
