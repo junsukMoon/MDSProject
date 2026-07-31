@@ -1,6 +1,8 @@
 #pragma once
 
+#include "AbilitySystemInterface.h"
 #include "CoreMinimal.h"
+#include "GameplayAbilitySpec.h"
 #include "GameFramework/Character.h"
 #include "TimerManager.h"
 #include "MDSCombatEnemyActor.generated.h"
@@ -11,9 +13,11 @@ class UAnimMontage;
 class UAnimSequenceBase;
 class USkeletalMesh;
 class UWidgetComponent;
+class UAbilitySystemComponent;
+class UGameplayAbility;
 
 UCLASS()
-class MDSPROJECT_API AMDSCombatEnemyActor : public ACharacter
+class MDSPROJECT_API AMDSCombatEnemyActor : public ACharacter, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
@@ -22,6 +26,7 @@ public:
 
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
 	float GetCurrentHealth() const { return CurrentHealth; }
 	float GetMaxHealth() const { return MaxHealth; }
@@ -29,6 +34,7 @@ public:
 
 	void InitializeCombatEnemy(AMDSObjectiveActor* InObjectiveActor, float InMoveSpeed, float InArrivalDistance, float InObjectiveDamageAmount);
 	bool ApplyEnemyDamage(float DamageAmount, FName DamageSource);
+	bool ResolveObjectiveAttackAbility();
 
 protected:
 	virtual void BeginPlay() override;
@@ -42,7 +48,7 @@ protected:
 private:
 	void HandleDeathOnce(FName DamageSource);
 	void HandleObjectiveArrivalOnce();
-	void ApplyObjectiveAttackDamage();
+	void RequestObjectiveAttackAbility();
 	void StartObjectiveAttackPresentation();
 	void PlayObjectiveAttackPresentation();
 	void StopObjectiveAttackPresentation();
@@ -62,6 +68,12 @@ private:
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Combat Enemy|UI")
 	TObjectPtr<UWidgetComponent> EnemyWorldWidgetComponent;
+
+	UPROPERTY(VisibleAnywhere, Category = "Combat Enemy|Abilities")
+	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Combat Enemy|Abilities")
+	TSubclassOf<UGameplayAbility> ObjectiveAttackAbilityClass;
 
 	UPROPERTY()
 	TObjectPtr<AMDSObjectiveActor> ObjectiveActor;
@@ -113,6 +125,7 @@ private:
 	FTimerHandle ObjectiveAttackPresentationTimerHandle;
 	FTimerHandle HitVisibleScreenshotTimerHandle;
 	FTimerHandle DeathVisibleScreenshotTimerHandle;
+	FGameplayAbilitySpecHandle ObjectiveAttackAbilityHandle;
 	int32 WorldUITrackingLogSamplesRemaining = 0;
 	bool bHitVisibleScreenshotRequested = false;
 	bool bDeathVisibleScreenshotRequested = false;
