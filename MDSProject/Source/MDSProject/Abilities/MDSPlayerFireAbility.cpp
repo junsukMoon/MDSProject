@@ -74,6 +74,8 @@ void UMDSPlayerFireAbility::ActivateAbility(
 	AttackDamage = FMath::Max(0.0f, AttackDamage);
 	AttackRange = FMath::Max(1.0f, AttackRange);
 	AttackCooldownSeconds = FMath::Max(0.0f, AttackCooldownSeconds);
+	AttackDamage *= MDSPlayerState->GetAttackPowerMultiplier();
+	AttackCooldownSeconds /= FMath::Max(0.01f, MDSPlayerState->GetFireRateMultiplier());
 
 	const FVector TraceStart = RequestingCharacter->GetActorLocation() + FVector(0.0f, 0.0f, 65.0f);
 	FVector ShotDirection = RequestedAimPoint - TraceStart;

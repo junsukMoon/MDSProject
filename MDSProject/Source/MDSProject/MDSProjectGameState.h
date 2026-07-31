@@ -13,6 +13,15 @@ enum class EMDSMatchPhase : uint8
 	Finished
 };
 
+UENUM(BlueprintType)
+enum class EMDSLevelUpFlowState : uint8
+{
+	None,
+	TransitionIn,
+	Selection,
+	TransitionOut
+};
+
 UCLASS()
 class MDSPROJECT_API AMDSProjectGameState : public AGameStateBase
 {
@@ -30,9 +39,11 @@ public:
 	int32 GetTotalEnemiesThisWave() const { return TotalEnemiesThisWave; }
 	bool IsWaveActive() const { return bWaveActive; }
 	bool IsCombatSuspended() const { return bCombatSuspended; }
+	EMDSLevelUpFlowState GetLevelUpFlowState() const { return LevelUpFlowState; }
 
 	void SetMatchState(EMDSMatchPhase InMatchPhase, int32 InCurrentRoundIndex);
 	void SetCombatSuspended(bool bInCombatSuspended);
+	void SetLevelUpFlowState(EMDSLevelUpFlowState InFlowState);
 	void SetWaveState(int32 InCurrentWaveIndex, int32 InEnemiesRemaining, bool bInWaveActive, int32 InTotalEnemiesThisWave);
 	void SetEnemiesRemaining(int32 InEnemiesRemaining);
 	void SetWaveActive(bool bInWaveActive);
@@ -55,6 +66,9 @@ private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_MatchState, VisibleInstanceOnly, Category = "Match")
 	bool bCombatSuspended = false;
+
+	UPROPERTY(ReplicatedUsing = OnRep_MatchState, VisibleInstanceOnly, Category = "Match")
+	EMDSLevelUpFlowState LevelUpFlowState = EMDSLevelUpFlowState::None;
 
 	UPROPERTY(ReplicatedUsing = OnRep_WaveState, VisibleInstanceOnly, Category = "Wave")
 	int32 CurrentWaveIndex = 0;

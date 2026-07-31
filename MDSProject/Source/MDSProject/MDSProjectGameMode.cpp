@@ -9,6 +9,7 @@
 #include "MDSProjectPlayerState.h"
 #include "MDSProjectGameState.h"
 #include "GameFramework/Pawn.h"
+#include "GameFramework/PlayerState.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
 #include "TimerManager.h"
@@ -156,8 +157,6 @@ void AMDSProjectGameMode::HandleEnemyDeathForWave(AMDSProjectPlayerState* Reward
 		PreviousEnemiesRemaining,
 		NewEnemiesRemaining);
 
-	CompleteWaveIfCleared();
-
 	AMDSProjectGameState* UpdatedGameState = GetGameState<AMDSProjectGameState>();
 	const bool bNewLevelUpPending = RewardRecipient
 		&& RewardRecipient->GetPendingLevelUpChoices() > PreviousPendingLevelUpChoices;
@@ -165,8 +164,103 @@ void AMDSProjectGameMode::HandleEnemyDeathForWave(AMDSProjectPlayerState* Reward
 		&& UpdatedGameState
 		&& UpdatedGameState->GetMatchPhase() == EMDSMatchPhase::Combat)
 	{
+		BeginLevelUpFlow();
+	}
+	CompleteWaveIfCleared();
+}
+
+void AMDSProjectGameMode::BeginLevelUpFlow()
+{
+	AMDSProjectGameState* MDSGameState = GetGameState<AMDSProjectGameState>();
+	if (!HasAuthority() || !MDSGameState || MDSGameState->GetLevelUpFlowState() != EMDSLevelUpFlowState::None)
+	{
+		return;
+	}
+
+	for (APlayerState* BasePlayerState : MDSGameState->PlayerArray)
+	{
+		if (AMDSProjectPlayerState* PlayerState = Cast<AMDSProjectPlayerState>(BasePlayerState);
+			PlayerState && PlayerState->GetPendingLevelUpChoices() > 0)
+		{
+			PlayerState->PrepareLevelUpChoices();
+		}
+	}
+
+	MDSGameState->SetLevelUpFlowState(EMDSLevelUpFlowState::TransitionIn);
+	GetWorldTimerManager().SetTimer(
+		LevelUpTransitionTimerHandle,
+		this,
+		&AMDSProjectGameMode::EnterLevelUpSelection,
+		0.0875f,
+		false);
+}
+
+void AMDSProjectGameMode::EnterLevelUpSelection()
+{
+	if (AMDSProjectGameState* MDSGameState = GetGameState<AMDSProjectGameState>())
+	{
+		MDSGameState->SetLevelUpFlowState(EMDSLevelUpFlowState::Selection);
 		SetCombatSuspended(true);
 	}
+}
+
+void AMDSProjectGameMode::HandleLevelUpChoice(AMDSProjectPlayerState* PlayerState, const EMDSLevelUpUpgrade Upgrade)
+{
+	AMDSProjectGameState* MDSGameState = GetGameState<AMDSProjectGameState>();
+	if (!HasAuthority() || !MDSGameState || MDSGameState->GetLevelUpFlowState() != EMDSLevelUpFlowState::Selection
+		|| !MDSGameState->IsCombatSuspended() || !PlayerState || !PlayerState->TryApplyLevelUpChoice(Upgrade))
+	{
+		return;
+	}
+
+	if (DoAllPlayersHaveNoPendingLevelUpChoices())
+	{
+		BeginLevelUpResume();
+	}
+}
+
+bool AMDSProjectGameMode::DoAllPlayersHaveNoPendingLevelUpChoices() const
+{
+	const AMDSProjectGameState* MDSGameState = GetGameState<AMDSProjectGameState>();
+	if (!MDSGameState)
+	{
+		return false;
+	}
+	for (const APlayerState* BasePlayerState : MDSGameState->PlayerArray)
+	{
+		const AMDSProjectPlayerState* PlayerState = Cast<AMDSProjectPlayerState>(BasePlayerState);
+		if (PlayerState && PlayerState->GetPendingLevelUpChoices() > 0)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+void AMDSProjectGameMode::BeginLevelUpResume()
+{
+	AMDSProjectGameState* MDSGameState = GetGameState<AMDSProjectGameState>();
+	if (!MDSGameState)
+	{
+		return;
+	}
+	SetCombatSuspended(false);
+	MDSGameState->SetLevelUpFlowState(EMDSLevelUpFlowState::TransitionOut);
+	GetWorldTimerManager().SetTimer(
+		LevelUpTransitionTimerHandle,
+		this,
+		&AMDSProjectGameMode::FinishLevelUpResume,
+		0.0875f,
+		false);
+}
+
+void AMDSProjectGameMode::FinishLevelUpResume()
+{
+	if (AMDSProjectGameState* MDSGameState = GetGameState<AMDSProjectGameState>())
+	{
+		MDSGameState->SetLevelUpFlowState(EMDSLevelUpFlowState::None);
+	}
+	CompleteWaveIfCleared();
 }
 
 void AMDSProjectGameMode::SetCombatSuspended(const bool bInCombatSuspended)
@@ -364,6 +458,11 @@ void AMDSProjectGameMode::CompleteWaveIfCleared()
 	}
 
 	if (!MDSGameState->IsWaveActive())
+	{
+		return;
+	}
+
+	if (MDSGameState->GetLevelUpFlowState() != EMDSLevelUpFlowState::None)
 	{
 		return;
 	}

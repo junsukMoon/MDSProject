@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Templates/SubclassOf.h"
 #include "GameFramework/PlayerController.h"
+#include "Progression/MDSLevelUpTypes.h"
 #include "MDSProjectPlayerController.generated.h"
 
 class UAnimMontage;
@@ -13,6 +14,7 @@ class UInputMappingContext;
 class UInputAction;
 class UMDSDebugOverlayWidget;
 class UMDSMatchHUDWidget;
+class UMDSLevelUpChoiceWidget;
 class AActor;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -48,6 +50,7 @@ public:
 
 	/** Constructor */
 	AMDSProjectPlayerController();
+	void RequestLevelUpChoice(EMDSLevelUpUpgrade Upgrade);
 
 protected:
 	virtual void BeginPlay() override;
@@ -86,9 +89,13 @@ private:
 	void TickAutoMoveVerification();
 	void StartMovementSnapshotVerification();
 	void LogMovementVerificationSnapshots();
+	void UpdateLevelUpChoiceUI();
 
 	UFUNCTION(Server, Reliable)
 	void ServerRequestAttack(FVector_NetQuantize RequestedAimPoint);
+
+	UFUNCTION(Server, Reliable)
+	void ServerSelectLevelUpChoice(EMDSLevelUpUpgrade Upgrade);
 
 	UPROPERTY(EditDefaultsOnly, Category = "MDS|UI", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UMDSDebugOverlayWidget> DebugOverlayWidgetClass;
@@ -107,6 +114,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMDSMatchHUDWidget> MatchHUDWidget;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMDSLevelUpChoiceWidget> LevelUpChoiceWidget;
 
 	FTimerHandle ReplicatedUIViewportScreenshotTimerHandle;
 	FTimerHandle AttackVisibleScreenshotTimerHandle;
@@ -129,6 +139,7 @@ private:
 	bool bAutoMoveDiagnosticSampleLogged = false;
 	bool bAutoMoveVerificationActive = false;
 	bool bAutoAttackSuspensionLogged = false;
+	bool bAutoLevelUpChoiceSubmitted = false;
 };
 
 

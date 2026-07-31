@@ -4,10 +4,12 @@
 #include "GameplayAbilitySpec.h"
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerState.h"
+#include "Progression/MDSLevelUpTypes.h"
 #include "MDSProjectPlayerState.generated.h"
 
 class UAbilitySystemComponent;
 class UGameplayAbility;
+class UMDSCombatAttributeSet;
 
 UCLASS()
 class MDSPROJECT_API AMDSProjectPlayerState : public APlayerState, public IAbilitySystemInterface
@@ -24,12 +26,18 @@ public:
 	bool TryActivateFireAbility(const FVector& RequestedAimPoint);
 	bool ConsumePendingFireAimPoint(FVector& OutAimPoint);
 	void GrantMatchReward(int32 CurrencyAmount, int32 ExperienceAmount);
+	void PrepareLevelUpChoices();
+	bool TryApplyLevelUpChoice(EMDSLevelUpUpgrade Upgrade);
 
 	int32 GetMatchCurrency() const { return MatchCurrency; }
 	int32 GetCurrentExperience() const { return CurrentExperience; }
 	int32 GetCurrentLevel() const { return CurrentLevel; }
 	int32 GetPendingLevelUpChoices() const { return PendingLevelUpChoices; }
+	const TArray<EMDSLevelUpUpgrade>& GetActiveLevelUpChoices() const { return ActiveLevelUpChoices; }
 	int32 GetExperienceRequiredForNextLevel() const;
+	float GetAttackPowerMultiplier() const;
+	float GetFireRateMultiplier() const;
+	float GetMoveSpeedMultiplier() const;
 
 private:
 	UFUNCTION()
@@ -40,6 +48,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "MDS|Abilities")
 	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
+
+	UPROPERTY(VisibleAnywhere, Category = "MDS|Abilities")
+	TObjectPtr<UMDSCombatAttributeSet> CombatAttributeSet;
 
 	UPROPERTY(ReplicatedUsing = OnRep_Progression, VisibleInstanceOnly, Category = "MDS|Progression")
 	int32 MatchCurrency = 0;
@@ -53,7 +64,11 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_Progression, VisibleInstanceOnly, Category = "MDS|Progression")
 	int32 PendingLevelUpChoices = 0;
 
+	UPROPERTY(ReplicatedUsing = OnRep_Progression, VisibleInstanceOnly, Category = "MDS|Progression")
+	TArray<EMDSLevelUpUpgrade> ActiveLevelUpChoices;
+
 	FGameplayAbilitySpecHandle FireAbilityHandle;
 	FVector PendingFireAimPoint = FVector::ZeroVector;
+	float CachedBaseWalkSpeed = 0.0f;
 	bool bHasPendingFireAimPoint = false;
 };
