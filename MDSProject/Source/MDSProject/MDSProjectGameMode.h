@@ -45,6 +45,7 @@ private:
 	void BeginRoundResultTracking(int32 RoundIndex, int32 TotalEnemyCount);
 	void FinalizeRoundResults();
 	void PublishRoundShopOffers();
+	void BeginRoundEndTransition();
 	void BeginRoundSettlement();
 	void HandleSettlementTimeout();
 	void EvaluateSettlementReadiness();
@@ -59,6 +60,7 @@ private:
 	FTimerHandle WaveStartTimerHandle;
 	FTimerHandle CombatResumeVerificationTimerHandle;
 	FTimerHandle LevelUpTransitionTimerHandle;
+	FTimerHandle RoundEndTransitionTimerHandle;
 	FTimerHandle SettlementTimerHandle;
 	int32 ScheduledWaveIndex = 0;
 	int32 MaxWaveCount = 3;

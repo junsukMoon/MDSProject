@@ -14,7 +14,7 @@ namespace
 {
 constexpr float DefaultAttackDamage = 25.0f;
 constexpr float DefaultAttackRange = 5000.0f;
-constexpr float DefaultAttackCooldownSeconds = 0.5f;
+constexpr float DefaultAttackCooldownSeconds = 0.1f;
 constexpr float PlayerFireAbilityHitRadius = 100.0f;
 constexpr float AttackFacingDurationSeconds = 0.2f;
 }

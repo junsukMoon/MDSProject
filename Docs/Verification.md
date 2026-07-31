@@ -17,6 +17,8 @@
 - ASC 소유자와 Avatar 초기화가 서버와 클라이언트에서 일치합니다.
 - 소유권이 없는 요청은 state를 변경하지 않습니다.
 - `State.RoundSettlement`, `State.LevelUpSelection`, `State.CombatSuspended` 동안 전투 Ability가 차단됩니다.
+- 전투 중 레벨업과 라운드 종료 시 각각 약 2초 실시간 슬로우 모션 전환이 적용되고, 선택 종료 후 입력 포커스와 사격이 복구됩니다.
+- 적의 피격 이동 정지 시간 중에도 서버 권한의 후속 공격 피해가 정상 적용됩니다.
 - AnimNotify, Gameplay Event, Gameplay Cue와 UI가 gameplay truth를 직접 변경하지 않습니다.
 - 기존 직접 RPC와 GAS Ability가 damage를 중복 적용하지 않습니다.
 

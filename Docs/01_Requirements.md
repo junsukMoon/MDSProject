@@ -13,8 +13,9 @@
 1. 라운드는 전투 시작부터 정산, 상점과 다음 라운드 준비까지의 전체 단위입니다.
 2. Wave는 한 라운드 안에서 생성되는 몬스터 묶음입니다.
 3. MVP에서 라운드당 Wave 하나를 사용하더라도 `RoundIndex`와 `WaveIndex`를 분리해야 합니다.
-4. Match Phase는 `Waiting`, `Combat`, `RoundSettlement`, `Finished`를 우선 사용합니다.
-5. `RoundSettlement`에서는 새 적 생성과 전투 Ability를 차단해야 합니다.
+4. Match Phase는 `Waiting`, `Combat`, `RoundEnding`, `RoundSettlement`, `Finished`를 우선 사용합니다.
+5. `RoundEnding`에서는 마지막 적 처치 직후 약 2초간 서버와 모든 클라이언트에 슬로우 모션을 적용하고 전투를 정지한 뒤 `RoundSettlement`로 전환합니다.
+6. `RoundSettlement`에서는 새 적 생성과 전투 Ability를 차단해야 합니다.
 6. 모든 유효 플레이어가 준비하거나 정산 제한시간이 끝나면 서버가 다음 라운드를 시작해야 합니다.
 7. 연결 해제된 플레이어가 준비 완료 집계를 막으면 안 됩니다.
 

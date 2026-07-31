@@ -90,6 +90,7 @@ AI 목표 선택, 이동 경로, Round/Wave, 보상, 상점 상품과 통계는 
 ```text
 Experience Threshold
 -> LevelUpTransitionIn
+-> 약 2초 실시간 슬로우 모션
 -> CombatSuspended
 -> LevelUpSelection
 -> Upgrade Applied
@@ -128,6 +129,7 @@ World Pause를 사용하지 않습니다.
 - Wave: Round 안의 몬스터 묶음
 - MVP는 라운드당 Wave 하나를 허용
 - 상태와 데이터 이름은 분리
+- 마지막 적 처치 후 `RoundEnding`에서 약 2초 실시간 슬로우 모션을 거쳐 `RoundSettlement` 진입
 - `RoundSettlement` 중 생성과 전투 Ability 금지
 
 ## UI

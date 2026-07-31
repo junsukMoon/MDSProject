@@ -11,6 +11,7 @@ enum class EMDSMatchPhase : uint8
 {
 	Waiting,
 	Combat,
+	RoundEnding,
 	RoundSettlement,
 	Finished
 };
@@ -66,6 +67,7 @@ protected:
 
 private:
 	bool HasWaveStateAuthority(const TCHAR* Context) const;
+	void ApplyCurrentTimeDilation();
 
 	UPROPERTY(ReplicatedUsing = OnRep_MatchState, VisibleInstanceOnly, Category = "Match")
 	EMDSMatchPhase MatchPhase = EMDSMatchPhase::Waiting;

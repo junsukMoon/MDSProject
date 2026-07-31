@@ -312,7 +312,11 @@ void AMDSProjectPlayerController::UpdateModalInputMode()
 	ActiveModalInputMode = DesiredModalInputMode;
 	if (DesiredModalInputMode == 0)
 	{
-		SetInputMode(FInputModeGameOnly());
+		FInputModeGameAndUI GameplayInputMode;
+		GameplayInputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		GameplayInputMode.SetHideCursorDuringCapture(false);
+		SetInputMode(GameplayInputMode);
+		bShowMouseCursor = true;
 		return;
 	}
 
