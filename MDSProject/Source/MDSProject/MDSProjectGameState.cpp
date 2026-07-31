@@ -1,6 +1,7 @@
 #include "MDSProjectGameState.h"
 
 #include "Debug/MDSDebugStateSubsystem.h"
+#include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMDSGameState, Log, All);
@@ -17,10 +18,30 @@ void AMDSProjectGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 	DOREPLIFETIME(AMDSProjectGameState, MatchPhase);
 	DOREPLIFETIME(AMDSProjectGameState, CurrentRoundIndex);
 	DOREPLIFETIME(AMDSProjectGameState, bCombatSuspended);
+	DOREPLIFETIME(AMDSProjectGameState, LevelUpFlowState);
 	DOREPLIFETIME(AMDSProjectGameState, CurrentWaveIndex);
 	DOREPLIFETIME(AMDSProjectGameState, EnemiesRemaining);
 	DOREPLIFETIME(AMDSProjectGameState, TotalEnemiesThisWave);
 	DOREPLIFETIME(AMDSProjectGameState, bWaveActive);
+}
+
+void AMDSProjectGameState::SetLevelUpFlowState(const EMDSLevelUpFlowState InFlowState)
+{
+	if (!HasWaveStateAuthority(TEXT("SetLevelUpFlowState")))
+	{
+		return;
+	}
+
+	LevelUpFlowState = InFlowState;
+	const float TimeDilation =
+		(InFlowState == EMDSLevelUpFlowState::TransitionIn || InFlowState == EMDSLevelUpFlowState::TransitionOut)
+		? 0.25f
+		: 1.0f;
+	UGameplayStatics::SetGlobalTimeDilation(this, TimeDilation);
+	UE_LOG(LogMDSGameState, Log, TEXT("MDS LevelUp | FlowState=%s | TimeDilation=%.2f."),
+		*UEnum::GetValueAsString(LevelUpFlowState),
+		TimeDilation);
+	ForceNetUpdate();
 }
 
 void AMDSProjectGameState::SetCombatSuspended(const bool bInCombatSuspended)
@@ -154,11 +175,17 @@ void AMDSProjectGameState::OnRep_WaveState()
 
 void AMDSProjectGameState::OnRep_MatchState()
 {
+	const float TimeDilation =
+		(LevelUpFlowState == EMDSLevelUpFlowState::TransitionIn || LevelUpFlowState == EMDSLevelUpFlowState::TransitionOut)
+		? 0.25f
+		: 1.0f;
+	UGameplayStatics::SetGlobalTimeDilation(this, TimeDilation);
 	UE_LOG(LogMDSGameState, Log,
-		TEXT("Match state replicated on client: Phase=%s Round=%d CombatSuspended=%s."),
+		TEXT("Match state replicated on client: Phase=%s Round=%d CombatSuspended=%s LevelUpFlow=%s."),
 		*UEnum::GetValueAsString(MatchPhase),
 		CurrentRoundIndex,
-		bCombatSuspended ? TEXT("true") : TEXT("false"));
+		bCombatSuspended ? TEXT("true") : TEXT("false"),
+		*UEnum::GetValueAsString(LevelUpFlowState));
 }
 
 bool AMDSProjectGameState::HasWaveStateAuthority(const TCHAR* Context) const

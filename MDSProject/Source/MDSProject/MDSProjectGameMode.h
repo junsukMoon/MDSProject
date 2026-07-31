@@ -7,6 +7,7 @@
 #include "MDSProjectGameMode.generated.h"
 
 class AMDSProjectPlayerState;
+enum class EMDSLevelUpUpgrade : uint8;
 
 /**
  *  Simple Game Mode for a top-down perspective game
@@ -26,6 +27,7 @@ public:
 	void StartWave(int32 WaveIndex, int32 TotalEnemies);
 	void HandleEnemyDeathForWave(AMDSProjectPlayerState* RewardRecipient);
 	void SetCombatSuspended(bool bInCombatSuspended);
+	void HandleLevelUpChoice(AMDSProjectPlayerState* PlayerState, EMDSLevelUpUpgrade Upgrade);
 
 protected:
 	virtual void BeginPlay() override;
@@ -37,10 +39,16 @@ private:
 	void ScheduleWaveStart(int32 WaveIndex, float DelaySeconds);
 	void StartScheduledWave();
 	void CompleteWaveIfCleared();
+	void BeginLevelUpFlow();
+	void EnterLevelUpSelection();
+	void BeginLevelUpResume();
+	void FinishLevelUpResume();
+	bool DoAllPlayersHaveNoPendingLevelUpChoices() const;
 	int32 GetEnemyCountForWave(int32 WaveIndex) const;
 
 	FTimerHandle WaveStartTimerHandle;
 	FTimerHandle CombatResumeVerificationTimerHandle;
+	FTimerHandle LevelUpTransitionTimerHandle;
 	int32 ScheduledWaveIndex = 0;
 	int32 MaxWaveCount = 3;
 	int32 InitialWaveEnemyCount = 3;

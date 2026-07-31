@@ -30,6 +30,8 @@
 #include "UObject/SoftObjectPath.h"
 #include "UI/MDSDebugOverlayWidget.h"
 #include "UI/MDSMatchHUDWidget.h"
+#include "UI/MDSLevelUpChoiceWidget.h"
+#include "MDSProjectGameMode.h"
 #include "UnrealClient.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMDSPlayerCombat, Log, All);
@@ -148,6 +150,7 @@ void AMDSProjectPlayerController::BeginPlay()
 
 void AMDSProjectPlayerController::PlayerTick(float DeltaTime)
 {
+	UpdateLevelUpChoiceUI();
 	ApplyKeyboardMovementInput();
 
 	if (bAutoMoveVerificationActive)
@@ -156,6 +159,75 @@ void AMDSProjectPlayerController::PlayerTick(float DeltaTime)
 	}
 
 	Super::PlayerTick(DeltaTime);
+}
+
+void AMDSProjectPlayerController::UpdateLevelUpChoiceUI()
+{
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+	const AMDSProjectGameState* GameState = GetWorld() ? GetWorld()->GetGameState<AMDSProjectGameState>() : nullptr;
+	const AMDSProjectPlayerState* MDSPlayerState = GetPlayerState<AMDSProjectPlayerState>();
+	const bool bShouldShow = GameState
+		&& GameState->GetLevelUpFlowState() == EMDSLevelUpFlowState::Selection
+		&& MDSPlayerState
+		&& MDSPlayerState->GetPendingLevelUpChoices() > 0;
+
+	if (bShouldShow)
+	{
+		if (!LevelUpChoiceWidget)
+		{
+			LevelUpChoiceWidget = CreateWidget<UMDSLevelUpChoiceWidget>(this, UMDSLevelUpChoiceWidget::StaticClass());
+			LevelUpChoiceWidget->AddToPlayerScreen(100);
+		}
+		LevelUpChoiceWidget->RefreshChoices();
+		LevelUpChoiceWidget->SetVisibility(ESlateVisibility::Visible);
+		FInputModeGameAndUI InputMode;
+		InputMode.SetWidgetToFocus(LevelUpChoiceWidget->TakeWidget());
+		SetInputMode(InputMode);
+
+		if (!bAutoLevelUpChoiceSubmitted && FParse::Param(FCommandLine::Get(), TEXT("MDSAutoSelectLevelUp")))
+		{
+			bAutoLevelUpChoiceSubmitted = true;
+			int32 ChoiceIndex = 0;
+			FParse::Value(FCommandLine::Get(), TEXT("MDSLevelUpChoiceIndex="), ChoiceIndex);
+			const TArray<EMDSLevelUpUpgrade>& Choices = MDSPlayerState->GetActiveLevelUpChoices();
+			if (Choices.IsValidIndex(ChoiceIndex))
+			{
+				UE_LOG(LogMDSPlayerCombat, Log,
+					TEXT("MDS LevelUp | VerificationChoiceRequested | Index=%d | Upgrade=%s."),
+					ChoiceIndex,
+					LexToString(Choices[ChoiceIndex]));
+				RequestLevelUpChoice(Choices[ChoiceIndex]);
+			}
+		}
+	}
+	else if (LevelUpChoiceWidget && LevelUpChoiceWidget->IsVisible())
+	{
+		LevelUpChoiceWidget->SetVisibility(ESlateVisibility::Collapsed);
+		SetInputMode(FInputModeGameOnly());
+	}
+	if (!MDSPlayerState || MDSPlayerState->GetPendingLevelUpChoices() <= 0)
+	{
+		bAutoLevelUpChoiceSubmitted = false;
+	}
+}
+
+void AMDSProjectPlayerController::RequestLevelUpChoice(const EMDSLevelUpUpgrade Upgrade)
+{
+	if (IsLocalController())
+	{
+		ServerSelectLevelUpChoice(Upgrade);
+	}
+}
+
+void AMDSProjectPlayerController::ServerSelectLevelUpChoice_Implementation(const EMDSLevelUpUpgrade Upgrade)
+{
+	if (AMDSProjectGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AMDSProjectGameMode>() : nullptr)
+	{
+		GameMode->HandleLevelUpChoice(GetPlayerState<AMDSProjectPlayerState>(), Upgrade);
+	}
 }
 
 void AMDSProjectPlayerController::ApplyKeyboardMovementInput()
