@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Templates/SubclassOf.h"
 #include "GameFramework/PlayerController.h"
+#include "Progression/MDSLevelUpTypes.h"
 #include "MDSProjectPlayerController.generated.h"
 
 class UAnimMontage;
@@ -13,6 +14,7 @@ class UInputMappingContext;
 class UInputAction;
 class UMDSDebugOverlayWidget;
 class UMDSMatchHUDWidget;
+class UMDSLevelUpChoiceWidget;
 class AActor;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -48,6 +50,7 @@ public:
 
 	/** Constructor */
 	AMDSProjectPlayerController();
+	void RequestLevelUpChoice(EMDSLevelUpUpgrade Upgrade);
 
 protected:
 	virtual void BeginPlay() override;
@@ -64,7 +67,6 @@ private:
 	UMDSDebugOverlayWidget* GetOrCreateDebugOverlay();
 	UMDSMatchHUDWidget* GetOrCreateMatchHUD();
 	void RequestReplicatedUIViewportScreenshot();
-	void ServerProcessDirectionalAttack(FVector_NetQuantize RequestedAimPoint);
 	void ApplyKeyboardMovementInput();
 	FVector GetAimPointFromCursor() const;
 	FVector ResolvePredictedShotEnd(const FVector& AimPoint) const;
@@ -87,9 +89,13 @@ private:
 	void TickAutoMoveVerification();
 	void StartMovementSnapshotVerification();
 	void LogMovementVerificationSnapshots();
+	void UpdateLevelUpChoiceUI();
 
 	UFUNCTION(Server, Reliable)
 	void ServerRequestAttack(FVector_NetQuantize RequestedAimPoint);
+
+	UFUNCTION(Server, Reliable)
+	void ServerSelectLevelUpChoice(EMDSLevelUpUpgrade Upgrade);
 
 	UPROPERTY(EditDefaultsOnly, Category = "MDS|UI", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UMDSDebugOverlayWidget> DebugOverlayWidgetClass;
@@ -97,14 +103,8 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "MDS|UI", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UMDSMatchHUDWidget> MatchHUDWidgetClass;
 
-	UPROPERTY(EditDefaultsOnly, Category = "MDS|Combat", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
-	float AttackDamage = 25.0f;
-
 	UPROPERTY(EditDefaultsOnly, Category = "MDS|Combat", meta = (AllowPrivateAccess = "true", ClampMin = "1.0"))
 	float AttackRange = 5000.0f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "MDS|Combat", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
-	float AttackCooldownSeconds = 0.5f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "MDS|Combat Presentation", meta = (AllowPrivateAccess = "true"))
 	TSoftObjectPtr<UAnimMontage> AttackPresentationMontage;
@@ -114,6 +114,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMDSMatchHUDWidget> MatchHUDWidget;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMDSLevelUpChoiceWidget> LevelUpChoiceWidget;
 
 	FTimerHandle ReplicatedUIViewportScreenshotTimerHandle;
 	FTimerHandle AttackVisibleScreenshotTimerHandle;
@@ -126,7 +129,6 @@ private:
 	FTimerHandle AutoMoveStartTimerHandle;
 	FTimerHandle MovementSnapshotTimerHandle;
 	TMap<TWeakObjectPtr<AActor>, FVector> MovementVerificationStartLocations;
-	double LastServerAttackTimeSeconds = -1000000.0;
 	double AutoMoveEndTimeSeconds = 0.0;
 	int32 AutoAttackAttemptsRemaining = 0;
 	FString AttackRejectVerificationScenario;
@@ -136,6 +138,8 @@ private:
 	bool bAttackVisibleScreenshotRequested = false;
 	bool bAutoMoveDiagnosticSampleLogged = false;
 	bool bAutoMoveVerificationActive = false;
+	bool bAutoAttackSuspensionLogged = false;
+	bool bAutoLevelUpChoiceSubmitted = false;
 };
 
 

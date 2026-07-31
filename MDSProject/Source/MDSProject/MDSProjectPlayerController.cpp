@@ -6,6 +6,8 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "MDSProjectCharacter.h"
+#include "MDSProjectPlayerState.h"
+#include "MDSProjectGameState.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "Engine/World.h"
@@ -28,13 +30,15 @@
 #include "UObject/SoftObjectPath.h"
 #include "UI/MDSDebugOverlayWidget.h"
 #include "UI/MDSMatchHUDWidget.h"
+#include "UI/MDSLevelUpChoiceWidget.h"
+#include "MDSProjectGameMode.h"
 #include "UnrealClient.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMDSPlayerCombat, Log, All);
 
 namespace
 {
-constexpr float DirectionalAttackHitRadius = 100.0f;
+constexpr float PlayerFirePredictionHitRadius = 100.0f;
 constexpr float AttackFacingFallbackDuration = 0.2f;
 
 bool ShouldLogPlayerCombatPresentation()
@@ -146,6 +150,7 @@ void AMDSProjectPlayerController::BeginPlay()
 
 void AMDSProjectPlayerController::PlayerTick(float DeltaTime)
 {
+	UpdateLevelUpChoiceUI();
 	ApplyKeyboardMovementInput();
 
 	if (bAutoMoveVerificationActive)
@@ -154,6 +159,75 @@ void AMDSProjectPlayerController::PlayerTick(float DeltaTime)
 	}
 
 	Super::PlayerTick(DeltaTime);
+}
+
+void AMDSProjectPlayerController::UpdateLevelUpChoiceUI()
+{
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+	const AMDSProjectGameState* GameState = GetWorld() ? GetWorld()->GetGameState<AMDSProjectGameState>() : nullptr;
+	const AMDSProjectPlayerState* MDSPlayerState = GetPlayerState<AMDSProjectPlayerState>();
+	const bool bShouldShow = GameState
+		&& GameState->GetLevelUpFlowState() == EMDSLevelUpFlowState::Selection
+		&& MDSPlayerState
+		&& MDSPlayerState->GetPendingLevelUpChoices() > 0;
+
+	if (bShouldShow)
+	{
+		if (!LevelUpChoiceWidget)
+		{
+			LevelUpChoiceWidget = CreateWidget<UMDSLevelUpChoiceWidget>(this, UMDSLevelUpChoiceWidget::StaticClass());
+			LevelUpChoiceWidget->AddToPlayerScreen(100);
+		}
+		LevelUpChoiceWidget->RefreshChoices();
+		LevelUpChoiceWidget->SetVisibility(ESlateVisibility::Visible);
+		FInputModeGameAndUI InputMode;
+		InputMode.SetWidgetToFocus(LevelUpChoiceWidget->TakeWidget());
+		SetInputMode(InputMode);
+
+		if (!bAutoLevelUpChoiceSubmitted && FParse::Param(FCommandLine::Get(), TEXT("MDSAutoSelectLevelUp")))
+		{
+			bAutoLevelUpChoiceSubmitted = true;
+			int32 ChoiceIndex = 0;
+			FParse::Value(FCommandLine::Get(), TEXT("MDSLevelUpChoiceIndex="), ChoiceIndex);
+			const TArray<EMDSLevelUpUpgrade>& Choices = MDSPlayerState->GetActiveLevelUpChoices();
+			if (Choices.IsValidIndex(ChoiceIndex))
+			{
+				UE_LOG(LogMDSPlayerCombat, Log,
+					TEXT("MDS LevelUp | VerificationChoiceRequested | Index=%d | Upgrade=%s."),
+					ChoiceIndex,
+					LexToString(Choices[ChoiceIndex]));
+				RequestLevelUpChoice(Choices[ChoiceIndex]);
+			}
+		}
+	}
+	else if (LevelUpChoiceWidget && LevelUpChoiceWidget->IsVisible())
+	{
+		LevelUpChoiceWidget->SetVisibility(ESlateVisibility::Collapsed);
+		SetInputMode(FInputModeGameOnly());
+	}
+	if (!MDSPlayerState || MDSPlayerState->GetPendingLevelUpChoices() <= 0)
+	{
+		bAutoLevelUpChoiceSubmitted = false;
+	}
+}
+
+void AMDSProjectPlayerController::RequestLevelUpChoice(const EMDSLevelUpUpgrade Upgrade)
+{
+	if (IsLocalController())
+	{
+		ServerSelectLevelUpChoice(Upgrade);
+	}
+}
+
+void AMDSProjectPlayerController::ServerSelectLevelUpChoice_Implementation(const EMDSLevelUpUpgrade Upgrade)
+{
+	if (AMDSProjectGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AMDSProjectGameMode>() : nullptr)
+	{
+		GameMode->HandleLevelUpChoice(GetPlayerState<AMDSProjectPlayerState>(), Upgrade);
+	}
 }
 
 void AMDSProjectPlayerController::ApplyKeyboardMovementInput()
@@ -286,6 +360,14 @@ void AMDSProjectPlayerController::OnAttackPressed()
 	{
 		return;
 	}
+	const AMDSProjectGameState* MDSGameState = GetWorld() ? GetWorld()->GetGameState<AMDSProjectGameState>() : nullptr;
+	if (MDSGameState && MDSGameState->IsCombatSuspended())
+	{
+		UE_LOG(LogMDSPlayerCombat, Log,
+			TEXT("MDS GAS Fire | LocalInputBlocked | Reason=CombatSuspended | Controller=%s."),
+			*GetNameSafe(this));
+		return;
+	}
 	if (ShouldCaptureCombatAnimationPoseDelta())
 	{
 		UE_LOG(LogMDSPlayerCombat, Log, TEXT("MDS CombatAnimationVisibleCapture | ManualAttackIgnored | Reason=PoseDeltaVerification."));
@@ -344,7 +426,7 @@ FVector AMDSProjectPlayerController::ResolvePredictedShotEnd(const FVector& AimP
 		if (DistanceAlongShot >= 0.0f
 			&& DistanceAlongShot <= AttackRange
 			&& DistanceAlongShot < ClosestDistanceAlongShot
-			&& DistanceFromShot <= DirectionalAttackHitRadius)
+			&& DistanceFromShot <= PlayerFirePredictionHitRadius)
 		{
 			ClosestEnemy = Enemy;
 			ClosestDistanceAlongShot = DistanceAlongShot;
@@ -391,13 +473,6 @@ float AMDSProjectPlayerController::GetAttackFacingDuration() const
 void AMDSProjectPlayerController::ConfigureAttackFromCommandLine()
 {
 	bool bConfigured = false;
-	float ParsedAttackDamage = AttackDamage;
-	if (FParse::Value(FCommandLine::Get(), TEXT("MDSAttackDamage="), ParsedAttackDamage))
-	{
-		AttackDamage = FMath::Max(0.0f, ParsedAttackDamage);
-		bConfigured = true;
-	}
-
 	float ParsedAttackRange = AttackRange;
 	if (FParse::Value(FCommandLine::Get(), TEXT("MDSAttackRange="), ParsedAttackRange))
 	{
@@ -405,20 +480,11 @@ void AMDSProjectPlayerController::ConfigureAttackFromCommandLine()
 		bConfigured = true;
 	}
 
-	float ParsedAttackCooldownSeconds = AttackCooldownSeconds;
-	if (FParse::Value(FCommandLine::Get(), TEXT("MDSAttackCooldown="), ParsedAttackCooldownSeconds))
-	{
-		AttackCooldownSeconds = FMath::Max(0.0f, ParsedAttackCooldownSeconds);
-		bConfigured = true;
-	}
-
 	if (bConfigured || FParse::Param(FCommandLine::Get(), TEXT("MDSAutoAttackNearestEnemy")))
 	{
-		UE_LOG(LogMDSPlayerCombat, Log, TEXT("MDS Combat | AttackConfig | Controller=%s | Damage=%.1f | Range=%.1f | Cooldown=%.2f."),
+		UE_LOG(LogMDSPlayerCombat, Log, TEXT("MDS Combat | AttackPresentationConfig | Controller=%s | Range=%.1f."),
 			*GetNameSafe(this),
-			AttackDamage,
-			AttackRange,
-			AttackCooldownSeconds);
+			AttackRange);
 	}
 }
 
@@ -462,6 +528,20 @@ void AMDSProjectPlayerController::TryAutoAttackNearestEnemy()
 		GetWorldTimerManager().ClearTimer(AutoAttackTimerHandle);
 		return;
 	}
+
+	const AMDSProjectGameState* MDSGameState = GetWorld() ? GetWorld()->GetGameState<AMDSProjectGameState>() : nullptr;
+	if (MDSGameState && MDSGameState->IsCombatSuspended())
+	{
+		if (!bAutoAttackSuspensionLogged)
+		{
+			bAutoAttackSuspensionLogged = true;
+			UE_LOG(LogMDSPlayerCombat, Log,
+				TEXT("MDS GAS Fire | AutoAttackBlocked | Reason=CombatSuspended | Controller=%s."),
+				*GetNameSafe(this));
+		}
+		return;
+	}
+	bAutoAttackSuspensionLogged = false;
 
 	if (AutoAttackAttemptsRemaining <= 0)
 	{
@@ -901,117 +981,30 @@ void AMDSProjectPlayerController::ServerRequestAttack_Implementation(const FVect
 		}
 	}
 
-	ServerProcessDirectionalAttack(ServerAimPoint);
-}
-
-void AMDSProjectPlayerController::ServerProcessDirectionalAttack(const FVector_NetQuantize RequestedAimPoint)
-{
-	APawn* RequestingPawn = GetPawn();
-	if (!RequestingPawn)
+	if (!GetPawn())
 	{
-		UE_LOG(LogMDSPlayerCombat, Warning, TEXT("MDS Combat | ServerAttackRejected | Reason=NoPawn | Controller=%s."),
+		UE_LOG(LogMDSPlayerCombat, Warning,
+			TEXT("MDS GAS Fire | ActivationRejected | Reason=NoPawn | Controller=%s."),
 			*GetNameSafe(this));
 		return;
 	}
 
-	const FVector TraceStart = RequestingPawn->GetActorLocation() + FVector(0.0f, 0.0f, 65.0f);
-	FVector ShotDirection2D = RequestedAimPoint - TraceStart;
-	ShotDirection2D.Z = 0.0f;
-	if (!ShotDirection2D.Normalize())
+	AMDSProjectPlayerState* MDSPlayerState = GetPlayerState<AMDSProjectPlayerState>();
+	if (!MDSPlayerState)
 	{
-		UE_LOG(LogMDSPlayerCombat, Warning, TEXT("MDS Combat | ServerAttackRejected | Reason=InvalidDirection | Requester=%s."),
-			*GetNameSafe(RequestingPawn));
-		return;
-	}
-	const FVector ShotDirection = ShotDirection2D;
-	const float TraceDistance = AttackRange;
-
-	if (AttackDamage <= 0.0f)
-	{
-		UE_LOG(LogMDSPlayerCombat, Warning, TEXT("MDS Combat | ServerAttackRejected | Reason=InvalidDamage | Requester=%s | Damage=%.1f."),
-			*GetNameSafe(RequestingPawn),
-			AttackDamage);
+		UE_LOG(LogMDSPlayerCombat, Warning,
+			TEXT("MDS GAS Fire | ActivationRejected | Reason=MissingPlayerState | Controller=%s."),
+			*GetNameSafe(this));
 		return;
 	}
 
-	UWorld* World = GetWorld();
-	const double CurrentTimeSeconds = World ? World->GetTimeSeconds() : 0.0;
-	const double CooldownRemaining = LastServerAttackTimeSeconds + AttackCooldownSeconds - CurrentTimeSeconds;
-	if (CooldownRemaining > 0.0)
-	{
-		UE_LOG(LogMDSPlayerCombat, Log, TEXT("MDS Combat | ServerAttackRejected | Reason=Cooldown | Requester=%s | CooldownRemaining=%.2f."),
-			*GetNameSafe(RequestingPawn),
-			CooldownRemaining);
-		return;
-	}
-
-	AMDSCombatEnemyActor* TargetEnemy = nullptr;
-	float ClosestDistanceAlongShot = TraceDistance + 1.0f;
-	if (World)
-	{
-		for (TActorIterator<AMDSCombatEnemyActor> EnemyIt(World); EnemyIt; ++EnemyIt)
-		{
-			AMDSCombatEnemyActor* CandidateEnemy = *EnemyIt;
-			if (!CandidateEnemy || CandidateEnemy->IsDead())
-			{
-				continue;
-			}
-
-			FVector ToEnemy = CandidateEnemy->GetActorLocation() - TraceStart;
-			ToEnemy.Z = 0.0f;
-			const float DistanceAlongShot = FVector::DotProduct(ToEnemy, ShotDirection);
-			if (DistanceAlongShot < 0.0f || DistanceAlongShot > TraceDistance || DistanceAlongShot >= ClosestDistanceAlongShot)
-			{
-				continue;
-			}
-
-			const FVector ClosestPointOnShot = ShotDirection * DistanceAlongShot;
-			const float DistanceFromShot = FVector::Dist2D(ToEnemy, ClosestPointOnShot);
-			if (DistanceFromShot <= DirectionalAttackHitRadius)
-			{
-				TargetEnemy = CandidateEnemy;
-				ClosestDistanceAlongShot = DistanceAlongShot;
-			}
-		}
-	}
-	const FVector TraceEnd = TargetEnemy ? TargetEnemy->GetActorLocation() : FVector(RequestedAimPoint);
-
-	LastServerAttackTimeSeconds = CurrentTimeSeconds;
-	if (AMDSProjectCharacter* RequestingCharacter = Cast<AMDSProjectCharacter>(RequestingPawn))
-	{
-		RequestingCharacter->MulticastPlayRemoteAttackPresentation(
-			TEXT("ServerDirectionalFire"),
-			ShotDirection,
-			TraceEnd,
-			GetAttackFacingDuration());
-	}
-
-	if (!TargetEnemy || TargetEnemy->IsDead())
+	if (!MDSPlayerState->TryActivateFireAbility(ServerAimPoint))
 	{
 		UE_LOG(LogMDSPlayerCombat, Log,
-			TEXT("MDS Combat | ServerAttackResolved | Requester=%s | Target=%s | Valid=true | Hit=false | Direction=%s | TraceEnd=%s | Range=%.1f | HitRadius=%.1f | DamageApplied=false."),
-			*GetNameSafe(RequestingPawn),
-			*GetNameSafe(TargetEnemy),
-			*ShotDirection.ToCompactString(),
-			*TraceEnd.ToCompactString(),
-			AttackRange,
-			DirectionalAttackHitRadius);
-		return;
+			TEXT("MDS GAS Fire | ActivationRejected | Reason=AbilityUnavailable | Controller=%s | PlayerState=%s."),
+			*GetNameSafe(this),
+			*GetNameSafe(MDSPlayerState));
 	}
-
-	const float PreviousHealth = TargetEnemy->GetCurrentHealth();
-	const bool bDamageApplied = TargetEnemy->ApplyEnemyDamage(AttackDamage, TEXT("PlayerAttack"));
-	const float NewHealth = TargetEnemy->GetCurrentHealth();
-
-	UE_LOG(LogMDSPlayerCombat, Log, TEXT("MDS Combat | ServerAttackResolved | Requester=%s | Target=%s | Valid=true | Hit=true | Direction=%s | TraceEnd=%s | DamageApplied=%s | Damage=%.1f | EnemyHP=%.1f->%.1f."),
-		*GetNameSafe(RequestingPawn),
-		*GetNameSafe(TargetEnemy),
-		*ShotDirection.ToCompactString(),
-		*TraceEnd.ToCompactString(),
-		bDamageApplied ? TEXT("true") : TEXT("false"),
-		AttackDamage,
-		PreviousHealth,
-		NewHealth);
 }
 
 UMDSDebugOverlayWidget* AMDSProjectPlayerController::GetOrCreateDebugOverlay()

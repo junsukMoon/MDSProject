@@ -2,6 +2,8 @@
 
 이 문서는 MDS v2 `Phase 1: Dedicated Server Combat Baseline`의 설계 기준을 정의합니다.
 
+이 문서의 직접 Server RPC 전투는 현재 검증된 기반선입니다. 최종 MVP 전투 실행 계층은 `Docs/GAS_Architecture.md`를 따르며, 기존 경로를 한 번에 삭제하지 않고 Gameplay Ability로 단계 전환합니다. 전환 중 동일 공격이 기존 RPC와 GAS에서 중복 damage를 적용하면 안 됩니다.
+
 ## Objective
 
 MDS v2는 Dedicated Server Objective Combat Demo입니다.

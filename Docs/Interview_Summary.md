@@ -1,8 +1,20 @@
-# Interview Summary
+# 면접 요약
 
 이 문서는 MDS v2를 면접에서 짧게 설명하기 위한 요약입니다.
 
-## 30초 설명
+## 최종 목표와 현재 검증 범위
+
+최종 목표는 GAS 기반 Dedicated Server 성 방어 로그라이트 슈터의 소규모 플레이 가능한 버티컬 슬라이스입니다.
+
+서버가 전투, HP, 사망, 처치 귀속, 재화, 경험치, Level, Round/Wave, 강화, 구매와 준비를 확정합니다.
+
+경험치가 충족되면 Combat 중 즉시 레벨업합니다. 짧은 감속 후 서버 권한 `CombatSuspended` 상태로 gameplay actor, AI, Projectile, damage와 Wave 진행을 멈추고 3지선다를 처리합니다. 모든 필수 선택 이후 복귀 감속을 거쳐 같은 Round/Wave를 재개합니다. Dedicated Server World Pause는 사용하지 않습니다.
+
+모든 Round 종료 시 결과와 즉시 적용형 상점을 같은 화면에 표시합니다. 이 상점은 Inventory가 아니며 3지선다는 Skill Tree가 아닙니다.
+
+현재 검증 완료 범위는 아래 기존 Dedicated Server Objective Combat 기반선입니다. GAS, 전투 중 레벨업, 라운드 정산과 상점은 목표 구조이며 아직 구현·검증 완료로 간주하지 않습니다.
+
+## 기존 기반선 30초 설명
 
 MDS v2는 Dedicated Server 환경에서 동작하는 Objective Combat Demo입니다. 서버가 전투 판정, Enemy HP, Objective HP, Wave 진행을 소유하고, 클라이언트는 replicated state를 기반으로 UI와 combat presentation을 갱신합니다. CMC 이동은 Authority/AutonomousProxy/SimulatedProxy에서 복제를 확인했고 persistent authored montage Notify도 staged client에서 검증했습니다. 프레임 단위 pose 변화는 후속 evidence 범위입니다. Mover, Motion Matching, Mutable, Mass Entity는 MVP 구현이 아니라 future extension으로 문서화했습니다.
 

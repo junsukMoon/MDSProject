@@ -1,19 +1,24 @@
 #pragma once
 
+#include "AbilitySystemInterface.h"
 #include "CoreMinimal.h"
+#include "GameplayAbilitySpec.h"
 #include "GameFramework/Character.h"
 #include "TimerManager.h"
 #include "MDSCombatEnemyActor.generated.h"
 
 class AMDSObjectiveActor;
+class AMDSProjectPlayerState;
 class UAnimInstance;
 class UAnimMontage;
 class UAnimSequenceBase;
 class USkeletalMesh;
 class UWidgetComponent;
+class UAbilitySystemComponent;
+class UGameplayAbility;
 
 UCLASS()
-class MDSPROJECT_API AMDSCombatEnemyActor : public ACharacter
+class MDSPROJECT_API AMDSCombatEnemyActor : public ACharacter, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
@@ -22,13 +27,16 @@ public:
 
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
 	float GetCurrentHealth() const { return CurrentHealth; }
 	float GetMaxHealth() const { return MaxHealth; }
 	bool IsDead() const { return CurrentHealth <= 0.0f; }
 
 	void InitializeCombatEnemy(AMDSObjectiveActor* InObjectiveActor, float InMoveSpeed, float InArrivalDistance, float InObjectiveDamageAmount);
-	bool ApplyEnemyDamage(float DamageAmount, FName DamageSource);
+	bool ApplyEnemyDamage(float DamageAmount, FName DamageSource, AMDSProjectPlayerState* RewardRecipient = nullptr);
+	bool ResolveObjectiveAttackAbility();
+	void SetCombatSuspended(bool bInCombatSuspended);
 
 protected:
 	virtual void BeginPlay() override;
@@ -36,9 +44,16 @@ protected:
 	UFUNCTION()
 	void OnRep_CurrentHealth(float PreviousHealth);
 
+	UFUNCTION()
+	void OnRep_ObjectiveAttackState();
+
 private:
-	void HandleDeathOnce(FName DamageSource);
+	void HandleDeathOnce(FName DamageSource, AMDSProjectPlayerState* RewardRecipient);
 	void HandleObjectiveArrivalOnce();
+	void RequestObjectiveAttackAbility();
+	void StartObjectiveAttackPresentation();
+	void PlayObjectiveAttackPresentation();
+	void StopObjectiveAttackPresentation();
 	void PauseMovementForHitReaction();
 	void ResumeMovementAfterHitReaction();
 	void InitializePresentationMesh();
@@ -56,6 +71,12 @@ private:
 	UPROPERTY(VisibleDefaultsOnly, Category = "Combat Enemy|UI")
 	TObjectPtr<UWidgetComponent> EnemyWorldWidgetComponent;
 
+	UPROPERTY(VisibleAnywhere, Category = "Combat Enemy|Abilities")
+	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Combat Enemy|Abilities")
+	TSubclassOf<UGameplayAbility> ObjectiveAttackAbilityClass;
+
 	UPROPERTY()
 	TObjectPtr<AMDSObjectiveActor> ObjectiveActor;
 
@@ -69,6 +90,9 @@ private:
 	TSoftClassPtr<UAnimInstance> EnemyPresentationAnimClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Combat Enemy|Presentation")
+	TSoftObjectPtr<UAnimSequenceBase> ObjectiveAttackAnimation;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Combat Enemy|Presentation")
 	TSoftObjectPtr<UAnimSequenceBase> HitReactionAnimation;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Combat Enemy|Presentation")
@@ -80,6 +104,9 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentHealth, VisibleInstanceOnly, Category = "Combat Enemy")
 	float CurrentHealth = 100.0f;
 
+	UPROPERTY(ReplicatedUsing = OnRep_ObjectiveAttackState, VisibleInstanceOnly, Category = "Combat Enemy")
+	bool bIsAttackingObjective = false;
+
 	float MoveSpeed = 320.0f;
 	float ArrivalDistance = 150.0f;
 	float ObjectiveDamageAmount = 5.0f;
@@ -90,14 +117,18 @@ private:
 	bool bDeathFadeActive = false;
 	bool bMovementDiagnosticLogged = false;
 	bool bMovementPausedForHitReaction = false;
+	bool bCombatSuspended = false;
 	float DeathFadeElapsedSeconds = 0.0f;
 
 	FTimerHandle WorldUITrackingLogTimerHandle;
 	FTimerHandle DeathFadeDelayTimerHandle;
 	FTimerHandle DeathPoseFreezeTimerHandle;
 	FTimerHandle HitMovementPauseTimerHandle;
+	FTimerHandle ObjectiveDamageTimerHandle;
+	FTimerHandle ObjectiveAttackPresentationTimerHandle;
 	FTimerHandle HitVisibleScreenshotTimerHandle;
 	FTimerHandle DeathVisibleScreenshotTimerHandle;
+	FGameplayAbilitySpecHandle ObjectiveAttackAbilityHandle;
 	int32 WorldUITrackingLogSamplesRemaining = 0;
 	bool bHitVisibleScreenshotRequested = false;
 	bool bDeathVisibleScreenshotRequested = false;

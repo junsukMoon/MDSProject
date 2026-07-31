@@ -2,15 +2,18 @@
 
 #pragma once
 
+#include "AbilitySystemInterface.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "MDSProjectCharacter.generated.h"
+
+class UAbilitySystemComponent;
 
 /**
  *  A controllable top-down perspective character
  */
 UCLASS(abstract)
-class AMDSProjectCharacter : public ACharacter
+class AMDSProjectCharacter : public ACharacter, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
@@ -31,12 +34,17 @@ public:
 
 	/** Initialization */
 	virtual void BeginPlay() override;
+	virtual void PossessedBy(AController* NewController) override;
+	virtual void OnRep_PlayerState() override;
 
 	/** Update */
 	virtual void Tick(float DeltaSeconds) override;
 
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
 	void RequestLocalAttackPresentation(FName PresentationSource);
 	void ApplyMovementInput(const FVector2D& MovementInput);
+	void SetCombatSuspended(bool bInCombatSuspended);
 	void BeginTemporaryFireFacing(const FVector& AimDirection, float DurationSeconds);
 	void PlayShotTracerPresentation(const FVector& TraceEnd);
 
@@ -66,12 +74,15 @@ private:
 	void OnMoveInput(const struct FInputActionValue& Value);
 	void PlayAttackMontagePresentation(FName PresentationSource);
 	void RestoreMovementFacing();
+	void InitializeAbilitySystemActorInfo();
 
 	FVector MovementVerificationStartLocation = FVector::ZeroVector;
 	FVector LockedFireFacingDirection = FVector::ForwardVector;
 	double LastMovementVerificationLogTimeSeconds = -1000000.0;
 	bool bMovementVerificationInitialized = false;
 	bool bFireFacingLocked = false;
+	bool bCombatSuspended = false;
+	TWeakObjectPtr<UAbilitySystemComponent> CachedAbilitySystemComponent;
 	FTimerHandle FireFacingTimerHandle;
 };
 
