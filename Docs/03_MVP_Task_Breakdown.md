@@ -47,7 +47,10 @@
 | R9 | Round Result Data | 팀 공통 및 개인 결과 분리 |
 | R10 | Settlement / Shop UI | 결과와 즉시 적용형 상점 |
 | R11 | Ready / Timeout / Finished | 다음 Round와 마지막 Round |
-| R12 | Dedicated Server Verification | 다중 클라이언트와 profiling |
+| R12 | Dedicated Server Verification | 다중 클라이언트 통합 흐름과 Replication 검증 |
+| R13 | MVP Evidence Closeout | 실제 검증 결과, 재현 절차와 MVP 완료 범위 문서화 |
+
+R0~R12 구현과 자동 검증은 완료되었습니다. R13은 새 gameplay 기능을 추가하지 않고 실제 검증 증거를 문서에 반영하는 마감 단계입니다. 정식 성능 프로파일링은 `Docs/08_Profiling_Comparison.md`에 정의된 향후 확장 범위로 유지합니다.
 
 ### R7 전투 중단 분해 원칙
 

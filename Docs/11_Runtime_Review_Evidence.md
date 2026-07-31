@@ -900,6 +900,48 @@ Observed:
 - The fourth hit killed the enemy and did not resume movement.
 - Continuous Wave and PlayerAttack Valid passed without fatal/ensure.
 
+## GAS MVP Dedicated Server 통합 검증
+
+검증일: 2026-08-01
+
+실행 구성:
+
+- Script: `Run_Verify_MVPFlowDedicated.ps1`
+- Server: 현재 `MDSProjectEditor.exe`의 `-server -NullRHI` 모드
+- Clients: 최신 Cook/Stage를 거친 `MDSProject.exe` 2개
+- Map: `/Game/TopDown/Lvl_TopDown`
+- Main 회귀 검증 포트: `7992`
+
+결과:
+
+```text
+Two clients connected: PASS
+Round 1 started: PASS
+Level-up suspension occurred: PASS
+Level-up effect applied: PASS
+Shop offers published: PASS
+Shop purchase applied: PASS
+All players ready: PASS
+Round 2 started: PASS
+Final settlement observed: PASS
+Match finished: PASS
+Client replication observed: PASS
+No fatal runtime error: PASS
+R12 DEDICATED MVP FLOW VERIFY RESULT: PASS
+```
+
+서버 로그에서 확인한 흐름:
+
+- 두 Client의 `Join succeeded`
+- Round 1에서 플레이어별 전투 중 레벨업 선택과 `AttackPower` 강화 적용
+- Round 1 결과 확정 후 상품 3개 게시
+- 두 플레이어의 `Shop.MoveSpeed` 구매와 `Ready=true`
+- `AllPlayersReady | Count=2` 이후 Round 2 시작
+- Round 2 최종 정산에서 상점 비활성화
+- `RoundSettlement -> Finished` 전환
+
+Client 로그에서는 최종 `Finished`, Round 2 결과와 전투 중단 해제가 Replication된 것을 확인했습니다. 이 검증은 gameplay correctness와 네트워크 동기화 증거이며 정식 성능 프로파일링 결과가 아닙니다.
+
 ## Manual Follow-Up
 
 Authored gameplay UI style update (2026-07-23): `WBP_MDSMatchHUD`, `WBP_MDSObjectiveWorldUI`, and `WBP_MDSEnemyWorldUI` were compiled/saved twice through the idempotent Editor Python script. The latest replicated UI EngineShot shows cyan Match HUD text, gold Objective HP, and red Enemy HP labels at four actor-attached positions. All underlying viewport PASS checks were true and fatal/CommonUI errors were false. Production panel/art polish remains optional.
