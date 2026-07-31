@@ -2,6 +2,15 @@
 
 #include "Abilities/MDSPlayerFireAbility.h"
 #include "AbilitySystemComponent.h"
+#include "Net/UnrealNetwork.h"
+
+DEFINE_LOG_CATEGORY_STATIC(LogMDSPlayerProgression, Log, All);
+
+namespace
+{
+constexpr int32 BaseExperiencePerLevel = 100;
+constexpr int32 ExperienceIncreasePerLevel = 50;
+}
 
 AMDSProjectPlayerState::AMDSProjectPlayerState()
 {
@@ -24,6 +33,16 @@ void AMDSProjectPlayerState::BeginPlay()
 UAbilitySystemComponent* AMDSProjectPlayerState::GetAbilitySystemComponent() const
 {
 	return AbilitySystemComponent;
+}
+
+void AMDSProjectPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AMDSProjectPlayerState, MatchCurrency);
+	DOREPLIFETIME(AMDSProjectPlayerState, CurrentExperience);
+	DOREPLIFETIME(AMDSProjectPlayerState, CurrentLevel);
+	DOREPLIFETIME(AMDSProjectPlayerState, PendingLevelUpChoices);
 }
 
 bool AMDSProjectPlayerState::TryActivateFireAbility(const FVector& RequestedAimPoint)
@@ -53,4 +72,60 @@ bool AMDSProjectPlayerState::ConsumePendingFireAimPoint(FVector& OutAimPoint)
 	OutAimPoint = PendingFireAimPoint;
 	bHasPendingFireAimPoint = false;
 	return true;
+}
+
+void AMDSProjectPlayerState::GrantMatchReward(const int32 CurrencyAmount, const int32 ExperienceAmount)
+{
+	if (!HasAuthority())
+	{
+		UE_LOG(LogMDSPlayerProgression, Warning,
+			TEXT("Rejected non-authority match reward grant. PlayerState=%s."),
+			*GetNameSafe(this));
+		return;
+	}
+
+	const int32 PreviousCurrency = MatchCurrency;
+	const int32 PreviousExperience = CurrentExperience;
+	const int32 PreviousLevel = CurrentLevel;
+	const int32 PreviousPendingChoices = PendingLevelUpChoices;
+
+	MatchCurrency += FMath::Max(0, CurrencyAmount);
+	CurrentExperience += FMath::Max(0, ExperienceAmount);
+
+	while (CurrentExperience >= GetExperienceRequiredForNextLevel())
+	{
+		CurrentExperience -= GetExperienceRequiredForNextLevel();
+		++CurrentLevel;
+		++PendingLevelUpChoices;
+	}
+
+	UE_LOG(LogMDSPlayerProgression, Log,
+		TEXT("MDS Progression | RewardGranted | PlayerState=%s | Currency=%d->%d | Experience=%d->%d | Level=%d->%d | PendingChoices=%d->%d."),
+		*GetNameSafe(this),
+		PreviousCurrency,
+		MatchCurrency,
+		PreviousExperience,
+		CurrentExperience,
+		PreviousLevel,
+		CurrentLevel,
+		PreviousPendingChoices,
+		PendingLevelUpChoices);
+
+	ForceNetUpdate();
+}
+
+int32 AMDSProjectPlayerState::GetExperienceRequiredForNextLevel() const
+{
+	return BaseExperiencePerLevel + FMath::Max(0, CurrentLevel - 1) * ExperienceIncreasePerLevel;
+}
+
+void AMDSProjectPlayerState::OnRep_Progression()
+{
+	UE_LOG(LogMDSPlayerProgression, Log,
+		TEXT("MDS Progression | Replicated | PlayerState=%s | Currency=%d | Experience=%d | Level=%d | PendingChoices=%d."),
+		*GetNameSafe(this),
+		MatchCurrency,
+		CurrentExperience,
+		CurrentLevel,
+		PendingLevelUpChoices);
 }

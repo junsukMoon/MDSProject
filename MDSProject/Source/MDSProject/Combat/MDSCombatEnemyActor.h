@@ -8,6 +8,7 @@
 #include "MDSCombatEnemyActor.generated.h"
 
 class AMDSObjectiveActor;
+class AMDSProjectPlayerState;
 class UAnimInstance;
 class UAnimMontage;
 class UAnimSequenceBase;
@@ -33,7 +34,7 @@ public:
 	bool IsDead() const { return CurrentHealth <= 0.0f; }
 
 	void InitializeCombatEnemy(AMDSObjectiveActor* InObjectiveActor, float InMoveSpeed, float InArrivalDistance, float InObjectiveDamageAmount);
-	bool ApplyEnemyDamage(float DamageAmount, FName DamageSource);
+	bool ApplyEnemyDamage(float DamageAmount, FName DamageSource, AMDSProjectPlayerState* RewardRecipient = nullptr);
 	bool ResolveObjectiveAttackAbility();
 
 protected:
@@ -46,7 +47,7 @@ protected:
 	void OnRep_ObjectiveAttackState();
 
 private:
-	void HandleDeathOnce(FName DamageSource);
+	void HandleDeathOnce(FName DamageSource, AMDSProjectPlayerState* RewardRecipient);
 	void HandleObjectiveArrivalOnce();
 	void RequestObjectiveAttackAbility();
 	void StartObjectiveAttackPresentation();
